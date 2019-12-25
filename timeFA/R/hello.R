@@ -1,6 +1,6 @@
 # Hello, world!
 #
-# This is an example function named 'hello'
+# This is an example function named 'hello' 
 # which prints 'Hello, world!'.
 #
 # You can learn more about package authoring with RStudio at:
@@ -9,18 +9,10 @@
 #
 # Some useful keyboard shortcuts for package authoring:
 #
-#   Build and Reload Package:  'Ctrl + Shift + B'
+#   Install Package:           'Ctrl + Shift + B'
 #   Check Package:             'Ctrl + Shift + E'
 #   Test Package:              'Ctrl + Shift + T'
 
-#' @title societyhill.
-#'
-#' @return a string.
-#' @export
-#'
-#' @examples
-#' test <- societyhill()
-#'
-societyhill <- function() {
-  print("Social Person Lives in Society Hill!")
+hello <- function() {
+  print("Hello, world!")
 }
