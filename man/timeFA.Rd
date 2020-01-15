@@ -3,13 +3,18 @@
 \docType{package}
 \name{timeFA}
 \alias{timeFA}
-\title{foo: A package for computating the notorious bar statistic.}
+\title{timeFA: factor and autoregressive models for high dimensional time series.}
 \description{
-The foo package provides three categories of important functions:
-foo, bar and baz.
+The timefa package provides two categories of models:
+factor models and autoregressive models.
 }
-\section{Foo functions}{
+\section{factor model functions}{
 
-The foo functions ...
+The functions ...
+}
+
+\section{autoregressive model functions}{
+
+The functions ...
 }
 

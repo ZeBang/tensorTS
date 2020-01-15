@@ -11,9 +11,8 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     tensor,
-    rTensor
+    rTensor,
+    MASS,
+    abind
 RoxygenNote: 7.0.2
-Suggests: 
-    knitr,
-    rmarkdown
 VignetteBuilder: knitr
