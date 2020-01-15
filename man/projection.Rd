@@ -26,7 +26,6 @@ Kronecker product approximation used in Projection Method of matrix-value time s
 \examples{
 A <- matrix(runif(6),ncol=2),
 projection(A,3,3,2,2)
-
 }
 \seealso{
 \code{\link{MAR1.projection}}
