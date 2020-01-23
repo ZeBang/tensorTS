@@ -1,0 +1,362 @@
+\documentclass[a4paper]{book}
+\usepackage[times,inconsolata,hyper]{Rd}
+\usepackage{makeidx}
+\usepackage[utf8]{inputenc} % @SET ENCODING@
+% \usepackage{graphicx} % @USE GRAPHICX@
+\makeindex{}
+\begin{document}
+\chapter*{}
+\begin{center}
+{\textbf{\huge Package `timeFA'}}
+\par\bigskip{\large \today}
+\end{center}
+\begin{description}
+\raggedright{}
+\inputencoding{utf8}
+\item[Type]\AsIs{Package}
+\item[Title]\AsIs{Factor Models and Autoregressive Models for Time Series}
+\item[Version]\AsIs{0.1.0.9000}
+\item[Author@R]\AsIs{person(``Zebang'', ``Li'', email = ``zebang.li@rutgers.edu'',
+role = c(``aut'', ``cre''))}
+\item[Description]\AsIs{More about what it does (maybe more than one line)
+Use four spaces when indenting paragraphs within the Description.}
+\item[License]\AsIs{GPL (>= 2)}
+\item[Encoding]\AsIs{UTF-8}
+\item[LazyData]\AsIs{true}
+\item[Imports]\AsIs{tensor,
+rTensor,
+MASS,
+abind}
+\item[RoxygenNote]\AsIs{7.0.2}
+\item[VignetteBuilder]\AsIs{knitr}
+\end{description}
+\Rdcontents{\R{} topics documented:}
+\inputencoding{utf8}
+\HeaderA{add}{Add together two numbers.}{add}
+%
+\begin{Description}\relax
+Add together two numbers.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+add(x, y)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{x}] A number.
+
+\item[\code{y}] A number.
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+The sum of \code{x} and \code{y}.
+\end{Value}
+%
+\begin{Examples}
+\begin{ExampleCode}
+add(1, 1)
+add(10, 1)
+\end{ExampleCode}
+\end{Examples}
+\inputencoding{utf8}
+\HeaderA{MAR.SE}{Asymptotic Covariance Matrix of \code{MAR1.otimes}}{MAR.SE}
+%
+\begin{Description}\relax
+Asymptotic covariance Matrix of \code{MAR1.otimes} for given A, B and matrix-valued time series xx, see Theory 3 in paper.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+MAR.SE(xx, B, A, Sigma)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{xx}] T * p * q matrix-valued time series
+
+\item[\code{B}] q by q matrix in MAR(1) model
+
+\item[\code{A}] p by p matrix in MAR(1) model
+
+\item[\code{Sig}] covariance matrix cov(vec(E\_t)) in MAR(1) model
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+asmptotic covariance matrix
+\end{Value}
+%
+\begin{Examples}
+\begin{ExampleCode}
+# given T * p * q time series xx
+out2=MAR1.LS(xx)
+FnormLL=sqrt(sum(out2$LL))
+xdim=p;ydim=q
+out2Xi=MAR.SE(xx.nm,out2$RR*FnormLL,out2$LL/FnormLL,out2$Sig)
+out2SE=sqrt(diag(out2Xi))
+SE.A=matrix(out2SE[1:xdim^2],nrow=xdim)
+SE.B=t(matrix(out2SE[-(1:xdim^2)],nrow=ydim))
+\end{ExampleCode}
+\end{Examples}
+\inputencoding{utf8}
+\HeaderA{MAR1.LS}{Least Squares Iterative Estimation}{MAR1.LS}
+%
+\begin{Description}\relax
+Iterated least squares estimation in the model \eqn{X_t = LL * X_{t-1} * RR + E_t}{}.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+MAR1.LS(xx, niter = 50, tol = 1e-06, print.true = FALSE)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{xx}] T * p * q matrix-valued time series
+
+\item[\code{niter}] maximum number of iterations if error stays above \code{tol}
+
+\item[\code{tol}] relative Frobenius norm error tolerance
+
+\item[\code{print.true}] printe LL and RR
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+a list containing the following:\begin{description}
+
+\item[\code{LL}] estimator of LL, a p by p matrix
+\item[\code{RR}] estimator of RR, a q by q matrix
+\item[\code{res}] residual of the MAR(1)
+\item[\code{Sig}] covariance matrix cov(vec(E\_t))
+\item[\code{dis}] Frobenius norm difference of last update
+\item[\code{niter}] number of iterations
+
+\end{description}
+
+\end{Value}
+\inputencoding{utf8}
+\HeaderA{MAR1.otimes}{MLE under a structured covariance tensor}{MAR1.otimes}
+%
+\begin{Description}\relax
+MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL X_{t-1} RR + E_t}{} such that \eqn{Sig = cov(vec(E_t)) = Sigr otimes Sigl}{}.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+MAR1.otimes(
+  xx,
+  LL.init = NULL,
+  Sigl.init = NULL,
+  Sigr.init = NULL,
+  niter = 50,
+  tol = 1e-06,
+  print.true = FALSE
+)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{xx}] T * p * q matrix-valued time series
+
+\item[\code{LL.init}] initial value of LL
+
+\item[\code{Sigl.init}] initial value of Sigl
+
+\item[\code{Sigr.init}] initial value of Sigr
+
+\item[\code{niter}] maximum number of iterations if error stays above \code{tol}
+
+\item[\code{tol}] relative Frobenius norm error tolerance
+
+\item[\code{print.true}] printe LL and RR
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+a list containing the following:\begin{description}
+
+\item[\code{LL}] estimator of LL, a p by p matrix
+\item[\code{RR}] estimator of RR, a q by q matrix
+\item[\code{res}] residual of the MAR(1)
+\item[\code{Sigl}] one part of structured covariance matrix Sig=Sigr otimes Sigl
+\item[\code{Sigr}] one part of structured covariance matrix Sig=Sigr otimes Sigl
+\item[\code{dis}] Frobenius norm difference of last update
+\item[\code{niter}] number of iterations
+
+\end{description}
+
+\end{Value}
+\inputencoding{utf8}
+\HeaderA{MAR1.projection}{Projection Method}{MAR1.projection}
+%
+\begin{Description}\relax
+MAR(1) one step projection estimation in the model \eqn{X_t = LL * X_{t-1} * RR + E_t}{}.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+MAR1.projection(xx)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{xx}] T * p * q matrix-valued time series
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+a list containing the following:\begin{description}
+
+\item[\code{LL}] estimator of LL, a p by p matrix
+\item[\code{RR}] estimator of RR, a q by q matrix
+\item[\code{res}] residual of the MAR(1)
+\item[\code{Sig}] covariance matrix cov(vec(E\_t))
+
+\end{description}
+
+\end{Value}
+\inputencoding{utf8}
+\HeaderA{projection}{Kronecker Product Approximation}{projection}
+%
+\begin{Description}\relax
+Kronecker product approximation used in Projection Method of matrix-value time series.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+projection(A, m1, m2, n1, n2)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{A}] m by n matrix such that \eqn{m = m1*n1}{} and \eqn{n = m2*n2}{}
+
+\item[\code{m1}] \code{ncol} of A
+
+\item[\code{m2}] \code{ncol} of B
+
+\item[\code{n1}] \code{nrow} of A
+
+\item[\code{n2}] \code{nrow} of B
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+a list contaning two estimator (matrix)
+\end{Value}
+%
+\begin{SeeAlso}\relax
+\code{\LinkA{MAR1.projection}{MAR1.projection}}
+\end{SeeAlso}
+%
+\begin{Examples}
+\begin{ExampleCode}
+A <- matrix(runif(6),ncol=2),
+projection(A,3,3,2,2)
+\end{ExampleCode}
+\end{Examples}
+\inputencoding{utf8}
+\HeaderA{rearrange}{Rearrangement Operator}{rearrange}
+%
+\begin{Description}\relax
+Rearrangement Operator used for projection method.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+rearrange(A, m1, m2, n1, n2)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{A}] m by n matrix such that \eqn{m = m1*n1}{} and \eqn{n = m2*n2}{}
+
+\item[\code{m1}] \code{ncol} of A
+
+\item[\code{m2}] \code{ncol} of B
+
+\item[\code{n1}] \code{nrow} of A
+
+\item[\code{n2}] \code{nrow} of B
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+rearengement matrix
+\#'@seealso \code{\LinkA{MAR1.projection}{MAR1.projection}}
+\end{Value}
+%
+\begin{Examples}
+\begin{ExampleCode}
+A <- matrix(runif(6),ncol=2),
+B <- matrix(runif(6),ncol=2),
+M <- kronecker(B,A)
+rearrange(M,3,3,2,2) == t(as.vector(A)) %*% as.vector(B)
+'TRUE'
+\end{ExampleCode}
+\end{Examples}
+\inputencoding{utf8}
+\HeaderA{timeFA}{timeFA: factor and autoregressive models for high dimensional time series.}{timeFA}
+%
+\begin{Description}\relax
+The timefa package provides two categories of models:
+factor models and autoregressive models.
+\end{Description}
+%
+\begin{Section}{factor model functions}
+
+The functions ...
+\end{Section}
+%
+\begin{Section}{autoregressive model functions}
+
+The functions ...
+\end{Section}
+\inputencoding{utf8}
+\HeaderA{var1}{Stacked vector AR(1) Model}{var1}
+%
+\begin{Description}\relax
+vector AR(1) Model.
+\end{Description}
+%
+\begin{Usage}
+\begin{verbatim}
+var1(xx)
+\end{verbatim}
+\end{Usage}
+%
+\begin{Arguments}
+\begin{ldescription}
+\item[\code{xx}] T * p * q matrix-valued time series
+\end{ldescription}
+\end{Arguments}
+%
+\begin{Value}
+a list containing the following:\begin{description}
+
+\item[\code{coef}] coeficient of the fitted VAR(1) model
+\item[\code{res}] residual of the VAR(1) model
+
+\end{description}
+
+\end{Value}
+%
+\begin{Examples}
+\begin{ExampleCode}
+out.var1=var1(xx)
+sum(out.var1$res**2)
+\end{ExampleCode}
+\end{Examples}
+\printindex{}
+\end{document}

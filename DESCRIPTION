@@ -1,7 +1,7 @@
 Package: timeFA
 Type: Package
 Title: Factor Models and Autoregressive Models for Time Series
-Version: 0.1.0.9000
+Version: 0.1.0
 Author@R: person("Zebang", "Li", email = "zebang.li@rutgers.edu",
                role = c("aut", "cre"))
 Description: More about what it does (maybe more than one line)
