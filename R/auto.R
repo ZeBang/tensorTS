@@ -198,7 +198,7 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
 MAR1.otimes <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,tol=1e-6,print.true = FALSE){
   # xx: T * p * q
   # X_t = LL X_{t-1} RR + E_t
-  # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
+  # Sig = cov(vec(E_t)) = Sigr otimes Sigl
   # optimization criterion is likelihood
   # iterative algorithm between LL <--> RR <--> Sig_r <--> Sig_l
   # Return LL, RR, Sigl, Sigr
