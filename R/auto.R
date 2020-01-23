@@ -6,7 +6,6 @@
 #'@name rearrange
 #'@rdname rearrange
 #'@aliases rearrange
-#'@export
 #'@param A m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}
 #'@param m1 \code{ncol} of A
 #'@param m2 \code{ncol} of B
@@ -48,7 +47,6 @@ rearrange <- function(A,m1,m2,n1,n2){
 #'@name projection
 #'@rdname projection
 #'@aliases projection
-#'@export
 #'@param A m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}
 #'@param m1 \code{ncol} of A
 #'@param m2 \code{ncol} of B
