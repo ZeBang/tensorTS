@@ -13,6 +13,7 @@ Imports:
     tensor,
     rTensor,
     MASS,
-    abind
+    abind,
+    igraph
 RoxygenNote: 7.0.2
 VignetteBuilder: knitr
