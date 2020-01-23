@@ -34,12 +34,12 @@ a list containing the following:\describe{
 \item{\code{LL}}{estimator of LL, a p by p matrix}
 \item{\code{RR}}{estimator of RR, a q by q matrix}
 \item{\code{res}}{residual of the MAR(1)}
-\item{\code{Sigl}}{one part of structured covariance matrix Sig=Sigr otimes Sigl}
-\item{\code{Sigr}}{one part of structured covariance matrix Sig=Sigr otimes Sigl}
+\item{\code{Sigl}}{one part of structured covariance matrix \eqn{Sig=Sigr \otimes Sigl}}
+\item{\code{Sigr}}{one part of structured covariance matrix \eqn{Sig=Sigr \otimes Sigl}}
 \item{\code{dis}}{Frobenius norm difference of last update}
 \item{\code{niter}}{number of iterations}
 }
 }
 \description{
-MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL X_{t-1} RR + E_t} such that \eqn{Sig = cov(vec(E_t)) = Sigr otimes Sigl}.
+MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL * X_{t-1} * RR + E_t} such that \eqn{Sig = cov(vec(E_t)) = Sigr \otimes Sigl}.
 }
