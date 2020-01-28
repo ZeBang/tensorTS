@@ -1,3 +1,11 @@
 # timeFA
+
+#### Installation
+
 There is an install_github function to install R packages hosted on GitHub in the devtools package.
+
+For now our R package is hosted on GitHub. You can install it by:
+'''
 install_github("ZeBang/timeFA")
+'''
+Remark: You have to install package "devtools" first if you haven't.
