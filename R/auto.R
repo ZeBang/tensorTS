@@ -172,7 +172,7 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
 
 #' MLE under a structured covariance tensor
 #'
-#' MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL * X_{t-1} * RR + E_t} such that \eqn{Sig = cov(vec(E_t)) = Sigr \otimes Sigl}.
+#' MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL * X_{t-1} * RR + E_t} such that \eqn{\Sigma = cov(vec(E_t)) = \Sigma_r \otimes \Sigma_l}.
 #'@name MAR1.otimes
 #'@rdname MAR1.otimes
 #'@aliases MAR1.otimes
@@ -188,9 +188,9 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
 #'\item{\code{LL}}{estimator of LL, a p by p matrix}
 #'\item{\code{RR}}{estimator of RR, a q by q matrix}
 #'\item{\code{res}}{residual of the MAR(1)}
-#'\item{\code{Sigl}}{one part of structured covariance matrix \eqn{Sig=Sigr \otimes Sigl}}
-#'\item{\code{Sigr}}{one part of structured covariance matrix \eqn{Sig=Sigr \otimes Sigl}}
-#'\item{\code{dis}}{Frobenius norm difference of last update}
+#'\item{\code{Sigl}}{one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
+#'\item{\code{Sigr}}{one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
+#'\item{\code{dis}}{Frobenius norm difference of the final update step}
 #'\item{\code{niter}}{number of iterations}
 #'}
 MAR1.otimes <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,tol=1e-6,print.true = FALSE){
