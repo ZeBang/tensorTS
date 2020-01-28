@@ -1,6 +1,8 @@
 ###Functions of Factor Models
 
-# This approach is for the vector-valued estimation WITHOUT NaNs.
+#'mfmda.nona.vec
+#'
+#'This approach is for the vector-valued estimation WITHOUT NaNs.
 #'@name mfmda.nona.vec
 #'@rdname mfmda.nona.vec
 #'@aliases mfmda.nona.vec
@@ -27,7 +29,9 @@ mfmda.nona.vec <- function(Yc,hzero){
   Mhat
 }
 
-# This approach is for the vector-valued estimation with NaNs.
+#' mfmda.na.vec
+#'
+#'This approach is for the vector-valued estimation with NaNs.
 #'@name mfmda.na.vec
 #'@rdname mfmda.na.vec
 #'@aliases mfmda.na.vec
@@ -60,7 +64,9 @@ mfmda.na.vec <- function(Yc,hzero){
   Mhat
 }
 
-# The input data do not have zeros. The estimation approach is noniterative. 
+#' mfmda.nona.noiter
+#'
+#' The input data do not have zeros. The estimation approach is noniterative. 
 #'@name mfmda.nona.noniter
 #'@rdname mfmda.nona.noniter
 #'@aliases mfmda.nona.noniter
@@ -92,7 +98,9 @@ mfmda.nona.noniter <- function(Yc,hzero){
   Mhat
 }
 
-# The input data do not have zeros. The estimation approach is iterative.
+#' mfmda.nona.iter
+#'
+#' The input data do not have zeros. The estimation approach is iterative.
 #'@name mfmda.nona.iter
 #'@rdname mfmda.nona.iter
 #'@aliases mfmda.nona.iter
@@ -124,7 +132,9 @@ mfmda.nona.iter <- function(Yc,hzero){
   Mhat
 }
 
-# The input data could have NaNs. The estimation approach is iterative.
+#' mfmda.na.iter
+#'
+#' The input data could have NaNs. The estimation approach is iterative.
 #'@name mfmda.na.iter
 #'@rdname mfmda.na.iter
 #'@aliases mfmda.na.iter
@@ -163,7 +173,9 @@ mfmda.na.iter <- function(Yc,hzero){
   Mhat
 }
 
-## This is a wrapper for all approaches
+#' mfmda
+#'
+#' This is a wrapper for all approaches
 #'@name mfmda
 #'@rdname mfmda
 #'@aliases mfmda
@@ -205,7 +217,9 @@ mfmda <- function(Yt,approach="3",hzero=1,iscentering=1){
   Mhat
 }
 
-# Compute the estimated number of factors and the corresponding eigen-space
+#' mfmda.estqk
+#'
+#'Compute the estimated number of factors and the corresponding eigen-space
 #'@name mfmda.estqk
 #'@rdname mfmda.estqk
 #'@aliases mfmda.estqk
@@ -241,18 +255,19 @@ mfmda.estqk <- function(Mhat,inputk=1){
   list("estk" = estk, "Qhatestk" = Qhatestk,"eigval" = eigval,"Qhatinputk"=Qhatinputk)
 }
 
-# The main estimation function
+
+#' matrix_factor
+#'
+#' The main estimation function
 #'@name matrix_factor
 #'@rdname matrix_factor
 #'@aliases matrix_factor
 #'@export
-
 #'@param Yt Time Series data for a matrix
 #'@param inputk1 The pre-determined row dimension of the factor matrix
 #'@param inputk2 The pre-determined column dimension of the factor matrix
 #'@param iscentering The data is subtracted by its mean value
 #'@param hzero Pre-determined parameter
-
 #'@return a list containing the following:\describe{
 #'\item{\code{eigval1}}{estimated row dimension of the factor matrix}
 #'\item{\code{eigval2}}{estimated column dimension of the factor matrix}
@@ -262,7 +277,6 @@ mfmda.estqk <- function(Mhat,inputk=1){
 #'\item{\code{Ft.all}}{Sum of Ft}
 #'\item{\code{Et}}{The estimated residual, by subtracting estimated signal term from the data}
 #'}
-
 #'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 #'@examples
 #' A <- 1:180
@@ -327,8 +341,10 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
                 loading1=Q1hatinputkrot,loading2=Q2hatinputkrot,
                 Ft=Ft.inputk.rot,Ft.all=Ft.all,Et=Et.inputk.rot))
 }
-  
-# The main estimation function, vector version
+
+#' vector_factor
+#'
+#'The main estimation function, vector version
 #'@name vector_factor
 #'@rdname vector_factor
 #'@aliases vector_factor
@@ -373,7 +389,9 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
               Ft=Ft.vec.inputk,Ft.all=Ft.all,Et=Et.vec.inputk))
 }
 
-# Get the group of loadings
+#' grouping.loading
+#'
+#' Get the group of loadings
 #'@name grouping.loading
 #'@rdname grouping.loading
 #'@aliases grouping.loading
@@ -383,7 +401,6 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
 #'@param rowname The name of the rows
 #'@param plot plot the clustering graph, defacult True
 #'@return Loading matrix after grouping
-
 #'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 grouping.loading=function(loading,ncluster,rowname,plot=T){
   ddd <- dist(loading, method = "euclidean") # distance matrix
@@ -401,7 +418,9 @@ grouping.loading=function(loading,ncluster,rowname,plot=T){
   return(list(new.loading=new.loading))
 }
 
-# Get the adjacency matrix for plotting
+#' dynamic_A
+#'
+#' Get the adjacency matrix for plotting
 #'@name dynamic_A
 #'@rdname dynamic_A
 #'@aliases dynamic_A
@@ -448,7 +467,9 @@ dynamic_A <- function(x,factor_count,simple.flag,threshold){
   return(m)
 }
 
-# Plot the network graph
+#'PlotNetwork_AB
+#'
+#'Plot the network graph
 #'@name PlotNetwork_AB
 #'@rdname PlotNetwork_AB
 #'@aliases PlotNetwork_AB
