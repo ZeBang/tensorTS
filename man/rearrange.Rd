@@ -19,7 +19,6 @@ rearrange(A, m1, m2, n1, n2)
 }
 \value{
 rearengement matrix
-#'@seealso \code{\link{MAR1.projection}}
 }
 \description{
 Rearrangement Operator used for projection method.
@@ -30,4 +29,7 @@ B <- matrix(runif(6),ncol=2),
 M <- kronecker(B,A)
 rearrange(M,3,3,2,2) == t(as.vector(A)) \%*\% as.vector(B)
 'TRUE'
+}
+\seealso{
+\code{\link{MAR1.projection}}
 }

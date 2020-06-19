@@ -4,24 +4,34 @@
 \alias{projection}
 \title{Kronecker Product Approximation}
 \usage{
-projection(A, m1, m2, n1, n2)
+projection(xx, m1, m2, m3, n1, n2, n3)
+
+projection(xx, m1, m2, m3, n1, n2, n3)
 }
 \arguments{
-\item{A}{m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}}
+\item{xx}{\eqn{T * m_1 * \cdots * m_K} tensor-valued time series}
 
-\item{m1}{\code{ncol} of A}
+\item{m1}{dim(A1)}
 
-\item{m2}{\code{ncol} of B}
+\item{m2}{dim(A2)}
+
+\item{m3}{dim(A3)}
 
 \item{n1}{\code{nrow} of A}
 
 \item{n2}{\code{nrow} of B}
+
+\item{A}{m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}}
 }
 \value{
 a list contaning two estimator (matrix)
+
+a list containing the estimation of matrices \eqn{A_1,A_2,\cdots,A_K}
 }
 \description{
 Kronecker product approximation used in Projection Method of matrix-value time series.
+
+TAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
 }
 \examples{
 A <- matrix(runif(6),ncol=2),

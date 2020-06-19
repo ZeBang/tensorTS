@@ -12,7 +12,7 @@
 #'@param n1 \code{nrow} of A
 #'@param n2 \code{nrow} of B
 #'@return rearengement matrix
-#'#'@seealso \code{\link{MAR1.projection}}
+#'@seealso \code{\link{MAR1.projection}}
 #'@examples
 #' A <- matrix(runif(6),ncol=2),
 #' B <- matrix(runif(6),ncol=2),
