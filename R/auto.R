@@ -72,6 +72,48 @@ projection <- function(A,m1,m2,n1,n2){
   list(B=B,C=C)
 }
 
+
+#' Matrix Method
+#'
+#' Estimation function for matrix-valued time series, including the projection method,
+#' the Iterated least squares method and MLE under a structured covariance tensor, as determined by the value of \code{type}.
+#'@name MAR
+#'@rdname MAR
+#'@aliases MAR
+#'@usage MAR(xx, type = c("projection", "LS", "MLE", "ar"))
+#'@export
+#'@param xx T * p * q matrix-valued time series
+#'@param type character string, specifying the type of the estimation method to be used. \describe{
+#'  \item{\code{"projection",}}{Projection method.}
+#'  \item{\code{"LS",}}{Iterated least squares.}
+#'  \item{\code{"MLE",}}{MLE under a structured covariance tensor.}
+#'  \item{\code{"ar",}}{Stacked vector AR(1) Model.}
+#'}
+#'@return a list containing the following:\describe{
+#'\item{\code{LL}}{estimator of LL, a p by p matrix}
+#'\item{\code{RR}}{estimator of RR, a q by q matrix}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'}
+MAR <- function(xx, type){
+  if (identical("projection", type)) {
+    MAR1.projection(xx)
+  }
+  if (identical("LS", type)) {
+    MAR1.LS(xx)
+  }
+  if (identical("MLE", type)) {
+    MAR1.otimes(xx)
+  }
+  if (identical("ar", type)) {
+    var1(xx)
+  }
+  else {
+    return("Please specify the type you want to use. See manuals for details.")
+  }
+}
+
+
 #' Projection Method
 #'
 #' MAR(1) one step projection estimation in the model \eqn{X_t = LL * X_{t-1} * RR + E_t}.
@@ -480,16 +522,19 @@ mrearrange <- function(A,m1,m2,n1,n2){
 #' Projection Method for Tensor-Valued Time Series
 #'
 #' TAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
-#'@name projection
-#'@rdname projection
-#'@aliases projection
+#'@name TAR1.projection
+#'@rdname TAR1.projection
+#'@aliases TAR1.projection
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param m1 dim(A1)
 #'@param m2 dim(A2)
 #'@param m3 dim(A3)
 #'@return a list containing the estimation of matrices \eqn{A_1,A_2,\cdots,A_K}
-projection <- function(xx,m1,m2,m3,n1,n2,n3){
+TAR1.projection <- function(xx){
+  dim <- xx@modes[-1]
+  m1 <- dim[1]; m2 <- dim[2]; m3 <- dim[3]
+  n1 <- m1; n2 <- m2; n3 <- m3
   mm <- varlse(xx)
   tt <- trearrange(mm,m1,m2,m3,n1,n2,n3)
   cpd <- cp(tt,num_components = 1)
@@ -500,6 +545,48 @@ projection <- function(xx,m1,m2,m3,n1,n2,n3){
   A.new <- list(lam*matrix(a1,m1,m1),lam*matrix(a2,m2,m2),lam*matrix(a3,m3,m3))
   return(A.new)
 }
+
+
+#' Tensor Method
+#'
+#' Estimation function for tensor-valued time series, including the projection method,
+#' the Iterated least squares method, MLE under a structured covariance tensor and stacked vector AR(1) model, as determined by the value of \code{type}.
+#'@name TAR
+#'@rdname TAR
+#'@aliases TAR
+#'@usage TAR(xx, type = c("projection", "LS", "MLE", "ar"))
+#'@export
+#'@param xx \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param type character string, specifying the type of the estimation method to be used. \describe{
+#'  \item{\code{"projection",}}{Projection method.}
+#'  \item{\code{"LS",}}{Iterated least squares.}
+#'  \item{\code{"MLE",}}{MLE under a structured covariance tensor.}
+#'  \item{\code{"ar",}}{Stacked vector AR(1) Model.}
+#'}
+#'@return a list containing the following:\describe{
+#'\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{niter}}{number of iterations}
+#'}
+TAR <- function(xx, type){
+  if (identical("projection", type)) {
+    TAR1.projection(xx)
+  }
+  if (identical("LS", type)) {
+    TAR1.LS(xx)
+  }
+  if (identical("MLE", type)) {
+    return("To Be written")
+  }
+  if (identical("ar", type)) {
+    TAR1.VAR(xx)
+  }
+  else {
+    return("Please specify the type you want to use. See manuals for details.")
+  }
+}
+
 
 #' Least Squares Iterative Estimation for Tensor-Valued Time Series
 #'
@@ -522,12 +609,11 @@ TAR1.LS <- function(xx,niter=1000,tol=1e-6,print.true = FALSE){
   dim <- xx@modes[-1]
   k <- length(dim)
   t <- xx@modes[[1]]
-  A.old <- projection(xx,dim[1],dim[2],dim[3],dim[1],dim[2],dim[3])
+  A.old <- TAR1.projection(xx)
   # A.old <- lapply(1:k, function(i){diag(dim[i])})
   dis <- 1
   iiter <- 1
   a <- c()
-  #-------------
   while(iiter <= niter & dis >= tol){
     A.new <- lapply(1:k, function(i) {
       s1 <- ttl(xx, A.old[-i], c(2:(k+1))[-i])
@@ -653,7 +739,7 @@ run.test <- function(m1,m2,m3,n=100,T){
     tic("-----------------------------------complete one simulation")
     xx <- generate(c(m1,m2,m3),T)
     lse <- TAR1.LS(xx)
-    pro <- projection(xx,m1,m2,m3,n1,n2,n3)
+    pro <- TAR1.projection(xx)
     var <- TAR1.VAR(xx)
     err1 <- c(err1, log(lse[[4]]))
     err12 <- c(err12, log(lse[[5]]))
