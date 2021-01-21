@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{grouping.loading}
 \alias{grouping.loading}
-\title{grouping.loading}
+\title{Get the group of loadings}
 \usage{
 grouping.loading(loading, ncluster, rowname, plot = T)
 }
@@ -17,6 +17,7 @@ grouping.loading(loading, ncluster, rowname, plot = T)
 }
 \value{
 Loading matrix after grouping
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 Get the group of loadings

@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{mfmda.estqk}
 \alias{mfmda.estqk}
-\title{mfmda.estqk}
+\title{Compute the estimated number of factors and the corresponding eigen-space}
 \usage{
 mfmda.estqk(Mhat, inputk = 1)
 }
@@ -13,6 +13,7 @@ mfmda.estqk(Mhat, inputk = 1)
 }
 \value{
 The estimated number of factors to use, the corresponding estimated Q matrix, the eigenvalue,  the estimated Q matrix with requested number of factors
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 Compute the estimated number of factors and the corresponding eigen-space

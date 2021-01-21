@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{mfmda.nona.noniter}
 \alias{mfmda.nona.noniter}
-\title{mfmda.nona.noiter}
+\title{The input data do not have zeros. The estimation approach is noniterative.}
 \usage{
 mfmda.nona.noniter(Yc, hzero)
 }
@@ -13,6 +13,7 @@ mfmda.nona.noniter(Yc, hzero)
 }
 \value{
 The sample version of M matrix
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 The input data do not have zeros. The estimation approach is noniterative.

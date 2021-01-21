@@ -11,17 +11,8 @@
 # eigenvalue ratio estimators for determing the numbers of factors
 # iterative versions of all three methods for any Dim tensor time series
 
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-# functions for algorithm
-
+#'functions for algorithm
+#'
 # get x.hat from a tensor x and all loading matrices in list Q by projection
 #'@name get.hat
 #'@rdname get.hat
@@ -37,14 +28,15 @@ get.hat <- function(x,Q,d.seq){
   ans
 }
 
-# vector time series
+#'vector time series
+#'
 #'@name vts
 #'@rdname vts
 #'@aliases vts
 #'@export
 #'@param x: A n*d matrix
 #'@param h0: Pre-scribed parameter h
-#'@param r: First r eigenvectors 
+#'@param r: First r eigenvectors
 #'@return a list containing the following:\describe{
 #'\item{\code{M}}
 #'\item{\code{Q}}{The eigenvectors of matrix M}
@@ -63,7 +55,8 @@ vts <- function(x,h0,r){
   list("M"=M,"Q"=Q)
 }
 
-# UP one step for any Dim tensor time series
+#'UP one step for any Dim tensor time series
+#'
 #'@name up.init.tensor
 #'@rdname up.init.tensor
 #'@aliases up.init.tensor
@@ -72,7 +65,6 @@ vts <- function(x,h0,r){
 #'@param r: initial guess of # of factors
 #'@param oneside.true:  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
 #'@param norm.true: If norm.true==TRUE, normalize the tensor
-
 #'@return a list containing the following:\describe{
 #'\item{\code{Q}}{Orthonormal matrix Q}
 #'\item{\code{\lambda}}{Singular values}
@@ -111,7 +103,8 @@ up.init.tensor <- function(x,r,oneside.true=FALSE,norm.true=FALSE){
   list("Q"=ans.Q,"lambda"=ans.lambda,"norm.percent"=norm.percent,"x.hat"=x.hat)
 }
 
-# TIPUP one step for any Dim tensor time series
+#'TIPUP one step for any Dim tensor time series
+#'
 #'@name tipup.init.tensor
 #'@rdname tipup.init.tensor
 #'@aliases tipup.init.tensor
@@ -172,7 +165,8 @@ tipup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
 }
 
 
-# TOPUP one step for any Dim tensor time series
+#'TOPUP one step for any Dim tensor time series
+#'
 #'@name topup.init.tensor
 #'@rdname topup.init.tensor
 #'@aliases topup.init.tensor
@@ -196,7 +190,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   # x: d1 * d2 * d3 * ... * d_d * n
   # if oneside.true==TRUE, then only compute the one sided column space,
   # not the other sides, this option is useful for the iterative method
-  
+
   dd <- dim(x)
   d <- length(dd) # d >= 2
   n <- dd[d]
@@ -237,8 +231,8 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   list("M"=ans.M,"Q"=ans.Q,"lambda"=ans.lambda,"norm.percent"=norm.percent,"x.hat"=x.hat)
 }
 
-# iterative versions of all three methods for any Dim tensor time series
-# method: UP, TIPUP, or TOPUP
+#'iterative versions of all three methods for any Dim tensor time series
+#'
 #'@name iter.tensor.bic
 #'@rdname iter.tensor.bic
 #'@aliases iter.tensor.bic
@@ -297,7 +291,7 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
   ans.Q <- ans.init$Q
   time.now <- proc.time()[3]
   while((dis > tol) & (iiter < niter)){             #while((dis > tol) & (iiter < niter)){
-    for(i in 1:(d-1)){    
+    for(i in 1:(d-1)){
       x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
       if(method=="UP"){
         ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
@@ -314,7 +308,7 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
       factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]],h0,ddd[i],ddd[-i],n)
       r[i]=factor.num[i,3,1+iiter]
     }
-    
+
     x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
     fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
     dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
@@ -346,9 +340,8 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
 
 
 
-# iterative versions of all three methods for any Dim tensor time series
-
-# method: UP, TIPUP, or TOPUP
+#'iterative versions of all three methods for any Dim tensor time series
+#'
 #'@name iter.tensor.ratio
 #'@rdname iter.tensor.ratio
 #'@aliases iter.tensor.ratio
@@ -411,7 +404,7 @@ iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE
   ans.Q <- ans.init$Q
   time.now <- proc.time()[3]
   while((dis > tol) & (iiter < niter)){                 #while((dis > tol) & (iiter < niter)){
-    for(i in 1:(d-1)){    
+    for(i in 1:(d-1)){
       x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
       if(method=="UP"){
         ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
@@ -457,7 +450,7 @@ iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE
        "dis"=dis,"niter"=iiter,"fnorm.resid"=fnorm.resid)
 }
 
-# BIC estimators for determing the numbers of factors
+#'BIC estimators for determing the numbers of factors
 #'@name tensor.bic
 #'@rdname tensor.bic
 #'@aliases tensor.bic
@@ -468,7 +461,6 @@ iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE
 #'@param p2: p2
 #'@param n:n
 #'@return factor.p1: Estimated number of factors
-
 tensor.bic<-function(reigen,h0=1,p1,p2,n){
   #p1
   #p2
@@ -479,23 +471,23 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n){
   factor.p1=numeric(8)
   p=p1*p2
   m1=ceiling(p1/3)
-  
+
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-  
+
   #threshold
   ic=cumlambda.p1[1:m1]/p^2+(1:m1)*h0*(1/n)*log(p*n/(p+n))
   factor.p1[1]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2+(1:m1)*h0*(1/n)*log(min(p,n))
   factor.p1[2]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2+(1:m1)*h0*(1/n+1/p)*log(p*n/(p+n))
-  factor.p1[3]<-which.min(ic)     
+  factor.p1[3]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2+(1:m1)*h0*(1/n+1/p)*log(min(p,n))
-  factor.p1[4]<-which.min(ic)       
+  factor.p1[4]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2+(1:m1)*h0*(1/n+1/p)*log(min(p1,n))
-  factor.p1[5]<-which.min(ic)   
-  
+  factor.p1[5]<-which.min(ic)
+
   factor.p1
 }
 
@@ -520,23 +512,23 @@ tensor.ratio<-function(reigen,h0=1,p1,p2,n){
   factor.p1=numeric(5)
   p=p1*p2
   m1=ceiling(p1/3)
-  
+
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-  
+
   #ratio
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +h0*0.01)/(lambda.p1[p1:(p1-m1+1)] +h0*0.01)
-  factor.p1[1]<-which.min(ratio)       
+  factor.p1[1]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2/n^2)/(lambda.p1[p1:(p1-m1+1)] +p^2/n^2)  #p^2*1/n
-  factor.p1[2]<-which.min(ratio)   
+  factor.p1[2]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2*(1/n^2/p1^2))/(lambda.p1[p1:(p1-m1+1)] +p^2*(1/n^2/p1^2))  #p^2*(1/n+1/p)
-  factor.p1[3]<-which.min(ratio)  
+  factor.p1[3]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2*(1/n^2/p1^2+1/n^2/p2^2))/(lambda.p1[p1:(p1-m1+1)] +p^2*(1/n^2/p1^2+1/n^2/p2^2)) #p^2*(1/n+1/p1)
   factor.p1[4]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2*(1/n^2/p1+1/n^2/p2))/(lambda.p1[p1:(p1-m1+1)] +p^2*(1/n^2/p1+1/n^2/p2))  #p^2*(1/n)*log(p*n/(p+n))
   factor.p1[5]<-which.min(ratio)
-  
+
   factor.p1
 }
 
@@ -617,7 +609,7 @@ gen.F <- function(ar1.coef,n,innovsd){
   r1 = r1r2[1]
   r2 = r1r2[2]
   bF = array(NA,dim=c(r1,r2,n))
-  
+
   for(ir in 1:r1){
     for(jr in 1:r2){
       bF[ir,jr,] = arima.sim(n=n, model=list(ar=ar1.coef[ir,jr]),sd = innovsd)
@@ -636,7 +628,7 @@ gen.F.tensor3 <- function(ar1.coef,n,innovsd){
   r2 = r[2]
   r3 = r[3]
   bF = array(NA,dim=c(r1,r2,r3,n))
-  
+
   for(ir1 in 1:r1){
     for(ir2 in 1:r2){
       for(ir3 in 1:r3){
@@ -677,7 +669,7 @@ gen.X <- function(Q1,Q2,bF){
   # Q1: p1*r1 orthonormal
   # Q2: p2*r2 orthonormal
   # bF: r1*r2*n
-  
+
   X <- tensor(bF, Q1, 1, 2) # r2*n*p1
   X <- tensor(X, Q2, 1, 2) # n*p1*p2
   X <- aperm(X,c(2,3,1)) # p1*p2*n
@@ -690,7 +682,7 @@ gen.X.tensor3 <- function(Q1,Q2,Q3,bF){
   # Q2: p2*r2 orthonormal
   # Q3: p3*r3 orthonormal
   # bF: r1*r2*r3*n
-  
+
   X <- tensor(bF, Q1, 1, 2) # r2*r3*n*p1
   X <- tensor(X, Q2, 1, 2) # r3*n*p1*p2
   X <- tensor(X, Q3, 1, 2) # n*p1*p2*p3
@@ -716,7 +708,7 @@ sqrt.m <- function(x){
 # compute the errors for estimations of Q1, Q2, and Q for three types of distances
 error.space.fn.tensor <- function(Qlist,Qhatlist,Q){
   # Q=kronecker(Q1, Q2, Q3,...)
-  # Qlist, Qhatlist: list of orthonormal matrices 
+  # Qlist, Qhatlist: list of orthonormal matrices
   d <- length(Qlist)
   error <- rep(NA, d+1)
   for(i in 1:d){

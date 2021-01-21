@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{vector_factor}
 \alias{vector_factor}
-\title{vector_factor}
+\title{The main estimation function, vector version}
 \usage{
 vector_factor(Yt, inputk.vec, iscentering = 1, hzero = 1)
 }
@@ -23,6 +23,7 @@ a list containing the following:\describe{
 \item{\code{Ft.all}}{Sum of Ft}
 \item{\code{Et}}{The estimated random term, by subtracting estimated signal term from the data}
 }
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 The main estimation function, vector version

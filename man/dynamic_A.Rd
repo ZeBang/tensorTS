@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{dynamic_A}
 \alias{dynamic_A}
-\title{dynamic_A}
+\title{Get the adjacency matrix for plotting}
 \usage{
 dynamic_A(x, factor_count, simple.flag, threshold)
 }
@@ -17,6 +17,7 @@ dynamic_A(x, factor_count, simple.flag, threshold)
 }
 \value{
 The new loading matrix with all rows sum to be 1
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 Get the adjacency matrix for plotting

@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{mfmda}
 \alias{mfmda}
-\title{mfmda}
+\title{This is a wrapper for all approaches}
 \usage{
 mfmda(Yt, approach = "3", hzero = 1, iscentering = 1)
 }
@@ -17,6 +17,7 @@ mfmda(Yt, approach = "3", hzero = 1, iscentering = 1)
 }
 \value{
 The sample version of M matrix
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 This is a wrapper for all approaches

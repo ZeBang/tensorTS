@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{mfmda.na.iter}
 \alias{mfmda.na.iter}
-\title{mfmda.na.iter}
+\title{The input data could have NaNs. The estimation approach is iterative.}
 \usage{
 mfmda.na.iter(Yc, hzero)
 }
@@ -13,6 +13,7 @@ mfmda.na.iter(Yc, hzero)
 }
 \value{
 The sample version of M matrix
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 The input data could have NaNs. The estimation approach is iterative.

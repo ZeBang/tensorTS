@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{matrix_factor}
 \alias{matrix_factor}
-\title{matrix_factor}
+\title{The main estimation function}
 \usage{
 matrix_factor(Yt, inputk1, inputk2, iscentering = 1, hzero = 1)
 }
@@ -27,6 +27,7 @@ a list containing the following:\describe{
 \item{\code{Ft.all}}{Sum of Ft}
 \item{\code{Et}}{The estimated residual, by subtracting estimated signal term from the data}
 }
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 The main estimation function

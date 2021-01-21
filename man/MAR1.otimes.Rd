@@ -27,7 +27,7 @@ MAR1.otimes(
 
 \item{tol}{relative Frobenius norm error tolerance}
 
-\item{print.true}{printe LL and RR}
+\item{print.true}{print LL and RR}
 }
 \value{
 a list containing the following:\describe{

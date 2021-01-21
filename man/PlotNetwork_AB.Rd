@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{PlotNetwork_AB}
 \alias{PlotNetwork_AB}
-\title{PlotNetwork_AB}
+\title{Plot the network graph}
 \usage{
 PlotNetwork_AB(Ft, iterated_A, iterated_B = iterated_A, labels = use2)
 }
@@ -17,6 +17,7 @@ PlotNetwork_AB(Ft, iterated_A, iterated_B = iterated_A, labels = use2)
 }
 \value{
 Plot the network graph
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 Plot the network graph

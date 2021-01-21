@@ -2,7 +2,7 @@
 % Please edit documentation in R/factor.R
 \name{mfmda.nona.vec}
 \alias{mfmda.nona.vec}
-\title{mfmda.nona.vec}
+\title{This approach is for the vector-valued estimation WITHOUT NaNs.}
 \usage{
 mfmda.nona.vec(Yc, hzero)
 }
@@ -13,6 +13,7 @@ mfmda.nona.vec(Yc, hzero)
 }
 \value{
 The sample version of M matrix
+#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 }
 \description{
 This approach is for the vector-valued estimation WITHOUT NaNs.

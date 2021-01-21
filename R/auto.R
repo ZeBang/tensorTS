@@ -149,7 +149,7 @@ MAR1.projection <- function(xx){
   return(list(LL=LL,RR=RR,res=res,Sig=Sig))
 }
 
-#' Least Squares Iterative Estimation
+#' Least Squares Iterative Estimation for Matrix Time Series
 #'
 #' Iterated least squares estimation in the model \eqn{X_t = LL * X_{t-1} * RR + E_t}.
 #'@name MAR1.LS
@@ -213,6 +213,215 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
   return(list(LL=LL,RR=RR,res=res,Sig=Sig,dis=dis,niter=iiter))
 }
 
+
+#' Least Squares Iterative Estimation for Matrix Time Series with Multiple terms
+#'
+#' Iterated least squares estimation in the model \eqn{X_t = \sum_{r=1}^{R} LL_r * X_{t-1} * RR_r + E_t}.
+#'@name MAR2.LS
+#'@rdname MAR2.LS
+#'@aliases MAR2.LS
+#'@export
+#'@param xx T * p * q matrix-valued time series
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true printe LL and RR
+#'@return a list containing the following:\describe{
+#'\item{\code{LL}}{estimator of LL, a p by p matrix}
+#'\item{\code{RR}}{estimator of RR, a q by q matrix}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{dis}}{Frobenius norm difference of last update}
+#'\item{\code{niter}}{number of iterations}
+#'}
+MAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  xx.mat <- matrix(xx@data,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  A.old <- projection(kroneck, r, dim[1],dim[2],dim[1],dim[2])
+  fnorm <- array(0,c(r,k)) # Rescale Result of PROJ
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,drop=FALSE]
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function(n) {(ttl(xx[1:(t-1),,], A.new[[n]], (c(1:k) + 1)))}))
+        if (r == 1){ L1 <- 0}
+        L2 <-  xx[2:t,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,drop=FALSE]
+
+        RR <- tensor(temp,temp,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        LL <- tensor(temp2,temp,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+      }
+    }
+
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new - phi.old)^2))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new -phi)^2)
+  res <- (xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,disf=disf))
+}
+
+
+#' MLE under a structured covariance tensor for Matrix Time Series with Multiple Terms
+#'
+#' MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = \sum_{r=1}^{R} LL_r * X_{t-1} * RR_r + E_t} such that \eqn{\Sigma = cov(vec(E_t)) = \Sigma_r \otimes \Sigma_l}.
+#'@name MAR2.otimes
+#'@rdname MAR2.otimes
+#'@aliases MAR1.otimes
+#'@export
+#'@param xx T * p * q matrix-valued time series
+#'@param LL.init initial value of LL
+#'@param Sigl.init initial value of Sigl
+#'@param Sigr.init initial value of Sigr
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true print LL and RR
+#'@return a list containing the following:\describe{
+#'\item{\code{LL}}{estimator of LL, a p by p matrix}
+#'\item{\code{RR}}{estimator of RR, a q by q matrix}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{SIGMA}}{structured covariance matrix \eqn{\Sigma=\Sigma_1, \cdots, \Sigma_R}}
+#'\item{\code{dis}}{Frobenius norm difference of the final update step}
+#'\item{\code{niter}}{number of iterations}
+#'}
+MAR2.otimes <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  xx.mat <- matrix(xx@data,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  A.old <- projection(kroneck, r, dim[1],dim[2],dim[1],dim[2])
+  Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+  Sig.new <- Sig.old
+  fnorm <- array(0,c(r,k))
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+        Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+        sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[j]][[i]])})
+
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+        s1 <- ttl(xx, sphi[-i],c(2:(k+1))[-i])
+        temp1 <- s1@data[1:(t-1),,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function (n) ttl(xx[1:(t-1),,], A.new[[n]], c(2:(k+1))))) # additional term
+        if (r==1){L1 <- 0}
+        L2 <- xx[2:t,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,drop=FALSE]
+
+        RR <- tensor(temp,temp1,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        LL <- tensor(temp2,temp1,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+
+        res.old <- xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))}))
+        rs <- ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+        Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:3)[-(i+1)],c(1:3)[-(i+1)])/(t-1)/prod(dim[-i])
+      }
+    }
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+    b <- c()
+    for (i in c(1:k)){
+      s <- Sig.new[[i]]
+      if (i != k){
+        b[i] <- eigen(s)$values[1]
+        Sig.new[[i]] <- s/b[i]
+      } else {
+        Sig.new[[i]] <- s * prod(b)
+      }
+    }
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new-phi.old)^2))
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  disf <- sum((phi.new-phi)^2)
+  res <- (xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
+
 #' MLE under a structured covariance tensor
 #'
 #' MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL * X_{t-1} * RR + E_t} such that \eqn{\Sigma = cov(vec(E_t)) = \Sigma_r \otimes \Sigma_l}.
@@ -226,7 +435,7 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
 #'@param Sigr.init initial value of Sigr
 #'@param niter maximum number of iterations if error stays above \code{tol}
 #'@param tol relative Frobenius norm error tolerance
-#'@param print.true printe LL and RR
+#'@param print.true print LL and RR
 #'@return a list containing the following:\describe{
 #'\item{\code{LL}}{estimator of LL, a p by p matrix}
 #'\item{\code{RR}}{estimator of RR, a q by q matrix}
@@ -439,19 +648,19 @@ em <- function(m,n,i,j){
   return(mat)
 }
 
-#' Permutation matrix PM
+#' Permutation matrix pm
 #'
-#' Permutation matrix PM.
-#'@name PM
-#'@rdname PM
-#'@aliases PM
+#' Permutation matrix pm.
+#'@name pm
+#'@rdname pm
+#'@aliases pm
 #'@param m an array of dimentions of matrices \eqn{A_1,A_2,\cdots,A_k}
 #'@param n length of time
-#'@return Permutation matrix PM
+#'@return Permutation matrix pm
 #'#'@seealso \code{\link{trearrange}}
 #'@examples
-#' PM(m,n)
-PM <- function(m,n){
+#' pm(m,n)
+pm <- function(m,n){
   mat <- matrix(0,m*n,m*n)
   for (i in c(1:n)){
     for (j in c(1:m)){
@@ -497,6 +706,7 @@ divide <- function(A,m,n){
   })
   return(tmp)
 }
+
 mrearrange <- function(A,m1,m2,n1,n2){
   # the inner function of "projection"
   # A: m1m2*n1n2
@@ -544,6 +754,46 @@ TAR1.projection <- function(xx){
   lam <- (cpd$lambdas)^(1/3)
   A.new <- list(lam*matrix(a1,m1,m1),lam*matrix(a2,m2,m2),lam*matrix(a3,m3,m3))
   return(A.new)
+}
+
+
+#' Projection Method for Tensor-Valued Time Series with Multiple Terms
+#'
+#' TAR(1) one step projection estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
+#'@name TAR2.projection
+#'@rdname TAR2.projection
+#'@aliases TAR2.projection
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param r number of terms
+#'@return a list containing the estimation of matrices \eqn{A_1^{(1)},A_2^{(1)},\cdots,A_K^{(R)}}
+TAR2.projection <- function(xx,r){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  m1 <- dim[1]; m2 <- dim[2]; m3 <- dim[3]
+  n1 <- m1; n2 <- m2; n3 <- m3
+  mm <- TAR1.VAR(xx)$coef
+  tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
+  #tt <- as.tensor(tau(mm))
+  cpd <- cp(tt,num_components = r)
+  lam <- cpd$lambdas
+  A <- list()
+  for (j in c(1:r)){  # j is number of terms
+
+    u1 <- cpd$U[[1]][,j]
+    u2 <- cpd$U[[2]][,j]
+    u3 <- cpd$U[[3]][,j]
+
+    a <- u3/sqrt(sum(u3^2))
+    b <- u2/sqrt(sum(u2^2))
+    c <- u1*sqrt(sum(u3^2))*sqrt(sum(u2^2))*lam[j]
+
+    A[[j]] <- list(matrix(a,dim[1],dim[1]),
+                   matrix(b,dim[2],dim[2]),
+                   matrix(c,dim[3],dim[3]))
+  }
+  return(list(A=A))
 }
 
 
@@ -600,48 +850,334 @@ TAR <- function(xx, type){
 #'@param tol relative Frobenius norm error tolerance
 #'@param print.true printe \eqn{A_i}
 #'@return a list containing the following:\describe{
+#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{res}}{residual of the model}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{niter}}{number of iterations}
+#'}
+TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  A.old <- TAR1.projection(xx)$A
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol){
+    for (i in c(1:k)){
+      s1 <- ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+      temp <- s1@data[1:(t-1),,,,drop=FALSE]
+      RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      LL <- tensor(xx@data[2:t,,,,drop=FALSE],temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      A.new[[1]][[i]] <- LL %*% solve(RR)
+    }
+    for (i in c(1:k)){
+      m <- A.new[[1]][[i]]
+      if (i != k){
+        a[i] <- svd(m,nu=0,nv=0)$d[1]
+        A.new[[1]][[i]] <- m/a[i]
+      } else {
+        A.new[[1]][[i]] <- m * prod(a)
+      }
+    }
+    phi.new <- kronecker_list(rev(A.new[[1]]))
+    phi.old <- kronecker_list(rev(A.old[[1]]))
+    dis <- sqrt(sum((phi.new - phi.old)^2))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new -phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
+
+
+#' Least Squares Iterative Estimation for Tensor-Valued Time Series with Multiple Terms
+#'
+#' Iterated least squares estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
+#'@name TAR2.LS
+#'@rdname TAR2.LS
+#'@aliases TAR2.LS
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true print \eqn{A_i}
+#'@return a list containing the following:\describe{
+#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1^{(1)},A_2^{(1)},\cdots,A_K^{(R)}}}
+#'\item{\code{res}}{residual of the model}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{niter}}{number of iterations}
+#'}
+TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  A.old <- TAR2.projection(xx,r)$A
+  fnorm <- array(0,c(r,k)) # Rescale Result of PROJ
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,,drop=FALSE]
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function(n) {(ttl(xx[1:(t-1),,,], A.new[[n]], (c(1:k) + 1)))}))
+        if (r == 1){ L1 <- 0}
+        L2 <-  xx[2:t,,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+
+        RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        LL <- tensor(temp2,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+      }
+    }
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new - phi.old)^2))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new -phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,disf=disf))
+}
+
+
+#' MLE for Tensor-Valued Time Series with One Term Model Under a Structured Covariance Tensor
+#'
+#' MLE for the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
+#'@name TAR1.MLE
+#'@rdname TAR1.MLE
+#'@aliases TAR1.MLE
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true printe \eqn{A_i}
+#'@return a list containing the following:\describe{
 #'\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
 #'\item{\code{res}}{residual of the MAR(1)}
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TAR1.LS <- function(xx,niter=1000,tol=1e-6,print.true = FALSE){
+TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
   dim <- xx@modes[-1]
   k <- length(dim)
   t <- xx@modes[[1]]
-  A.old <- TAR1.projection(xx)
-  # A.old <- lapply(1:k, function(i){diag(dim[i])})
+  Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+  Sig.new <- Sig.old
+  A.old <- TAR1.projection(xx)$A
+  A.new <- A.old
   dis <- 1
   iiter <- 1
   a <- c()
-  while(iiter <= niter & dis >= tol){
-    A.new <- lapply(1:k, function(i) {
-      s1 <- ttl(xx, A.old[-i], c(2:(k+1))[-i])
-      temp <- s1@data[1:(t-1),,,,drop=FALSE]
-      r <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
-      l <- tensor(xx@data[2:t,,,,drop=FALSE],temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
-      m <- l %*% solve(r)
+  b <- c()
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+    for (i in c(1:k)){
+      Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+      sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[1]][[i]])})
+
+      s0 <- ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+      temp <- s0@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+      s1 <- ttl(xx, sphi[-i], c(2:(k+1))[-i])
+      temp1 <- s1@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+      L2 <- xx[2:t,,,,drop=FALSE]
+      temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+
+      RR <- tensor(temp,temp1,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      LL <- tensor(temp2, temp1, c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      A.new[[1]][[i]] <- LL %*% solve(RR)
+
+      res.old <- xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1))
+      rs <- ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+      Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:4)[-(i+1)],c(1:4)[-(i+1)])/(t-1)/prod(dim[-i])
+    }
+    for (i in c(1:k)){
+      m <- A.new[[1]][[i]]
+      s <- Sig.new[[i]]
       if (i != k){
         a[i] <- svd(m,nu=0,nv=0)$d[1]
-        m/a[i]
+        b[i] <- eigen(s)$values[1]
+        A.new[[1]][[i]] <- m/a[i]
+        Sig.new[[i]] <- s/b[i]
       } else {
-        m * prod(a)
+        A.new[[1]][[i]] <- m * prod(a)
+        Sig.new[[i]] <- s * prod(b)
       }
-    })
-    dis <- sqrt(sum((kronecker_list(A.new)-kronecker_list(A.old))^2))
-    # dis2 <- sqrt(sum((kronecker_list(A.new)-kronecker_list(A))^2))
+    }
+    phi.new <- kronecker_list(rev(A.new[[1]]))
+    phi.old <- kronecker_list(rev(A.old[[1]]))
+    dis <- sqrt(sum((phi.new -phi.old)^2))
+    Sig.old <- Sig.new
     A.old <- A.new
     iiter <- iiter + 1
-    print(dis)
-    print(paste('iiter num=',iiter))
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
   }
-  # disf <- sum((kronecker_list(A.new)-kronecker_list(A))^2)
-  res <- xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new, (c(1:k) + 1))
-  Sig <- matrix(tensor(res@data,res@data,1,1),prod(dim))/(t-1)
-  # disf2 <- sum(min((A.new[[1]] - A[[1]])^2,(-A.new[[1]] - A[[1]])^2)) +sum(min((A.new[[2]]-A[[2]])^2,(-A.new[[2]] - A[[2]])^2)) + sum(min((A.new[[3]] - A[[3]])^2,(-A.new[[3]] - A[[3]])^2))
-  return(list(A=A.new,niter=iiter,Sig=Sig,res=res))
+  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new-phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
 }
 
+
+#' MLE for Tensor-Valued Time Series with Multiple Terms Model Under a Structured Covariance Tensor
+#'
+#' MLE for the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
+#'@name TAR2.MLE
+#'@rdname TAR2.MLE
+#'@aliases TAR1.MLE
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true printe \eqn{A_i}
+#'@return a list containing the following:\describe{
+#'\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{niter}}{number of iterations}
+#'}
+TAR2.MLE <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+  Sig.new <- Sig.old
+  A.old <- TAR2.projection(xx,r)$A
+  fnorm <- array(0,c(r,k))
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+        Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+        sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[j]][[i]])})
+
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+        s1 <- ttl(xx, sphi[-i],c(2:(k+1))[-i])
+        temp1 <- s1@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function (n) ttl(xx[1:(t-1),,,], A.new[[n]], c(2:(k+1))))) # additional term
+        if (r==1){L1 <- 0}
+        L2 <- xx[2:t,,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+
+        RR <- tensor(temp,temp1,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        LL <- tensor(temp2,temp1,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+
+        res.old <- xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))}))
+        rs <- ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+        Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:4)[-(i+1)],c(1:4)[-(i+1)])/(t-1)/prod(dim[-i])
+      }
+    }
+
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+
+    b <- c()
+    for (i in c(1:k)){
+      s <- Sig.new[[i]]
+      if (i != k){
+        b[i] <- eigen(s)$values[1]
+        Sig.new[[i]] <- s/b[i]
+      } else {
+        Sig.new[[i]] <- s * prod(b)
+      }
+    }
+
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new-phi.old)^2))
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  disf <- sum((phi.new-phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
 
 
 #' Stacked vector AR(1) Model for Tensor-Valued Time Series
@@ -675,31 +1211,33 @@ TAR1.VAR <- function(xx){
 
 #' Asymptotic Covariance Matrix of \code{TAR1.LS}
 #'
-#' Asymptotic covariance Matrix of \code{TAR1.LS} for given A tensor-valued time series xx, see Theory 2 in paper.
-#'@name TAR.SE
-#'@rdname TAR.SE
-#'@aliases TAR.SE
+#' Asymptotic covariance Matrix of \code{TAR1.LS} for given A tensor-valued time series xx, see related Theorems in our paper.
+#'@name TAR1.SE.LSE
+#'@rdname TAR1.SE.LSE
+#'@aliases TAR1.SE.LSE
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
-#'@param A m1 by m1 matrix in MAR(1) model
-#'@param B m2 by m2 matrix in MAR(1) model
-#'@param C m3 by m3 matrix in MAR(1) model
-#'@param Sig covariance matrix cov(vec(E_t)) in TAR(1) model
+#'@param A.true coefficient matrices in TAR(1) model
+#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
 #'@return asmptotic covariance matrix
 #'@examples
-TAR.SE <- function(xx, C, B, A, Sigma){
+TAR1.SE.LSE <- function(xx, A.true, Sigma){
   dim <- xx@modes[-1]
   m1 <- dim[1]
   m2 <- dim[2]
   m3 <- dim[3]
   k <- length(dim)
   T <- xx@modes[[1]]
+  A <- A.true[[1]][[1]]
+  B <- A.true[[1]][[2]]
+  C <- A.true[[1]][[3]]
   a <- as.matrix(as.vector(A))
   b <- as.matrix(as.vector(B))
   c <- as.matrix(as.vector(C))
   r1 <- rbind(a,matrix(0,m2^2+m3^2,1))
   r2 <- rbind(matrix(0,m1^2,1),b,matrix(0,m3^2,1))
-  r <-  r1 %*% t(r1) +r2 %*% t(r2)
+  Gamma <-  r1 %*% t(r1) +r2 %*% t(r2)
+
   Hdim <- m1^2+m2^2+m3^2
   HT <- array(1,c(T,Hdim,Hdim))
   WT <- array(1,c(T,Hdim,prod(dim))) #T*(m1^2+m2^2+m^3)*(m1m2m3)
@@ -707,16 +1245,188 @@ TAR.SE <- function(xx, C, B, A, Sigma){
     w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
     w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
     w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
-    w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),PM(m2,m1)), kronecker(w3,diag(m3)) %*% PM(m3,m2*m1))
+    w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
     WT[t,,] <-  w
   }
   EWWt <- tensor(WT,WT,c(3,1),c(3,1))/T #(m1^2+m2^2+m^3)*(m1^2+m2^2+m^3)
   WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
   EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
-  H <- EWWt + r
+  H <- EWWt + Gamma
   Hinv <- solve(H)
   Xi <- Hinv %*% EWSigmaWt %*% Hinv
-  Xi <- Xi/T
+  return(Xi)
+}
+
+
+#' Asymptotic Covariance Matrix of \code{TAR1.MLE}
+#'
+#' Asymptotic covariance Matrix of \code{TAR1.MLE} for given A tensor-valued time series xx, see related Theorems in our paper.
+#'@name TAR1.SE.MLE
+#'@rdname TAR1.SE.MLE
+#'@aliases TAR1.SE.MLE
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param A.true coefficient matrices in TAR(1) model
+#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
+#'@return asmptotic covariance matrix
+#'@examples
+TAR1.SE.MLE <- function(xx, A.true, Sigma){
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  A <- A.true[[1]][[1]]
+  B <- A.true[[1]][[2]]
+  C <- A.true[[1]][[3]]
+  a <- as.matrix(as.vector(A))
+  b <- as.matrix(as.vector(B))
+  c <- as.matrix(as.vector(C))
+  r1 <- rbind(a,matrix(0,m2^2+m3^2,1))
+  r2 <- rbind(matrix(0,m1^2,1),b,matrix(0,m3^2,1))
+  Gamma <-  r1 %*% t(r1) +r2 %*% t(r2)
+  Hdim <- m1^2+m2^2+m3^2
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  for (t in c(1:T)){
+    w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+    w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+    w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+    w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
+    WT[t,,] <-  w
+  }
+  #EWWt <- tensor(WT,WT,c(3,1),c(3,1))/T #(m1^2+m2^2+m^3)*(m1^2+m2^2+m^3)
+  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWSigmaWt + Gamma
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+#' Asymptotic Covariance Matrix of \code{TAR2.LSE}
+#'
+#' Asymptotic covariance Matrix of \code{TAR2.LSE} for given A tensor-valued time series xx, see related Theorems in our paper.
+#'@name TAR2.SE.LSE
+#'@rdname TAR2.SE.LSE
+#'@aliases TAR2.SE.LSE
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param A.true coefficient matrices in TAR(1) model
+#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
+#'@return asmptotic covariance matrix
+#'@examples
+TAR2.SE.LSE <- function(xx, A.true, Sigma){
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+
+    }
+  }
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+  WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- tensor(WT,WT,c(3,1),c(3,1))/T + Gamma #r(m1^2+m2^2+m^3)*r(m1^2+m2^2+m^3)
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+#' Asymptotic Covariance Matrix of \code{TAR2.MLE}
+#'
+#' Asymptotic covariance Matrix of \code{TAR2.MLE} for given A tensor-valued time series xx, see related Theorems in our paper.
+#'@name TAR2.SE.MLE
+#'@rdname TAR2.SE.MLE
+#'@aliases TAR2.SE.MLE
+#'@export
+#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param A.true coefficient matrices in TAR(1) model
+#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
+#'@return asmptotic covariance matrix
+#'@examples
+TAR2.SE.MLE <- function(xx, A.true, Sigma){
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+
+    }
+  }
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWSigmaWt + Gamma
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
 }
 
 
