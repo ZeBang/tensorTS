@@ -492,7 +492,7 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n){
 }
 
 
-# Eigenvalue ratio estimators for determining the numbers of factors
+#'Eigenvalue ratio estimators for determining the numbers of factors
 #'@name tensor.ratio
 #'@rdname tensor.ratio
 #'@aliases tensor.ratio
