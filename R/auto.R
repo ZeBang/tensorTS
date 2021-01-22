@@ -1704,6 +1704,21 @@ run.test <- function(m1,m2,m3,n=100,T){
   return(list(err1,err2,err3,err12,err22))
 }
 
+.is_zero_tensor <- function(tnsr){
+  if (sum(tnsr@data==0)==prod(tnsr@modes)) return(TRUE)
+  return(FALSE)
+}
+
+.superdiagonal_tensor <- function(num_modes,len,elements=1L){
+  modes <- rep(len,num_modes)
+  arr <- array(0, dim = modes)
+  if(length(elements)==1) elements <- rep(elements,len)
+  for (i in 1:len){
+    txt <- paste("arr[",paste(rep("i", num_modes),collapse=","),"] <- ", elements[i],sep="")
+    eval(parse(text=txt))
+  }
+  as.tensor(arr)
+}
 # devtools::load_all()
 # devtools::document()
 # devtools::build_manual()
