@@ -19,11 +19,12 @@
 #'}
 #'@return a list containing the following:\describe{
 #'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
-#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{res}}{residual of the model}
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TAR <- function(xx, dim, r, method){
+TAR <- function(xx, r=1, method="iid"){
+  dim = xx@num_modes - 1
   if (dim == 1){
     var1(xx)
   } else if (dim == 2){
@@ -746,7 +747,7 @@ generate.A <- function(dim,R){
 #'@examples
 #' A <- generate.A(dim=c(2,2,2), R=1)
 #' xx <- generate(c(m1,m2,m3), T=100)
-generate <- function(A,t,setting="iid"){
+generate <- function(A, t, setting="iid"){
   # to generate time series with given coefficient matrices and time length t
   # return time series xx
   r <- length(A)
@@ -775,7 +776,6 @@ generate <- function(A,t,setting="iid"){
     }
     return(as.tensor(x))
   }
-
 }
 
 
@@ -1585,3 +1585,7 @@ run.test <- function(m1,m2,m3,n=100,T){
   }
   return(list(err1,err2,err3,err12,err22))
 }
+
+# devtools::load_all()
+# devtools::document()
+# devtools::build_manual()
