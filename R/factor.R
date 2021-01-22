@@ -1,7 +1,7 @@
 ###Functions of Factor Models
 
 
-# This approach is for the vector-valued estimation WITHOUT NaNs.
+#'This approach is for the vector-valued estimation WITHOUT NaNs.
 #'@name mfmda.nona.vec
 #'@rdname mfmda.nona.vec
 #'@aliases mfmda.nona.vec
@@ -10,9 +10,10 @@
 #'@param hzero Pre-scribed parameter h_0
 #'@return The sample version of M matrix
 #'@seealso \code{\link{vector_factor}}
-A <- runif(2000)
-dim(A) <- c(20,10,10)
-M <- mfmda.nona.vec(A,2)
+#'@examples
+#` A <- runif(2000)
+#` dim(A) <- c(20,10,10)
+#` M <- mfmda.nona.vec(A,2)
 mfmda.nona.vec <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -27,7 +28,7 @@ mfmda.nona.vec <- function(Yc,hzero){
   Mhat
 }
 
-# This approach is for the vector-valued estimation with NaNs.
+#'This approach is for the vector-valued estimation with NaNs.
 #'@name mfmda.na.vec
 #'@rdname mfmda.na.vec
 #'@aliases mfmda.na.vec
@@ -60,7 +61,7 @@ mfmda.na.vec <- function(Yc,hzero){
   Mhat
 }
 
-# The input data do not have zeros. The estimation approach is noniterative.
+#'The input data do not have zeros. The estimation approach is noniterative.
 #'@name mfmda.nona.noniter
 #'@rdname mfmda.nona.noniter
 #'@aliases mfmda.nona.noniter
@@ -92,7 +93,7 @@ mfmda.nona.noniter <- function(Yc,hzero){
   Mhat
 }
 
-# The input data do not have zeros. The estimation approach is iterative.
+#'The input data do not have zeros. The estimation approach is iterative.
 #'@name mfmda.nona.iter
 #'@rdname mfmda.nona.iter
 #'@aliases mfmda.nona.iter
@@ -124,7 +125,7 @@ mfmda.nona.iter <- function(Yc,hzero){
   Mhat
 }
 
-# The input data could have NaNs. The estimation approach is iterative.
+#'The input data could have NaNs. The estimation approach is iterative.
 #'@name mfmda.na.iter
 #'@rdname mfmda.na.iter
 #'@aliases mfmda.na.iter
@@ -163,7 +164,7 @@ mfmda.na.iter <- function(Yc,hzero){
   Mhat
 }
 
-## This is a wrapper for all approaches
+#'This is a wrapper for all approaches
 #'@name mfmda
 #'@rdname mfmda
 #'@aliases mfmda
@@ -175,7 +176,7 @@ mfmda.na.iter <- function(Yc,hzero){
 #'@return The sample version of M matrix
 #'@seealso \code{\link{matrix_factor}}
 #'@examples
-#'Use iterative method with $h_0=1$
+#' #Use iterative method with $h_0=1$
 #' A <- runif(2000)
 #' dim(A) <- c(20,10,10)
 #' M <- mfmda(A,"3",1,0)
@@ -206,7 +207,7 @@ mfmda <- function(Yt,approach="3",hzero=1,iscentering=1){
   Mhat
 }
 
-# Compute the estimated number of factors and the corresponding eigen-space
+#'Compute the estimated number of factors and the corresponding eigen-space
 #'@name mfmda.estqk
 #'@rdname mfmda.estqk
 #'@aliases mfmda.estqk
@@ -243,7 +244,7 @@ mfmda.estqk <- function(Mhat,inputk=1){
   list("estk" = estk, "Qhatestk" = Qhatestk,"eigval" = eigval,"Qhatinputk"=Qhatinputk)
 }
 
-# The main estimation function
+#'The main estimation function
 #'@name matrix_factor
 #'@rdname matrix_factor
 #'@aliases matrix_factor
@@ -269,7 +270,6 @@ mfmda.estqk <- function(Mhat,inputk=1){
 #' eig1 = out$eigval1
 #' loading1 = out$loading1
 #' Ft = out$Ft.all
-
 matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
   dims <- dim(Yt)
   n <- dims[1] ## number of time points (observations)
@@ -328,7 +328,7 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
               Ft=Ft.inputk.rot,Ft.all=Ft.all,Et=Et.inputk.rot))
 }
 
-# The main estimation function, vector version
+#'The main estimation function, vector version
 #'@name vector_factor
 #'@rdname vector_factor
 #'@aliases vector_factor
@@ -362,7 +362,7 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
               Ft=Ft.vec.inputk,Ft.all=Ft.all,Et=Et.vec.inputk))
 }
 
-# Get the clustering of loading matrix
+#'Get the clustering of loading matrix
 #'@name grouping.loading
 #'@rdname grouping.loading
 #'@aliases grouping.loading
@@ -388,7 +388,7 @@ grouping.loading=function(loading,ncluster,rowname,plot=T){
   return(list(new.loading=new.loading))
 }
 
-# Get the adjacency matrix for plotting
+#'Get the adjacency matrix for plotting
 #'@name dynamic_A
 #'@rdname dynamic_A
 #'@aliases dynamic_A
@@ -434,7 +434,7 @@ dynamic_A <- function(x,factor_count,simple.flag,threshold){
   return(m)
 }
 
-# Plot the network graph
+#'Plot the network graph
 #'@name PlotNetwork_AB
 #'@rdname PlotNetwork_AB
 #'@aliases PlotNetwork_AB
