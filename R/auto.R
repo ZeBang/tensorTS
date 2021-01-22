@@ -786,7 +786,7 @@ generate <- function(A, t, setting="iid"){
       e <- new("Tensor", as.integer(k), as.integer(dim), array(rnorm(prod(dim)), dim))
       x[[i]] <-  rTensor::ttl(x[[i-1]], A, c(1:k)) + e
     }
-    return(as.tensor(x))
+    return(rTensor::as.tensor(x))
   } else if (k == 3){
     x <- array(0, c(t,dim))
     x[1,,,] <- array(rnorm(prod(dim)), c(1,dim))
@@ -794,15 +794,15 @@ generate <- function(A, t, setting="iid"){
       if (setting == "iid"){
         e <- array(rnorm(prod(dim)), dim)
       } else if (setting == "mle"){
-        e <- as.vector(rTensor::ttl(as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:k)))
+        e <- as.vector(rTensor::ttl(rTensor::as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:k)))
       } else if (setting == "svd"){
         e <- as.vector(array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma2), dim))
       } else {
         return("Please specify setting")
       }
-      x[i,,,] <-  (Reduce("+", lapply(1:r, function (j) rTensor::ttl(as.tensor(x[i-1,,,]), A[[j]], c(1:k)))) + e)@data  # sum terms 1:r and add error E, use reduce since ttl returns a list
+      x[i,,,] <-  (Reduce("+", lapply(1:r, function (j) rTensor::ttl(rTensor::as.tensor(x[i-1,,,]), A[[j]], c(1:k)))) + e)@data  # sum terms 1:r and add error E, use reduce since ttl returns a list
     }
-    return(as.tensor(x))
+    return(rTensor::as.tensor(x))
   }
 }
 
