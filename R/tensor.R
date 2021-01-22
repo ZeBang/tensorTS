@@ -235,6 +235,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
 #'@name iter.tensor.bic
 #'@rdname iter.tensor.bic
 #'@aliases iter.tensor.bic
+#'@usage iter.tensor.bic()
 #'@export
 #'@param x tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}
 #'@param r initial guess of # of factors
@@ -244,10 +245,10 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
 #'@param niter number of iterations
 #'@param tracetrue if TRUE, record the dis value for each iteration
 #'@return a list containing the following:\describe{
-#'\item{\code{Q}}
+#'\item{\code{Q}}{.}
 #'\item{\code{Qinit}}{initial value of Q}
 #'\item{\code{Qfirst}}{value of Q at first iteration}
-#'\item{\code{x.hat}}
+#'\item{\code{x.hat}}{.}
 #'\item{\code{x.hat.init}}{initial value of xhat}
 #'\item{\code{x.hat.first}}{value of xhat at first iteration}
 #'\item{\code{factor.num}}{number of factors}
@@ -344,6 +345,7 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
 #'@name iter.tensor.ratio
 #'@rdname iter.tensor.ratio
 #'@aliases iter.tensor.ratio
+#'@usage iter.tensor.ratio()
 #'@export
 #'@param x tensor of any dimension , \eqn{d1 * d2 * d3 * \cdots * d_K * n}
 #'@param r initial guess of # of factors
@@ -353,10 +355,10 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
 #'@param niter number of interations
 #'@param tracetrue if TRUE, record the dis value for each iteration
 #'@return a list containing the following:\describe{
-#'\item{\code{Q}}
+#'\item{\code{Q}}{.}
 #'\item{\code{Qinit}}{initial value of Q}
 #'\item{\code{Qfirst}}{value of Q at first iteration}
-#'\item{\code{x.hat}}
+#'\item{\code{x.hat}}{.}
 #'\item{\code{x.hat.init}}{initial value of xhat}
 #'\item{\code{x.hat.first}}{value of xhat at first iteration}
 #'\item{\code{factor.num}}{number of factors}

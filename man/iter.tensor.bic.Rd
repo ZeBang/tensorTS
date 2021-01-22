@@ -4,15 +4,7 @@
 \alias{iter.tensor.bic}
 \title{iterative versions of all three methods for any Dim tensor time series}
 \usage{
-iter.tensor.bic(
-  x,
-  r,
-  h0 = 1,
-  method,
-  tol = 1e-04,
-  niter = 100,
-  tracetrue = FALSE
-)
+iter.tensor.bic()
 }
 \arguments{
 \item{x}{tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}}
@@ -31,10 +23,10 @@ iter.tensor.bic(
 }
 \value{
 a list containing the following:\describe{
-\item{\code{Q}}
+\item{\code{Q}}{.}
 \item{\code{Qinit}}{initial value of Q}
 \item{\code{Qfirst}}{value of Q at first iteration}
-\item{\code{x.hat}}
+\item{\code{x.hat}}{.}
 \item{\code{x.hat.init}}{initial value of xhat}
 \item{\code{x.hat.first}}{value of xhat at first iteration}
 \item{\code{factor.num}}{number of factors}
