@@ -72,92 +72,6 @@ TAR <- function(xx, r=1, method="lse"){
 }
 
 
-#'Canonical Polyadic Decomposition
-#'
-#'Canonical Polyadic (CP) decomposition of a tensor, aka CANDECOMP/PARAFRAC. Approximate a K-Tensor using a sum of \code{num_components} rank-1 K-Tensors. A rank-1 K-Tensor can be written as an outer product of K vectors. There are a total of \code{num_compoents *tnsr@@num_modes} vectors in the output, stored in \code{tnsr@@num_modes} matrices, each with \code{num_components} columns. This is an iterative algorithm, with two possible stopping conditions: either relative error in Frobenius norm has gotten below \code{tol}, or the \code{max_iter} number of iterations has been reached. For more details on CP decomposition, consult Kolda and Bader (2009).
-#'@importFrom rTensor fnorm rs_unfold ttl hadamard_list
-#'@export
-#'@details Uses the Alternating Least Squares (ALS) estimation procedure. A progress bar is included to help monitor operations on large tensors.
-#'@name cp
-#'@rdname cp
-#'@aliases cp
-#'@param tnsr Tensor with K modes
-#'@param num_components the number of rank-1 K-Tensors to use in approximation
-#'@param max_iter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@return a list containing the following \describe{
-#'\item{\code{lambdas}}{a vector of normalizing constants, one for each component}
-#'\item{\code{U}}{a list of matrices - one for each mode - each matrix with \code{num_components} columns}
-#'\item{\code{conv}}{whether or not \code{resid} < \code{tol} by the last iteration}
-#'\item{\code{norm_percent}}{the percent of Frobenius norm explained by the approximation}
-#'\item{\code{est}}{estimate of \code{tnsr} after compression}
-#'\item{\code{fnorm_resid}}{the Frobenius norm of the error \code{fnorm(est-tnsr)}}
-#'\item{\code{all_resids}}{vector containing the Frobenius norm of error for all the iterations}
-#'}
-#'@seealso \code{\link{tucker}}
-#'@references T. Kolda, B. Bader, "Tensor decomposition and applications". SIAM Applied Mathematics and Applications 2009.
-#'@examples
-#'subject <- faces_tnsr[,,14,]
-#'cpD <- cp(subject,num_components=10)
-#'cpD$conv
-#'cpD$norm_percent
-#'plot(cpD$all_resids)
-cp <- function(tnsr, num_components=NULL,max_iter=25, tol=1e-5){
-  if(is.null(num_components)) stop("num_components must be specified")
-  stopifnot(is(tnsr,"Tensor"))
-  if (.is_zero_tensor(tnsr)) stop("Zero tensor detected")
-
-  #initialization via truncated hosvd
-  num_modes <- tnsr@num_modes
-  modes <- tnsr@modes
-  U_list <- vector("list",num_modes)
-  unfolded_mat <- vector("list",num_modes)
-  tnsr_norm <- fnorm(tnsr)
-  for(m in 1:num_modes){
-    unfolded_mat[[m]] <- rs_unfold(tnsr,m=m)@data
-    U_list[[m]] <- matrix(rnorm(modes[m]*num_components), nrow=modes[m], ncol=num_components)
-  }
-  est <- tnsr
-  curr_iter <- 1
-  converged <- FALSE
-  #set up convergence check
-  fnorm_resid <- rep(0, max_iter)
-  CHECK_CONV <- function(est){
-    curr_resid <- fnorm(est - tnsr)
-    fnorm_resid[curr_iter] <<- curr_resid
-    if (curr_iter==1) return(FALSE)
-    if (abs(curr_resid-fnorm_resid[curr_iter-1])/tnsr_norm < tol) return(TRUE)
-    else{ return(FALSE)}
-  }
-  #main loop (until convergence or max_iter)
-  norm_vec <- function(vec){
-    norm(as.matrix(vec))
-  }
-  while((curr_iter < max_iter) && (!converged)){
-    for(m in 1:num_modes){
-      V <- hadamard_list(lapply(U_list[-m],function(x) {t(x)%*%x}))
-      V_inv <- solve(V)
-      tmp <- unfolded_mat[[m]]%*%khatri_rao_list(U_list[-m],reverse=TRUE)%*%V_inv
-      lambdas <- apply(tmp,2,norm_vec)
-      U_list[[m]] <- sweep(tmp,2,lambdas,"/")
-      Z <- .superdiagonal_tensor(num_modes=num_modes,len=num_components,elements=lambdas)
-      est <- ttl(Z,U_list,ms=1:num_modes)
-    }
-    #checks convergence
-    if(CHECK_CONV(est)){
-      converged <- TRUE
-    }else{
-      curr_iter <- curr_iter + 1
-    }
-  }
-  #end of main loop
-  #put together return list, and returns
-  fnorm_resid <- fnorm_resid[fnorm_resid!=0]
-  norm_percent<- (1-(tail(fnorm_resid,1)/tnsr_norm))*100
-  invisible(list(lambdas=lambdas, U=U_list, conv=converged, est=est, norm_percent=norm_percent, fnorm_resid = tail(fnorm_resid,1),all_resids=fnorm_resid))
-}
-
-
 #' Matrix Method
 #'
 #' Estimation function for matrix-valued time series, including the projection method,
@@ -1008,7 +922,7 @@ TAR1.projection <- function(xx){
   n1 <- m1; n2 <- m2; n3 <- m3
   mm <- TAR1.VAR(xx)$coef
   tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
-  cpd <- cp(tt,num_components = 1)
+  cpd <- rTensor::cp(tt,num_components = 1)
   u1 <- as.numeric(cpd$U[[1]])
   u2 <- as.numeric(cpd$U[[2]])
   u3 <- as.numeric(cpd$U[[3]])
@@ -1040,7 +954,7 @@ TAR2.projection <- function(xx,r){
   n1 <- m1; n2 <- m2; n3 <- m3
   mm <- TAR1.VAR(xx)$coef
   tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
-  cpd <- cp(tt,num_components = r)
+  cpd <- rTensor::cp(tt,num_components = r)
   lam <- cpd$lambdas
   A <- list()
   for (j in c(1:r)){  # j is number of terms
@@ -1704,21 +1618,4 @@ run.test <- function(m1,m2,m3,n=100,T){
   return(list(err1,err2,err3,err12,err22))
 }
 
-.is_zero_tensor <- function(tnsr){
-  if (sum(tnsr@data==0)==prod(tnsr@modes)) return(TRUE)
-  return(FALSE)
-}
 
-.superdiagonal_tensor <- function(num_modes,len,elements=1L){
-  modes <- rep(len,num_modes)
-  arr <- array(0, dim = modes)
-  if(length(elements)==1) elements <- rep(elements,len)
-  for (i in 1:len){
-    txt <- paste("arr[",paste(rep("i", num_modes),collapse=","),"] <- ", elements[i],sep="")
-    eval(parse(text=txt))
-  }
-  as.tensor(arr)
-}
-# devtools::load_all()
-# devtools::document()
-# devtools::build_manual()

@@ -50,7 +50,7 @@ Specify the estimation you want to use in function `TAR` by parameter `method`, 
 
 And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
 
-```{r, include=FALSE, message = FALSE, warning=FALSE}
+```{r, eval=FALSE}
 result = TAR(xx, r=2, method="lse")
 ```
 
