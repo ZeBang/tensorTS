@@ -407,8 +407,8 @@ MAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
       }
     }
 
-    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
-    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
     dis <- sqrt(sum((phi.new - phi.old)^2))
     A.old <- A.new
     iiter <- iiter + 1
@@ -417,7 +417,7 @@ MAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
       print(paste('iiter num=',iiter))
     }
   }
-  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
   disf <- sum((phi.new -phi)^2)
   res <- (xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))})))@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
@@ -521,8 +521,8 @@ MAR2.otimes <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
         Sig.new[[i]] <- s * prod(b)
       }
     }
-    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
-    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
     dis <- sqrt(sum((phi.new-phi.old)^2))
     Sig.old <- Sig.new
     A.old <- A.new
@@ -1018,8 +1018,8 @@ TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
         A.new[[1]][[i]] <- m * prod(a)
       }
     }
-    phi.new <- kronecker_list(rev(A.new[[1]]))
-    phi.old <- kronecker_list(rev(A.old[[1]]))
+    phi.new <- rTensor::kronecker_list(rev(A.new[[1]]))
+    phi.old <- rTensor::kronecker_list(rev(A.old[[1]]))
     dis <- sqrt(sum((phi.new - phi.old)^2))
     A.old <- A.new
     iiter <- iiter + 1
@@ -1028,7 +1028,7 @@ TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
       print(paste('iiter num=',iiter))
     }
   }
-  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
   disf <- sum((phi.new -phi)^2)
   res <- (xx[2:t,,,,drop=FALSE] - rTensor::ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
@@ -1073,7 +1073,7 @@ TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
     }
   }
   A.new <- A.old
-  phi <-  Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  phi <-  Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
   dis <- 1
   iiter <- 1
   a <- c()
@@ -1105,8 +1105,8 @@ TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
         }
       }
     }
-    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
-    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
     dis <- sqrt(sum((phi.new - phi.old)^2))
     A.old <- A.new
     iiter <- iiter + 1
@@ -1115,7 +1115,7 @@ TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
       print(paste('iiter num=',iiter))
     }
   }
-  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
   disf <- sum((phi.new -phi)^2)
   res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
@@ -1187,8 +1187,8 @@ TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
         Sig.new[[i]] <- s * prod(b)
       }
     }
-    phi.new <- kronecker_list(rev(A.new[[1]]))
-    phi.old <- kronecker_list(rev(A.old[[1]]))
+    phi.new <- rTensor::kronecker_list(rev(A.new[[1]]))
+    phi.old <- rTensor::kronecker_list(rev(A.old[[1]]))
     dis <- sqrt(sum((phi.new -phi.old)^2))
     Sig.old <- Sig.new
     A.old <- A.new
@@ -1198,7 +1198,7 @@ TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
       print(paste('iiter num=',iiter))
     }
   }
-  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
   disf <- sum((phi.new-phi)^2)
   res <- (xx[2:t,,,,drop=FALSE] - rTensor::ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
@@ -1299,8 +1299,8 @@ TAR2.MLE <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
       }
     }
 
-    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
-    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
     dis <- sqrt(sum((phi.new-phi.old)^2))
     Sig.old <- Sig.new
     A.old <- A.new
