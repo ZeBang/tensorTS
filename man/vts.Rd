@@ -7,11 +7,11 @@
 vts(x, h0, r)
 }
 \arguments{
-\item{x:}{A n*d matrix}
+\item{x}{a n*d matrix}
 
-\item{h0:}{Pre-scribed parameter h}
+\item{h0}{Pre-scribed parameter h}
 
-\item{r:}{First r eigenvectors}
+\item{r}{First r eigenvectors}
 }
 \value{
 a list containing the following:\describe{

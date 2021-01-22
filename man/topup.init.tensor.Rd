@@ -7,21 +7,21 @@
 topup.init.tensor(x, r, h0 = 1, oneside.true = FALSE, norm.true = FALSE)
 }
 \arguments{
-\item{x:}{d1 * d2 * d3 * ... * d_d * n}
+\item{x}{\eqn{d1 * d2 * d3 * \cdots * d_d * n}}
 
-\item{r:}{initial guess of # of factors}
+\item{r}{initial guess of # of factors}
 
-\item{h0:}{Pre-scribed parameter h}
+\item{h0}{Pre-scribed parameter h}
 
-\item{oneside.true:}{If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method}
+\item{oneside.true}{If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method}
 
-\item{norm.true:}{If norm.true==TRUE, calculate the normalized residual of the tensor}
+\item{norm.true}{If norm.true==TRUE, calculate the normalized residual of the tensor}
 }
 \value{
 a list containing the following:\describe{
 \item{\code{M}}{Estimator}
 \item{\code{Q}}{Orthonormal matrix Q}
-\item{\code{\lambda}}{singular values}
+\item{\code{lambda}}{singular values}
 \item{\code{norm.percent}}{normalized residual}
 \item{\code{x.hat}}{A tensor object x.hat}
 }

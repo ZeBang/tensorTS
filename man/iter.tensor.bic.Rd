@@ -15,19 +15,19 @@ iter.tensor.bic(
 )
 }
 \arguments{
-\item{h0}{: Pre-scribed parameter h}
+\item{x}{tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}}
 
-\item{tol}{: level of error tolerance}
+\item{r}{initial guess of # of factors}
 
-\item{x:}{tensor of any dimension, x: d1 * d2 * d3 * ... * d_K * n}
+\item{h0}{Pre-scribed parameter h}
 
-\item{r:}{initial guess of # of factors}
+\item{method}{the method chosen among UP,TIPUP,TOPUP}
 
-\item{method:}{the method chosen among UP,TIPUP,TOPUP}
+\item{tol}{level of error tolerance}
 
-\item{niter:}{number of interations}
+\item{niter}{number of iterations}
 
-\item{tracetrue:}{if TRUE, record the dis value for each iteration}
+\item{tracetrue}{if TRUE, record the dis value for each iteration}
 }
 \value{
 a list containing the following:\describe{

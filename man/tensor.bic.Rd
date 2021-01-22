@@ -7,13 +7,15 @@
 tensor.bic(reigen, h0 = 1, p1, p2, n)
 }
 \arguments{
-\item{reigen:}{list of eigenvalues}
+\item{reigen}{list of eigenvalues}
 
-\item{h0:}{Pre-scribed parameter h}
+\item{h0}{Pre-scribed parameter h}
 
-\item{p1:}{p1}
+\item{p1}{p1}
 
-\item{p2:}{p2}
+\item{p2}{p2}
+
+\item{n}{n}
 }
 \value{
 factor.p1: Estimated number of factors

@@ -15,19 +15,19 @@ iter.tensor.ratio(
 )
 }
 \arguments{
-\item{tol}{: level of error tolerance}
+\item{x}{tensor of any dimension , \eqn{d1 * d2 * d3 * \cdots * d_K * n}}
 
-\item{x:}{tensor of any dimension , d1 * d2 * d3 * ... * d_K * n}
+\item{r}{initial guess of # of factors}
 
-\item{r:}{initial guess of # of factors}
+\item{h0}{Pre-scribed parameter h}
 
-\item{h0:}{Pre-scribed parameter h}
+\item{method}{the method chosen among UP,TIPUP,TOPUP}
 
-\item{method:}{the method chosen among UP,TIPUP,TOPUP}
+\item{tol}{level of error tolerance}
 
-\item{niter:}{number of interations}
+\item{niter}{number of interations}
 
-\item{tracetrue:}{if TRUE, record the dis value for each iteration}
+\item{tracetrue}{if TRUE, record the dis value for each iteration}
 }
 \value{
 a list containing the following:\describe{

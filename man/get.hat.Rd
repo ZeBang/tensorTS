@@ -7,11 +7,11 @@
 get.hat(x, Q, d.seq)
 }
 \arguments{
-\item{x:}{tensor of any dimension, x: d1 * d2 * d3 * ... * d_k * n}
+\item{x}{tensor of any dimension, x: \eqn{d1 * d2 * d3 * \cdots * d_k * n}}
 
-\item{Q:}{list of k matrices}
+\item{Q}{list of k matrices}
 
-\item{d.seq:}{1:k}
+\item{d.seq}{1:k}
 }
 \value{
 a tensor object x.hat

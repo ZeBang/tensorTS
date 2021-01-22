@@ -18,9 +18,9 @@
 #'@rdname get.hat
 #'@aliases get.hat
 #'@export
-#'@param x: tensor of any dimension, x: d1 * d2 * d3 * ... * d_k * n
-#'@param Q: list of k matrices
-#'@param d.seq: 1:k
+#'@param x tensor of any dimension, x: \eqn{d1 * d2 * d3 * \cdots * d_k * n}
+#'@param Q list of k matrices
+#'@param d.seq 1:k
 #'@return a tensor object x.hat
 get.hat <- function(x,Q,d.seq){
   ans <- ttl(x,lapply(Q,t),d.seq)
@@ -34,9 +34,9 @@ get.hat <- function(x,Q,d.seq){
 #'@rdname vts
 #'@aliases vts
 #'@export
-#'@param x: A n*d matrix
-#'@param h0: Pre-scribed parameter h
-#'@param r: First r eigenvectors
+#'@param x a n*d matrix
+#'@param h0 Pre-scribed parameter h
+#'@param r First r eigenvectors
 #'@return a list containing the following:\describe{
 #'\item{\code{M}}
 #'\item{\code{Q}}{The eigenvectors of matrix M}
@@ -61,13 +61,13 @@ vts <- function(x,h0,r){
 #'@rdname up.init.tensor
 #'@aliases up.init.tensor
 #'@export
-#'@param x: tensor of any dimension : d1 * d2 * d3 * ... * d_k * n
-#'@param r: initial guess of # of factors
-#'@param oneside.true:  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
-#'@param norm.true: If norm.true==TRUE, normalize the tensor
+#'@param x tensor of any dimension : \eqn{d1 * d2 * d3 * \cdots * d_k * n}
+#'@param r initial guess of # of factors
+#'@param oneside.true  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
+#'@param norm.true If norm.true==TRUE, normalize the tensor
 #'@return a list containing the following:\describe{
 #'\item{\code{Q}}{Orthonormal matrix Q}
-#'\item{\code{\lambda}}{Singular values}
+#'\item{\code{lambda}}{Singular values}
 #'\item{\code{norm.percent}}{x after standardization}
 #'\item{\code{x.hat}}{A tensor object x.hat}
 #'}
@@ -109,16 +109,15 @@ up.init.tensor <- function(x,r,oneside.true=FALSE,norm.true=FALSE){
 #'@rdname tipup.init.tensor
 #'@aliases tipup.init.tensor
 #'@export
-#'@param x: tensor of any dimension
-#'@param x: d1 * d2 * d3 * ... * d_d * n
-#'@param r: initial guess of # of factors
-#'@param h0: Pre-scribed parameter h
-#'@param oneside.true:  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
-#'@param norm.true: If norm.true==TRUE, normalize the tensor
+#'@param x tensor of any dimension \eqn{d1 * d2 * d3 * \cdots * d_d * n}
+#'@param r initial guess of # of factors
+#'@param h0 Pre-scribed parameter h
+#'@param oneside.true  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
+#'@param norm.true If norm.true==TRUE, normalize the tensor
 #'@return a list containing the following:\describe{
 #'\item{\code{M}}{Estimator}
 #'\item{\code{Q}}{Orthonormal matrix Q}
-#'\item{\code{\lambda}}{singular values}
+#'\item{\code{lambda}}{singular values}
 #'\item{\code{norm.percent}}{x after standardization}
 #'\item{\code{x.hat}}{A tensor object x.hat}
 #'}
@@ -171,16 +170,16 @@ tipup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
 #'@rdname topup.init.tensor
 #'@aliases topup.init.tensor
 #'@export
-#'@param x: tensor of any dimension
-#'@param x: d1 * d2 * d3 * ... * d_d * n
-#'@param r: initial guess of # of factors
-#'@param h0: Pre-scribed parameter h
-#'@param oneside.true:  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
-#'@param norm.true: If norm.true==TRUE, calculate the normalized residual of the tensor
+#'@param x tensor of any dimension
+#'@param x \eqn{d1 * d2 * d3 * \cdots * d_d * n}
+#'@param r initial guess of # of factors
+#'@param h0 Pre-scribed parameter h
+#'@param oneside.true  If oneside.true==TRUE, then only compute the one sided column space, not the other sides, this option is useful for the iterative method
+#'@param norm.true If norm.true==TRUE, calculate the normalized residual of the tensor
 #'@return a list containing the following:\describe{
 #'\item{\code{M}}{Estimator}
 #'\item{\code{Q}}{Orthonormal matrix Q}
-#'\item{\code{\lambda}}{singular values}
+#'\item{\code{lambda}}{singular values}
 #'\item{\code{norm.percent}}{normalized residual}
 #'\item{\code{x.hat}}{A tensor object x.hat}
 #'}
@@ -237,13 +236,13 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
 #'@rdname iter.tensor.bic
 #'@aliases iter.tensor.bic
 #'@export
-#'@param x: tensor of any dimension, x: d1 * d2 * d3 * ... * d_K * n
-#'@param r: initial guess of # of factors
-#'@param h0 : Pre-scribed parameter h
-#'@param method: the method chosen among UP,TIPUP,TOPUP
-#'@param tol : level of error tolerance
-#'@param niter: number of interations
-#'@param tracetrue: if TRUE, record the dis value for each iteration
+#'@param x tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}
+#'@param r initial guess of # of factors
+#'@param h0 Pre-scribed parameter h
+#'@param method the method chosen among UP,TIPUP,TOPUP
+#'@param tol level of error tolerance
+#'@param niter number of iterations
+#'@param tracetrue if TRUE, record the dis value for each iteration
 #'@return a list containing the following:\describe{
 #'\item{\code{Q}}
 #'\item{\code{Qinit}}{initial value of Q}
@@ -346,13 +345,13 @@ iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
 #'@rdname iter.tensor.ratio
 #'@aliases iter.tensor.ratio
 #'@export
-#'@param x: tensor of any dimension , d1 * d2 * d3 * ... * d_K * n
-#'@param r: initial guess of # of factors
-#'@param h0: Pre-scribed parameter h
-#'@param method: the method chosen among UP,TIPUP,TOPUP
-#'@param tol : level of error tolerance
-#'@param niter: number of interations
-#'@param tracetrue: if TRUE, record the dis value for each iteration
+#'@param x tensor of any dimension , \eqn{d1 * d2 * d3 * \cdots * d_K * n}
+#'@param r initial guess of # of factors
+#'@param h0 Pre-scribed parameter h
+#'@param method the method chosen among UP,TIPUP,TOPUP
+#'@param tol level of error tolerance
+#'@param niter number of interations
+#'@param tracetrue if TRUE, record the dis value for each iteration
 #'@return a list containing the following:\describe{
 #'\item{\code{Q}}
 #'\item{\code{Qinit}}{initial value of Q}
@@ -455,11 +454,11 @@ iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE
 #'@rdname tensor.bic
 #'@aliases tensor.bic
 #'@export
-#'@param reigen: list of eigenvalues
-#'@param h0: Pre-scribed parameter h
-#'@param p1: p1
-#'@param p2: p2
-#'@param n:n
+#'@param reigen list of eigenvalues
+#'@param h0 Pre-scribed parameter h
+#'@param p1 p1
+#'@param p2 p2
+#'@param n n
 #'@return factor.p1: Estimated number of factors
 tensor.bic<-function(reigen,h0=1,p1,p2,n){
   #p1
@@ -497,11 +496,11 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n){
 #'@rdname tensor.ratio
 #'@aliases tensor.ratio
 #'@export
-#'@param reigen: list of eigenvalues
-#'@param h0: Pre-scribed parameter h
-#'@param p1: p1
-#'@param p2: p2
-#'@param n: n
+#'@param reigen list of eigenvalues
+#'@param h0 Pre-scribed parameter h
+#'@param p1 p1
+#'@param p2 p2
+#'@param n n
 #'@return factor.p1: Estimated number of factors
 #'
 tensor.ratio<-function(reigen,h0=1,p1,p2,n){
