@@ -15,7 +15,7 @@ vts(x, h0, r)
 }
 \value{
 a list containing the following:\describe{
-\item{\code{M}}
+\item{\code{M}}{.}
 \item{\code{Q}}{The eigenvectors of matrix M}
 }
 }

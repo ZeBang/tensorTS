@@ -38,7 +38,7 @@ get.hat <- function(x,Q,d.seq){
 #'@param h0 Pre-scribed parameter h
 #'@param r First r eigenvectors
 #'@return a list containing the following:\describe{
-#'\item{\code{M}}
+#'\item{\code{M}}{.}
 #'\item{\code{Q}}{The eigenvectors of matrix M}
 #'}
 vts <- function(x,h0,r){
