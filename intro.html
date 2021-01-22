@@ -370,72 +370,48 @@ code > span.er { color: #a61717; background-color: #e3d2d2; }
 <div id="factor-and-autoregressive-models-for-tensor-time-series" class="section level2">
 <h2>Factor and Autoregressive Models for Tensor Time Series</h2>
 <p>The R package <strong>timeFA</strong> includes methods in our recent papers, including <a href="https://arxiv.org/abs/1905.07530">Factor Models</a> and <a href="https://arxiv.org/abs/1812.08916">Autoregressive Models</a> for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.</p>
-<div id="installation" class="section level4">
-<h4>Installation</h4>
+</div>
+<div id="installation" class="section level2">
+<h2>Installation</h2>
 <p>Temporarily, we use GitHub to host this package source code then users can install the package directly from GitHub using the <code>install_github</code> function in the <a href="https://github.com/r-lib/devtools#readme">devtools</a> package:</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1"></a><span class="kw">library</span>(devtools)</span>
 <span id="cb1-2"><a href="#cb1-2"></a><span class="kw">install_github</span>(<span class="st">&quot;zebang/timeFA&quot;</span>)</span></code></pre></div>
 <p>Remark: You may need download latest <a href="https://cran.r-project.org/bin/windows/Rtools/">Rtools</a> if error message says so.</p>
 </div>
-<div id="autoregressive-models" class="section level4">
-<h4>Autoregressive Models</h4>
+<div id="autoregressive-models" class="section level2">
+<h2>Autoregressive Models</h2>
 <p>We collect all estimation methods in one function <code>TAR</code>. So you can just use this single function to have all estimation methods you want to use.</p>
 <p>For demonstration, we first randomly generate some coefficient matrices and tensor time series as follows,</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1"></a><span class="kw">library</span>(timeFA)</span>
 <span id="cb2-2"><a href="#cb2-2"></a>dim &lt;-<span class="st"> </span><span class="kw">c</span>(<span class="dv">2</span>,<span class="dv">2</span>,<span class="dv">2</span>) <span class="co"># dimension of tensor at time t is 2 * 2 * 2</span></span>
 <span id="cb2-3"><a href="#cb2-3"></a>A &lt;-<span class="st"> </span><span class="kw">generateA</span>(dim, <span class="dt">R=</span><span class="dv">1</span>) <span class="co"># randomly generate coefficient matrices with number of terms R = 1</span></span>
 <span id="cb2-4"><a href="#cb2-4"></a>xx &lt;-<span class="st"> </span><span class="kw">generate</span>(A, <span class="dt">t=</span><span class="dv">100</span>) <span class="co"># generate tensor time series with AR(1) structure</span></span></code></pre></div>
-<p>Specify the estimation you want to use in function <code>TAR</code> by parameter <code>method</code>, which can be “lse” (Iterated least squares), “mle” (MLE under a structured covariance tensor), “projection” (Projection method), “ar” (stacked VAR(1) model). And specify you want to use multiple term model or one term model by parameter <code>r</code>. For example, if we want to estimate by LSE method under multiple term model with number of terms <span class="math inline">\(r=2\)</span>, run as follows,</p>
-<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>result =<span class="st"> </span><span class="kw">TAR</span>(xx, <span class="dt">r=</span><span class="dv">2</span>, <span class="dt">method=</span><span class="st">&quot;lse&quot;</span>)</span>
-<span id="cb3-2"><a href="#cb3-2"></a><span class="co">#&gt; </span></span>
-<span id="cb3-3"><a href="#cb3-3"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-4"><a href="#cb3-4"></a><span class="st">  </span><span class="er">|</span><span class="st">                                                                      </span><span class="er">|</span><span class="st">   </span><span class="dv">0</span>%</span>
-<span id="cb3-5"><a href="#cb3-5"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-6"><a href="#cb3-6"></a><span class="st">  </span><span class="er">|===</span><span class="st">                                                                   </span><span class="er">|</span><span class="st">   </span><span class="dv">4</span>%</span>
-<span id="cb3-7"><a href="#cb3-7"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-8"><a href="#cb3-8"></a><span class="st">  </span><span class="er">|======</span><span class="st">                                                                </span><span class="er">|</span><span class="st">   </span><span class="dv">8</span>%</span>
-<span id="cb3-9"><a href="#cb3-9"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-10"><a href="#cb3-10"></a><span class="st">  </span><span class="er">|========</span><span class="st">                                                              </span><span class="er">|</span><span class="st">  </span><span class="dv">12</span>%</span>
-<span id="cb3-11"><a href="#cb3-11"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-12"><a href="#cb3-12"></a><span class="st">  </span><span class="er">|===========</span><span class="st">                                                           </span><span class="er">|</span><span class="st">  </span><span class="dv">16</span>%</span>
-<span id="cb3-13"><a href="#cb3-13"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-14"><a href="#cb3-14"></a><span class="st">  </span><span class="er">|==============</span><span class="st">                                                        </span><span class="er">|</span><span class="st">  </span><span class="dv">20</span>%</span>
-<span id="cb3-15"><a href="#cb3-15"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-16"><a href="#cb3-16"></a><span class="st">  </span><span class="er">|=================</span><span class="st">                                                     </span><span class="er">|</span><span class="st">  </span><span class="dv">24</span>%</span>
-<span id="cb3-17"><a href="#cb3-17"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-18"><a href="#cb3-18"></a><span class="st">  </span><span class="er">|====================</span><span class="st">                                                  </span><span class="er">|</span><span class="st">  </span><span class="dv">28</span>%</span>
-<span id="cb3-19"><a href="#cb3-19"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-20"><a href="#cb3-20"></a><span class="st">  </span><span class="er">|======================</span><span class="st">                                                </span><span class="er">|</span><span class="st">  </span><span class="dv">32</span>%</span>
-<span id="cb3-21"><a href="#cb3-21"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-22"><a href="#cb3-22"></a><span class="st">  </span><span class="er">|=========================</span><span class="st">                                             </span><span class="er">|</span><span class="st">  </span><span class="dv">36</span>%</span>
-<span id="cb3-23"><a href="#cb3-23"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-24"><a href="#cb3-24"></a><span class="st">  </span><span class="er">|============================</span><span class="st">                                          </span><span class="er">|</span><span class="st">  </span><span class="dv">40</span>%</span>
-<span id="cb3-25"><a href="#cb3-25"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-26"><a href="#cb3-26"></a><span class="st">  </span><span class="er">|===============================</span><span class="st">                                       </span><span class="er">|</span><span class="st">  </span><span class="dv">44</span>%</span>
-<span id="cb3-27"><a href="#cb3-27"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-28"><a href="#cb3-28"></a><span class="st">  </span><span class="er">|==================================</span><span class="st">                                    </span><span class="er">|</span><span class="st">  </span><span class="dv">48</span>%</span>
-<span id="cb3-29"><a href="#cb3-29"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-30"><a href="#cb3-30"></a><span class="st">  </span><span class="er">|====================================</span><span class="st">                                  </span><span class="er">|</span><span class="st">  </span><span class="dv">52</span>%</span>
-<span id="cb3-31"><a href="#cb3-31"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-32"><a href="#cb3-32"></a><span class="st">  </span><span class="er">|=======================================</span><span class="st">                               </span><span class="er">|</span><span class="st">  </span><span class="dv">56</span>%</span>
-<span id="cb3-33"><a href="#cb3-33"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-34"><a href="#cb3-34"></a><span class="st">  </span><span class="er">|==========================================</span><span class="st">                            </span><span class="er">|</span><span class="st">  </span><span class="dv">60</span>%</span>
-<span id="cb3-35"><a href="#cb3-35"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-36"><a href="#cb3-36"></a><span class="st">  </span><span class="er">|=============================================</span><span class="st">                         </span><span class="er">|</span><span class="st">  </span><span class="dv">64</span>%</span>
-<span id="cb3-37"><a href="#cb3-37"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-38"><a href="#cb3-38"></a><span class="st">  </span><span class="er">|================================================</span><span class="st">                      </span><span class="er">|</span><span class="st">  </span><span class="dv">68</span>%</span>
-<span id="cb3-39"><a href="#cb3-39"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-40"><a href="#cb3-40"></a><span class="st">  </span><span class="er">|==================================================</span><span class="st">                    </span><span class="er">|</span><span class="st">  </span><span class="dv">72</span>%</span>
-<span id="cb3-41"><a href="#cb3-41"></a>  <span class="op">|</span><span class="st">                                                                            </span></span>
-<span id="cb3-42"><a href="#cb3-42"></a><span class="st">  </span><span class="er">|======================================================================|</span><span class="st"> </span><span class="dv">100</span>%</span></code></pre></div>
-<p>The return of this function includes <code>A</code> (estimator of coefficient matrices), <code>res</code> (residual of the model), <code>Sig</code> (covariance matrix <span class="math inline">\(cov(vec(E_t))\)</span>), and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use <code>$</code> to extract them,</p>
+<p>Specify the estimation you want to use in function <code>TAR</code> by parameter <code>method</code>, which can be</p>
+<ul>
+<li>“lse” (Iterated least squares),</li>
+<li>“mle” (MLE under a structured covariance tensor)</li>
+<li>“projection” (Projection method)</li>
+<li>“ar” (stacked VAR(1) model).</li>
+</ul>
+<p>And specify you want to use multiple term model or one term model by parameter <code>r</code>. For example, if we want to estimate by LSE method under multiple term model with number of terms <span class="math inline">\(r=2\)</span>, run as follows,</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1"></a>result =<span class="st"> </span><span class="kw">TAR</span>(xx, <span class="dt">r=</span><span class="dv">2</span>, <span class="dt">method=</span><span class="st">&quot;lse&quot;</span>)</span></code></pre></div>
+<p>The return of this function includes,</p>
+<ul>
+<li><code>A</code> (estimator of coefficient matrices),</li>
+<li><code>res</code> (residual of the model),</li>
+<li><code>Sig</code> (covariance matrix cov(vec(E_t))),</li>
+</ul>
+<p>and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use <code>$</code> to extract them,</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1"></a>A.estimate =<span class="st"> </span>result<span class="op">$</span>A</span>
 <span id="cb4-2"><a href="#cb4-2"></a>residual =<span class="st"> </span>result<span class="op">$</span>res</span>
 <span id="cb4-3"><a href="#cb4-3"></a>Sigma =<span class="st"> </span>result<span class="op">$</span>Sig</span></code></pre></div>
 </div>
-<div id="factor-models" class="section level4">
-<h4>Factor Models</h4>
-</div>
+<div id="discussion" class="section level2">
+<h2>Discussion</h2>
+<ul>
+<li>Our source code is now on <a href="https://github.com/ZeBang/timeFA" class="uri">https://github.com/ZeBang/timeFA</a>.</li>
+<li>If you have any problems or find any bugs please report on <a href="https://github.com/ZeBang/timeFA/issues" class="uri">https://github.com/ZeBang/timeFA/issues</a>. Thank you.</li>
+</ul>
 </div>
 
 
