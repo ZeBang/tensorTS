@@ -18,7 +18,7 @@ knitr::opts_chunk$set(
 
 The R package **timeFA** includes methods in our recent papers, including [Factor Models](https://arxiv.org/abs/1905.07530) and [Autoregressive Models](https://arxiv.org/abs/1812.08916) for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.
 
-#### Installation
+## Installation
 
 Temporarily, we use GitHub to host this package source code then users can install the package directly from GitHub using the `install_github` function in the [devtools](https://github.com/r-lib/devtools#readme) package:
 ```{r, eval=FALSE}
@@ -28,7 +28,7 @@ install_github("zebang/timeFA")
 
 Remark: You may need download latest [Rtools](https://cran.r-project.org/bin/windows/Rtools/) if error message says so.
 
-#### Autoregressive Models
+## Autoregressive Models
 
 We collect all estimation methods in one function `TAR`. So you can just use this single function to have all estimation methods you want to use.
 
@@ -41,13 +41,26 @@ xx <- generate(A, t=100) # generate tensor time series with AR(1) structure
 ```
 
 
-Specify the estimation you want to use in function `TAR` by parameter `method`, which can be "lse" (Iterated least squares), "mle" (MLE under a structured covariance tensor), "projection" (Projection method), "ar" (stacked VAR(1) model). And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
+Specify the estimation you want to use in function `TAR` by parameter `method`, which can be
 
-```{r}
+* "lse" (Iterated least squares), 
+* "mle" (MLE under a structured covariance tensor)
+* "projection" (Projection method)
+* "ar" (stacked VAR(1) model). 
+
+And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
+
+```{r, include=FALSE, message = FALSE, warning=FALSE}
 result = TAR(xx, r=2, method="lse")
 ```
 
-The return of this function includes `A` (estimator of coefficient matrices), `res` (residual of the model), `Sig` (covariance matrix $cov(vec(E_t))$), and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use `$` to extract them,
+The return of this function includes,
+
+* `A` (estimator of coefficient matrices), 
+* `res` (residual of the model), 
+* `Sig` (covariance matrix cov(vec(E_t))), 
+
+and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use `$` to extract them,
 
 ```{r}
 A.estimate = result$A
@@ -55,5 +68,8 @@ residual = result$res
 Sigma = result$Sig
 ```
 
+## Discussion
 
-#### Factor Models
+- Our source code is now on https://github.com/ZeBang/timeFA. 
+- If you have any problems or find any bugs please report on https://github.com/ZeBang/timeFA/issues. Thank you.
+
