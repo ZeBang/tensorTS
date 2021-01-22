@@ -23,7 +23,7 @@
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TAR <- function(xx, r=1, method="iid"){
+TAR <- function(xx, r=1, method="lse"){
   dim = xx@num_modes - 1
   if (dim == 1){
     var1(xx)
@@ -38,7 +38,7 @@ TAR <- function(xx, r=1, method="iid"){
       } else if (identical("ar", method)) {
         var1(xx)
       } else {
-        return("Please specify the type you want to use. See manuals or run ?TAR for details.")
+        stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
       }
     } else if (r > 1){
       if (identical("projection", method)) {
@@ -50,21 +50,21 @@ TAR <- function(xx, r=1, method="iid"){
       } else if (identical("ar", method)) {
         var1(xx)
       } else {
-        return("Please specify the type you want to use. See manuals or run ?TAR for details.")
+        stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
       }
     }
 
   } else if (dim == 3){
     if (identical("projection", method)) {
       TAR1.projection(xx)
-    } else if (identical("les", method)) {
+    } else if (identical("lse", method)) {
       TAR2.LS(xx,r)
     } else if (identical("mle", method)) {
       TAR2.MLE(xx,r)
     } else if (identical("ar", method)) {
       TAR1.VAR(xx)
     } else {
-      return("Please specify the type you want to use. See manuals or run ?TAR for details.")
+      stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
     }
   } else {
     stop("lack of or wrong dimension (temporarily we only support dim = 2 or dim = 3)")
@@ -624,6 +624,7 @@ MAR1.otimes <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,t
   return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,dis=dis,niter=iiter))
 }
 
+
 #' Stacked vector AR(1) Model
 #'
 #' vector AR(1) Model.
@@ -650,6 +651,7 @@ var1 <- function(xx){
   res=array(t(out$res),dim=c(dd[1]-1,dd[2],dd[3]))
   return(list(coef=out$coef, res=res))
 }
+
 
 #' Asymptotic Covariance Matrix of \code{MAR1.otimes}
 #'
@@ -796,6 +798,7 @@ em <- function(m,n,i,j){
   return(mat)
 }
 
+
 #' Permutation matrix pm
 #'
 #' Permutation matrix pm.
@@ -819,7 +822,6 @@ pm <- function(m,n){
 }
 
 
-
 #' (alpha version) rearrangement operator for tensor.
 trearrange <- function(A,m1,m2,m3,n1,n2,n3){
   m <- nrow(A)
@@ -838,6 +840,7 @@ trearrange <- function(A,m1,m2,m3,n1,n2,n3){
   return(t)
 }
 
+
 divide <- function(A,m,n){
   c <- dim(A)[1]/m
   l <- dim(A)[2]/n
@@ -848,6 +851,7 @@ divide <- function(A,m,n){
   })
   return(tmp)
 }
+
 
 mrearrange <- function(A,m1,m2,n1,n2){
   # the inner function of "projection"
@@ -870,6 +874,7 @@ mrearrange <- function(A,m1,m2,n1,n2){
   }
   ans
 }
+
 
 #' Projection Method for Tensor-Valued Time Series
 #'
@@ -1042,6 +1047,7 @@ TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
     }
   }
   A.new <- A.old
+  phi <-  Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
   dis <- 1
   iiter <- 1
   a <- c()
@@ -1073,7 +1079,6 @@ TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
         }
       }
     }
-
     phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
     phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
     dis <- sqrt(sum((phi.new - phi.old)^2))
@@ -1526,7 +1531,6 @@ TAR2.SE.MLE <- function(xx, A.true, Sigma){
         print("Only Support k=3 but now k>3")
       }
       Gamma <- Gamma + r1 %*% t(r1)
-
     }
   }
   Hdim <- r*ndim

@@ -43,7 +43,7 @@ xx <- generate(A, t=100) # generate tensor time series with AR(1) structure
 Specify the estimation you want to use in function `TAR` by parameter `method`, which can be "lse" (Iterated least squares), "mle" (MLE under a structured covariance tensor), "projection" (Projection method), "ar" (stacked VAR(1) model). And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
 
 ```{r}
-result = TAR(xx, r=2, setting="lse")
+result = TAR(xx, r=2, method="lse")
 ```
 
 The return of this function includes `A` (estimator of coefficient matrices), `res` (residual of the model), `Sig` (covariance matrix $cov(vec(E_t))$), and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use `$` to extract them,
