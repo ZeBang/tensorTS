@@ -922,7 +922,7 @@ TAR1.projection <- function(xx){
   n1 <- m1; n2 <- m2; n3 <- m3
   mm <- TAR1.VAR(xx)$coef
   tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
-  cpd <- cp(tt,num_components = 1)
+  cpd <- rTensor::cp(tt,num_components = 1)
   u1 <- as.numeric(cpd$U[[1]])
   u2 <- as.numeric(cpd$U[[2]])
   u3 <- as.numeric(cpd$U[[3]])
@@ -954,7 +954,7 @@ TAR2.projection <- function(xx,r){
   n1 <- m1; n2 <- m2; n3 <- m3
   mm <- TAR1.VAR(xx)$coef
   tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
-  cpd <- cp(tt,num_components = r)
+  cpd <- rTensor::cp(tt,num_components = r)
   lam <- cpd$lambdas
   A <- list()
   for (j in c(1:r)){  # j is number of terms
