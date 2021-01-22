@@ -162,6 +162,7 @@ rearrange <- function(A,m1,m2,n1,n2){
 #'@rdname projection
 #'@aliases projection
 #'@param A m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}
+#'@param r number of terms
 #'@param m1 \code{ncol} of A
 #'@param m2 \code{ncol} of B
 #'@param n1 \code{nrow} of A
@@ -171,18 +172,29 @@ rearrange <- function(A,m1,m2,n1,n2){
 #'@examples
 #'A <- matrix(runif(6),ncol=2),
 #'projection(A,3,3,2,2)
-projection <- function(A,m1,m2,n1,n2){
+projection <- function(A,r,m1,m2,n1,n2){
   # the inner function of MAR1.projection
   # A: m1m2*n1n2
   # B: m1*n1
   # C: m2*n2
   # A \approx B \otimes C
   # return B and C
+  dim = c(m1, n1)
   RA <- rearrange(A,m1,m2,n1,n2)
-  RA.svd <- svd(RA,nu=1,nv=1)
-  B <- matrix(RA.svd$u * RA.svd$d[1], m1, n1)
-  C <- matrix(RA.svd$v , m2, n2)
-  list(B=B,C=C)
+  A.hat <- lapply(1:r, function(j) {lapply(1:2, function(i) {diag(dim[i])})})
+  if (r == 1){
+    RA.svd <- svd(RA,nu=1,nv=1)
+    B <- matrix(RA.svd$u * RA.svd$d[1], m1, n1)
+    C <- matrix(RA.svd$v , m2, n2)
+    list(B=B,C=C)
+  } else {
+    RA.svd <- svd(RA,nu=r,nv=r)
+    for (i in c(1:r)){
+      A.hat[[i]][[2]] <- matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1)
+      A.hat[[i]][[1]] <- matrix(RA.svd$v[,i] , m2, n2)
+    }
+    return(A.hat)
+  }
 }
 
 
@@ -212,7 +224,7 @@ MAR1.projection <- function(xx){
   q <- dd[3]
   xx.mat <- matrix(xx,T,p*q)
   kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
-  ans.projection <- projection(kroneck, q,p,q,p)
+  ans.projection <- projection(kroneck,r=1,q,p,q,p)
   a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
   LL <- ans.projection$C / a
   RR <- t(ans.projection$B) * a
