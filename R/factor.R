@@ -1,25 +1,5 @@
 ###Functions of Factor Models
 
-library(igraph)
-
-# list of functions:
-
-# mfmda : Get the M matrix with 3 different methods
-# mfmda.estqk : Get the eigenvectors from the M matrix
-# matrix_factor : Fit matrix factor model
-# vector_factor : Fit matrix factor model with input as vectors
-# grouping.loading : Get the clustering of the loading matrix
-# dynamic_A : The loading matrix for plotting
-# PlotNetwork_AB : Plot the network graph
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
-#---------------------------------------------------------------
 
 # This approach is for the vector-valued estimation WITHOUT NaNs.
 #'@name mfmda.nona.vec
@@ -53,7 +33,7 @@ mfmda.nona.vec <- function(Yc,hzero){
 #'@aliases mfmda.na.vec
 #'@export
 #'@param Yc Time Series data for a matrix(dimensions n*p*q), allowing NA input
-#'@param hzero Pre-scribed parameter h_0 
+#'@param hzero Pre-scribed parameter h_0
 #'@return The sample version of M matrix
 #'@seealso \code{\link{vector_factor}}
 mfmda.na.vec <- function(Yc,hzero){
@@ -70,7 +50,7 @@ mfmda.na.vec <- function(Yc,hzero){
       if( (sum(is.na(Yc.matrix[,tt]))==0) && (sum(is.na(Yc.matrix[,tt+h]))==0) ){
         Omegah = Omegah + Yc.matrix[,tt] %*% t(Yc.matrix[,tt+h])
         count <- count+1
-      }                    
+      }
     }
     if (count>0){
       Omegah = Omegah/count
@@ -80,7 +60,7 @@ mfmda.na.vec <- function(Yc,hzero){
   Mhat
 }
 
-# The input data do not have zeros. The estimation approach is noniterative. 
+# The input data do not have zeros. The estimation approach is noniterative.
 #'@name mfmda.nona.noniter
 #'@rdname mfmda.nona.noniter
 #'@aliases mfmda.nona.noniter
@@ -107,7 +87,7 @@ mfmda.nona.noniter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh   
+    Mhat = Mhat + Gammayh
   }
   Mhat
 }
@@ -139,7 +119,7 @@ mfmda.nona.iter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh   
+    Mhat = Mhat + Gammayh
   }
   Mhat
 }
@@ -170,7 +150,7 @@ mfmda.na.iter <- function(Yc,hzero){
           if( (sum(is.na(Yc[tt,,ii]))==0) && (sum(is.na(Yc[tt+h,,jj]))==0) ){
             Omegaijh = Omegaijh + Yc[tt,,ii] %*% t(Yc[tt+h,,jj])
             count <- count+1
-          }                    
+          }
         }
         if (count>0){
           Omegaijh = Omegaijh/count
@@ -178,7 +158,7 @@ mfmda.na.iter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh   
+    Mhat = Mhat + Gammayh
   }
   Mhat
 }
@@ -233,7 +213,7 @@ mfmda <- function(Yt,approach="3",hzero=1,iscentering=1){
 #'@export
 #'@param Mhat The estimated value for matrix M
 #'@param inputk The pre-determined number of dimension of factor matrix
-#'@return The estimated number of factors to use, the corresponding estimated Q matrix, the eigenvalue,  the estimated Q matrix with requested number of factors 
+#'@return The estimated number of factors to use, the corresponding estimated Q matrix, the eigenvalue,  the estimated Q matrix with requested number of factors
 #'@seealso \code{\link{matrix_factor}}
 #'@examples
 #' #A 10*10 Matrix time series example with t=20 time points
@@ -302,10 +282,10 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
     Yt.sd[Yt.sd==0]=1   ## if sd=0, do nothing. series will be constant zero
     Yc <- (Yt - array(rep(Yt.mean,rep(n,p*q)),c(n,p,q)))/array(rep(Yt.sd,rep(n,p*q)),c(n,p,q))
   }
-  else{ 
+  else{
     Yc <- Yt
     }
-    ## ------------- ESTIMATION FOR p dimension -------------------------- 
+    ## ------------- ESTIMATION FOR p dimension --------------------------
     Mhat1 <- mfmda(Yc,"3",hzero,iscentering)
     eig1.ans <- mfmda.estqk(Mhat1,inputk1)
     k1hat <- eig1.ans$estk
@@ -317,7 +297,7 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
     for(i in 1:inputk1){
       Q1hatinputkrot[,i]=Q1hatinputkrot[,i]*sign(sum(Q1hatinputkrot[,i]))
     }
-    ## ------------- ESTIMATION FOR q dimension -------------------------- 
+    ## ------------- ESTIMATION FOR q dimension --------------------------
     tYc = array(0,c(n,q,p))
     for(nk in 1:n){
       tYc[nk,,] = t(Yc[nk,,])
@@ -347,7 +327,7 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
               loading1=Q1hatinputkrot,loading2=Q2hatinputkrot,
               Ft=Ft.inputk.rot,Ft.all=Ft.all,Et=Et.inputk.rot))
 }
-  
+
 # The main estimation function, vector version
 #'@name vector_factor
 #'@rdname vector_factor
@@ -371,7 +351,7 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
   Qhat.vec.zero <- eig.vec.zero.ans$Qhatestk
   eigval.vec.zero <- eig.vec.zero.ans$eigval
   Qhatinputk.vec.zero <- eig.vec.zero.ans$Qhatinputk
-  Yc.matrix <- t(matrix(Yc,nrow=n))  
+  Yc.matrix <- t(matrix(Yc,nrow=n))
   ## Extract latent factors: Ft of dimension ( inputk \times n)
   Ft.vec.inputk <- t(Qhatinputk.vec.zero) %*% Yc.matrix
   Ft.all=apply(Ft.vec.inputk,2,sum)
@@ -394,7 +374,7 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
 #'@return Loading matrix after grouping
 grouping.loading=function(loading,ncluster,rowname,plot=T){
   ddd <- dist(loading, method = "euclidean") # distance matrix
-  fit <- hclust(ddd, method="ward.D") 
+  fit <- hclust(ddd, method="ward.D")
   if(plot==T){
     par(mfrow=c(1,1),mai=0.5*c(1,1,1,1))
     plot(fit, main='clustering') # display dendogram
