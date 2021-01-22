@@ -230,224 +230,224 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   list("M"=ans.M,"Q"=ans.Q,"lambda"=ans.lambda,"norm.percent"=norm.percent,"x.hat"=x.hat)
 }
 
-#'iterative versions of all three methods for any Dim tensor time series
+#' #'iterative versions of all three methods for any Dim tensor time series
+#' #'
+#' #'@name iter.tensor.bic
+#' #'@rdname iter.tensor.bic
+#' #'@aliases iter.tensor.bic
+#' #'@export
+#' #'@param x tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}
+#' #'@param r initial guess of # of factors
+#' #'@param h0 Pre-scribed parameter h
+#' #'@param method the method chosen among UP,TIPUP,TOPUP
+#' #'@param tol level of error tolerance
+#' #'@param niter number of iterations
+#' #'@param tracetrue if TRUE, record the dis value for each iteration
+#' #'@return a list containing the following:\describe{
+#' #'\item{\code{Q}}
+#' #'\item{\code{Qinit}}{initial value of Q}
+#' #'\item{\code{Qfirst}}{value of Q at first iteration}
+#' #'\item{\code{x.hat}}
+#' #'\item{\code{x.hat.init}}{initial value of xhat}
+#' #'\item{\code{x.hat.first}}{value of xhat at first iteration}
+#' #'\item{\code{factor.num}}{number of factors}
+#' #'\item{\code{timer}}{a timer}
+#' #'\item{\code{norm.percent}}{x after standardization}
+#' #'\item{\code{dis}}{difference of fnorm.resid for each iteration}
+#' #'\item{\code{niter}}{number of interations}
+#' #'\item{\code{fnorm.resid}}{normalized residual}
+#' #'}
+#' iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
+#'   # UP iterative
+#'   dd <- dim(x)
+#'   d <- length(dd) # d >= 2
+#'   d.seq <- 1:(d-1)
+#'   n <- dd[d]
+#'   x.tnsr <- as.tensor(x)
+#'   tnsr.norm <- fnorm(x.tnsr)
+#'   timer <- rep(NA,3)
+#'   time.now <- proc.time()[3]
+#'   factor.num <- array(NA, c(d-1,5,niter))
+#'   if(method=="UP"){
+#'     ans.init <- up.init.tensor(x,r,norm.true=TRUE)
+#'   }
+#'   if(method=="TIPUP"){
+#'     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
+#'   }
+#'   if(method=="TOPUP"){
+#'     ans.init <- topup.init.tensor(x,r,h0,norm.true=TRUE)
+#'   }
+#'   ddd=dd[-d]
+#'   for(i in 1:(d-1)){
+#'     factor.num[i,,1]=tensor.bic(ans.init$lambda[[i]],h0,ddd[i],ddd[-i],n)
+#'   }
+#'   timer[1] <- proc.time()[3]-time.now
+#'   iiter <- 1
+#'   dis <- 1
+#'   fnorm.resid <- rep(0,niter)
+#'   x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
+#'   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
+#'   ans.Q <- ans.init$Q
+#'   time.now <- proc.time()[3]
+#'   while((dis > tol) & (iiter < niter)){             #while((dis > tol) & (iiter < niter)){
+#'     for(i in 1:(d-1)){
+#'       x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
+#'       if(method=="UP"){
+#'         ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
+#'       }
+#'       if(method=="TIPUP"){
+#'         ans.iter <- tipup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
+#'         ans.Q[[i]] <- ans.iter$Q[[1]]
+#'       }
+#'       if(method=="TOPUP"){
+#'         ans.iter <- topup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
+#'         ans.Q[[i]] <- ans.iter$Q[[1]]
+#'       }
+#'       ddd=dd[-d]
+#'       factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]],h0,ddd[i],ddd[-i],n)
+#'       r[i]=factor.num[i,3,1+iiter]
+#'     }
 #'
-#'@name iter.tensor.bic
-#'@rdname iter.tensor.bic
-#'@aliases iter.tensor.bic
-#'@export
-#'@param x tensor of any dimension, \eqn{x: d1 * d2 * d3 * \cdots * d_K * n}
-#'@param r initial guess of # of factors
-#'@param h0 Pre-scribed parameter h
-#'@param method the method chosen among UP,TIPUP,TOPUP
-#'@param tol level of error tolerance
-#'@param niter number of iterations
-#'@param tracetrue if TRUE, record the dis value for each iteration
-#'@return a list containing the following:\describe{
-#'\item{\code{Q}}
-#'\item{\code{Qinit}}{initial value of Q}
-#'\item{\code{Qfirst}}{value of Q at first iteration}
-#'\item{\code{x.hat}}
-#'\item{\code{x.hat.init}}{initial value of xhat}
-#'\item{\code{x.hat.first}}{value of xhat at first iteration}
-#'\item{\code{factor.num}}{number of factors}
-#'\item{\code{timer}}{a timer}
-#'\item{\code{norm.percent}}{x after standardization}
-#'\item{\code{dis}}{difference of fnorm.resid for each iteration}
-#'\item{\code{niter}}{number of interations}
-#'\item{\code{fnorm.resid}}{normalized residual}
-#'}
-iter.tensor.bic <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
-  # UP iterative
-  dd <- dim(x)
-  d <- length(dd) # d >= 2
-  d.seq <- 1:(d-1)
-  n <- dd[d]
-  x.tnsr <- as.tensor(x)
-  tnsr.norm <- fnorm(x.tnsr)
-  timer <- rep(NA,3)
-  time.now <- proc.time()[3]
-  factor.num <- array(NA, c(d-1,5,niter))
-  if(method=="UP"){
-    ans.init <- up.init.tensor(x,r,norm.true=TRUE)
-  }
-  if(method=="TIPUP"){
-    ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
-  }
-  if(method=="TOPUP"){
-    ans.init <- topup.init.tensor(x,r,h0,norm.true=TRUE)
-  }
-  ddd=dd[-d]
-  for(i in 1:(d-1)){
-    factor.num[i,,1]=tensor.bic(ans.init$lambda[[i]],h0,ddd[i],ddd[-i],n)
-  }
-  timer[1] <- proc.time()[3]-time.now
-  iiter <- 1
-  dis <- 1
-  fnorm.resid <- rep(0,niter)
-  x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
-  fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-  ans.Q <- ans.init$Q
-  time.now <- proc.time()[3]
-  while((dis > tol) & (iiter < niter)){             #while((dis > tol) & (iiter < niter)){
-    for(i in 1:(d-1)){
-      x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
-      if(method=="UP"){
-        ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
-      }
-      if(method=="TIPUP"){
-        ans.iter <- tipup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
-        ans.Q[[i]] <- ans.iter$Q[[1]]
-      }
-      if(method=="TOPUP"){
-        ans.iter <- topup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
-        ans.Q[[i]] <- ans.iter$Q[[1]]
-      }
-      ddd=dd[-d]
-      factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]],h0,ddd[i],ddd[-i],n)
-      r[i]=factor.num[i,3,1+iiter]
-    }
-
-    x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
-    fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-    dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
-    if(iiter==1){
-      Qfirst <- ans.Q
-      x.hat.first <- x.hat@data
-      timer[2] <- proc.time()[3]-time.now
-    }
-    iiter <- iiter + 1
-    if(tracetrue==TRUE){
-      print(Q[[1]])
-      cat("iiter=",iiter,", dis=",dis,"\n", sep="")
-    }
-    #    if(prod(factor.num[,3,iiter]==factor.num[,3,iiter-1])){
-    #      break
-    #    }
-  }
-  factor.num[,,niter]=factor.num[,,iiter-1]
-  timer[3] <- proc.time()[3]-time.now
-  fnorm.resid <- fnorm.resid[fnorm.resid != 0]
-  norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
-  list("Q"=ans.Q,"Qinit"=ans.init$Q, "Qfirst"=Qfirst,
-       "x.hat"=x.hat@data,"x.hat.init" = ans.init$x.hat, "x.hat.first" =x.hat.first,
-       "factor.num"=factor.num, ###"eigen.gap"=eigen.gap,
-       "timer"=timer,
-       "norm.percent"=norm.percent,
-       "dis"=dis,"niter"=iiter,"fnorm.resid"=fnorm.resid)
-}
-
-
-
-#'iterative versions of all three methods for any Dim tensor time series
+#'     x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
+#'     fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
+#'     dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
+#'     if(iiter==1){
+#'       Qfirst <- ans.Q
+#'       x.hat.first <- x.hat@data
+#'       timer[2] <- proc.time()[3]-time.now
+#'     }
+#'     iiter <- iiter + 1
+#'     if(tracetrue==TRUE){
+#'       print(Q[[1]])
+#'       cat("iiter=",iiter,", dis=",dis,"\n", sep="")
+#'     }
+#'     #    if(prod(factor.num[,3,iiter]==factor.num[,3,iiter-1])){
+#'     #      break
+#'     #    }
+#'   }
+#'   factor.num[,,niter]=factor.num[,,iiter-1]
+#'   timer[3] <- proc.time()[3]-time.now
+#'   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
+#'   norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
+#'   list("Q"=ans.Q,"Qinit"=ans.init$Q, "Qfirst"=Qfirst,
+#'        "x.hat"=x.hat@data,"x.hat.init" = ans.init$x.hat, "x.hat.first" =x.hat.first,
+#'        "factor.num"=factor.num, ###"eigen.gap"=eigen.gap,
+#'        "timer"=timer,
+#'        "norm.percent"=norm.percent,
+#'        "dis"=dis,"niter"=iiter,"fnorm.resid"=fnorm.resid)
+#' }
 #'
-#'@name iter.tensor.ratio
-#'@rdname iter.tensor.ratio
-#'@aliases iter.tensor.ratio
-#'@export
-#'@param x tensor of any dimension , \eqn{d1 * d2 * d3 * \cdots * d_K * n}
-#'@param r initial guess of # of factors
-#'@param h0 Pre-scribed parameter h
-#'@param method the method chosen among UP,TIPUP,TOPUP
-#'@param tol level of error tolerance
-#'@param niter number of interations
-#'@param tracetrue if TRUE, record the dis value for each iteration
-#'@return a list containing the following:\describe{
-#'\item{\code{Q}}
-#'\item{\code{Qinit}}{initial value of Q}
-#'\item{\code{Qfirst}}{value of Q at first iteration}
-#'\item{\code{x.hat}}
-#'\item{\code{x.hat.init}}{initial value of xhat}
-#'\item{\code{x.hat.first}}{value of xhat at first iteration}
-#'\item{\code{factor.num}}{number of factors}
-#'\item{\code{timer}}{a timer}
-#'\item{\code{norm.percent}}{x after standardization}
-#'\item{\code{dis}}{difference of fnorm.resid for each iteration}
-#'\item{\code{niter}}{number of interations}
-#'\item{\code{fnorm.resid}}{normalized residual}
-#'}
-iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
-  # x: tensor of any dimension
-  # UP iterative
-  # x: d1 * d2 * d3 * ... * d_K * n
-  # method: UP, TIPUP, or TOPUP
-  # r: initial estimator of # of factors
-  dd <- dim(x)
-  d <- length(dd) # d >= 2
-  d.seq <- 1:(d-1)
-  n <- dd[d]
-  x.tnsr <- as.tensor(x)
-  tnsr.norm <- fnorm(x.tnsr)
-  timer <- rep(NA,3)
-  time.now <- proc.time()[3]
-  factor.num <- array(NA, c(d-1,5,niter))
-  if(method=="UP"){
-    ans.init <- up.init.tensor(x,r,norm.true=TRUE)
-  }
-  if(method=="TIPUP"){
-    ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
-  }
-  if(method=="TOPUP"){
-    ans.init <- topup.init.tensor(x,r,h0,norm.true=TRUE)
-  }
-  ddd=dd[-d]
-  for(i in 1:(d-1)){
-    factor.num[i,,1]=tensor.ratio(ans.init$lambda[[i]],h0,ddd[i],ddd[-i],n)
-  }
-  timer[1] <- proc.time()[3]-time.now
-  iiter <- 1
-  dis <- 1
-  fnorm.resid <- rep(0,niter)
-  x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
-  fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-  ans.Q <- ans.init$Q
-  time.now <- proc.time()[3]
-  while((dis > tol) & (iiter < niter)){                 #while((dis > tol) & (iiter < niter)){
-    for(i in 1:(d-1)){
-      x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
-      if(method=="UP"){
-        ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
-      }
-      if(method=="TIPUP"){
-        ans.iter <- tipup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
-        ans.Q[[i]] <- ans.iter$Q[[1]]
-      }
-      if(method=="TOPUP"){
-        ans.iter <- topup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
-        ans.Q[[i]] <- ans.iter$Q[[1]]
-      }
-      ddd=dd[-d]
-      factor.num[i,,1+iiter]=tensor.ratio(ans.iter$lambda[[1]],h0,ddd[i],ddd[-i],n)
-      r[i]=factor.num[i,1,1+iiter]
-    }
-    x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
-    fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-    dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
-    if(iiter==1){
-      Qfirst <- ans.Q
-      x.hat.first <- x.hat@data
-      timer[2] <- proc.time()[3]-time.now
-    }
-    iiter <- iiter + 1
-    if(tracetrue==TRUE){
-      print(Q[[1]])
-      cat("iiter=",iiter,", dis=",dis,"\n", sep="")
-    }
-    #    if(prod(factor.num[,1,iiter]==factor.num[,1,iiter-1])){
-    #      break
-    #    }
-  }
-  factor.num[,,niter]=factor.num[,,iiter-1]
-  timer[3] <- proc.time()[3]-time.now
-  fnorm.resid <- fnorm.resid[fnorm.resid != 0]
-  norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
-  list("Q"=ans.Q,"Qinit"=ans.init$Q, "Qfirst"=Qfirst,
-       "x.hat"=x.hat@data,"x.hat.init" = ans.init$x.hat, "x.hat.first" =x.hat.first,
-       "factor.num"=factor.num, ###"eigen.gap"=eigen.gap,
-       "timer"=timer,
-       "norm.percent"=norm.percent,
-       "dis"=dis,"niter"=iiter,"fnorm.resid"=fnorm.resid)
-}
+#'
+#'
+#' #'iterative versions of all three methods for any Dim tensor time series
+#' #'
+#' #'@name iter.tensor.ratio
+#' #'@rdname iter.tensor.ratio
+#' #'@aliases iter.tensor.ratio
+#' #'@export
+#' #'@param x tensor of any dimension , \eqn{d1 * d2 * d3 * \cdots * d_K * n}
+#' #'@param r initial guess of # of factors
+#' #'@param h0 Pre-scribed parameter h
+#' #'@param method the method chosen among UP,TIPUP,TOPUP
+#' #'@param tol level of error tolerance
+#' #'@param niter number of interations
+#' #'@param tracetrue if TRUE, record the dis value for each iteration
+#' #'@return a list containing the following:\describe{
+#' #'\item{\code{Q}}
+#' #'\item{\code{Qinit}}{initial value of Q}
+#' #'\item{\code{Qfirst}}{value of Q at first iteration}
+#' #'\item{\code{x.hat}}
+#' #'\item{\code{x.hat.init}}{initial value of xhat}
+#' #'\item{\code{x.hat.first}}{value of xhat at first iteration}
+#' #'\item{\code{factor.num}}{number of factors}
+#' #'\item{\code{timer}}{a timer}
+#' #'\item{\code{norm.percent}}{x after standardization}
+#' #'\item{\code{dis}}{difference of fnorm.resid for each iteration}
+#' #'\item{\code{niter}}{number of interations}
+#' #'\item{\code{fnorm.resid}}{normalized residual}
+#' #'}
+#' iter.tensor.ratio <- function(x,r,h0=1,method,tol=1e-4,niter=100,tracetrue=FALSE){
+#'   # x: tensor of any dimension
+#'   # UP iterative
+#'   # x: d1 * d2 * d3 * ... * d_K * n
+#'   # method: UP, TIPUP, or TOPUP
+#'   # r: initial estimator of # of factors
+#'   dd <- dim(x)
+#'   d <- length(dd) # d >= 2
+#'   d.seq <- 1:(d-1)
+#'   n <- dd[d]
+#'   x.tnsr <- as.tensor(x)
+#'   tnsr.norm <- fnorm(x.tnsr)
+#'   timer <- rep(NA,3)
+#'   time.now <- proc.time()[3]
+#'   factor.num <- array(NA, c(d-1,5,niter))
+#'   if(method=="UP"){
+#'     ans.init <- up.init.tensor(x,r,norm.true=TRUE)
+#'   }
+#'   if(method=="TIPUP"){
+#'     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
+#'   }
+#'   if(method=="TOPUP"){
+#'     ans.init <- topup.init.tensor(x,r,h0,norm.true=TRUE)
+#'   }
+#'   ddd=dd[-d]
+#'   for(i in 1:(d-1)){
+#'     factor.num[i,,1]=tensor.ratio(ans.init$lambda[[i]],h0,ddd[i],ddd[-i],n)
+#'   }
+#'   timer[1] <- proc.time()[3]-time.now
+#'   iiter <- 1
+#'   dis <- 1
+#'   fnorm.resid <- rep(0,niter)
+#'   x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
+#'   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
+#'   ans.Q <- ans.init$Q
+#'   time.now <- proc.time()[3]
+#'   while((dis > tol) & (iiter < niter)){                 #while((dis > tol) & (iiter < niter)){
+#'     for(i in 1:(d-1)){
+#'       x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
+#'       if(method=="UP"){
+#'         ans.Q[[i]] <- up.init.tensor(x.new,c(r[i],r[-i]),oneside.true=TRUE,norm.true=FALSE)$Q[[1]]
+#'       }
+#'       if(method=="TIPUP"){
+#'         ans.iter <- tipup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
+#'         ans.Q[[i]] <- ans.iter$Q[[1]]
+#'       }
+#'       if(method=="TOPUP"){
+#'         ans.iter <- topup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
+#'         ans.Q[[i]] <- ans.iter$Q[[1]]
+#'       }
+#'       ddd=dd[-d]
+#'       factor.num[i,,1+iiter]=tensor.ratio(ans.iter$lambda[[1]],h0,ddd[i],ddd[-i],n)
+#'       r[i]=factor.num[i,1,1+iiter]
+#'     }
+#'     x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
+#'     fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
+#'     dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
+#'     if(iiter==1){
+#'       Qfirst <- ans.Q
+#'       x.hat.first <- x.hat@data
+#'       timer[2] <- proc.time()[3]-time.now
+#'     }
+#'     iiter <- iiter + 1
+#'     if(tracetrue==TRUE){
+#'       print(Q[[1]])
+#'       cat("iiter=",iiter,", dis=",dis,"\n", sep="")
+#'     }
+#'     #    if(prod(factor.num[,1,iiter]==factor.num[,1,iiter-1])){
+#'     #      break
+#'     #    }
+#'   }
+#'   factor.num[,,niter]=factor.num[,,iiter-1]
+#'   timer[3] <- proc.time()[3]-time.now
+#'   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
+#'   norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
+#'   list("Q"=ans.Q,"Qinit"=ans.init$Q, "Qfirst"=Qfirst,
+#'        "x.hat"=x.hat@data,"x.hat.init" = ans.init$x.hat, "x.hat.first" =x.hat.first,
+#'        "factor.num"=factor.num, ###"eigen.gap"=eigen.gap,
+#'        "timer"=timer,
+#'        "norm.percent"=norm.percent,
+#'        "dis"=dis,"niter"=iiter,"fnorm.resid"=fnorm.resid)
+#' }
 
 #'BIC estimators for determing the numbers of factors
 #'@name tensor.bic
