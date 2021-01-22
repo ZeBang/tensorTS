@@ -714,17 +714,12 @@ MAR.SE <- function(xx, B, A, Sigma){
 #' Generate coefficient matrices
 #'
 #' For test only, to generate coefficient matrices
-#'@name generate
-#'@rdname generate
+#'@name generate.A
+#'@rdname generate.A
 #'@aliases generate
 #'@param dim an array of dimensions of matrices or tensors
-#'@param t length of time
-#'@param setting the structure of random error, can be specified as "iid", "mle" and "svd", default value is "iid".
-#'@return a list containing the following:\describe{
-#'\item{\code{A}}{matrices \eqn{A_1,A_2,\cdots,A_k}}
-#'\item{\code{X}}{AR(1) tensor time series}
-#'}
-#'@seealso \code{\link{run.test}}
+#'@param R number of terms
+#'@return a list containing coefficient matrices
 #'@examples
 #' A <- generate.A(dim=c(2,2,2), R=1)
 #' xx <- generate(c(m1,m2,m3), T=100)
