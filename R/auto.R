@@ -1042,6 +1042,7 @@ TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
 #'@name TAR2.LS
 #'@rdname TAR2.LS
 #'@aliases TAR2.LS
+#'@importFrom tensor tensor
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param niter maximum number of iterations if error stays above \code{tol}
@@ -1524,6 +1525,7 @@ TAR2.SE.LSE <- function(xx, A.true, Sigma){
 #'@name TAR2.SE.MLE
 #'@rdname TAR2.SE.MLE
 #'@aliases TAR2.SE.MLE
+#'@importFrom tensor tensor
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param A.true coefficient matrices in TAR(1) model
