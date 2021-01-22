@@ -714,17 +714,17 @@ MAR.SE <- function(xx, B, A, Sigma){
 #' Generate coefficient matrices
 #'
 #' For test only, to generate coefficient matrices
-#'@name generate.A
-#'@rdname generate.A
-#'@aliases generate.A
+#'@name generateA
+#'@rdname generateA
+#'@aliases generateA
 #'@export
 #'@param dim an array of dimensions of matrices or tensors
 #'@param R number of terms
 #'@return a list containing coefficient matrices
 #'@examples
-#' A <- generate.A(dim=c(2,2,2), R=1)
+#' A <- generateA(dim=c(2,2,2), R=1)
 #' xx <- generate(c(m1,m2,m3), T=100)
-generate.A <- function(dim,R){
+generateA <- function(dim,R){
   K <- length(dim)
   A.true <- lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})
   fnorm <- array(0, c(R,K))
@@ -772,7 +772,7 @@ generate.A <- function(dim,R){
 #'}
 #'@seealso \code{\link{run.test}}
 #'@examples
-#' A <- generate.A(dim=c(2,2,2), R=1)
+#' A <- generateA(dim=c(2,2,2), R=1)
 #' xx <- generate(c(m1,m2,m3), T=100)
 generate <- function(A, t, setting="iid"){
   # to generate time series with given coefficient matrices and time length t
@@ -1329,7 +1329,7 @@ TAR2.MLE <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
 #'\item{\code{res}}{residual of the VAR(1) model}
 #'}
 #'@examples
-#' A <- generate.A(dim=c(2,2,2), R=1)
+#' A <- generateA(dim=c(2,2,2), R=1)
 #' xx <- generate(c(m1,m2,m3), T=100)
 #' SIGMA <- TAR1.VAR(xx)
 TAR1.VAR <- function(xx){
@@ -1360,7 +1360,7 @@ TAR1.VAR <- function(xx){
 #'@return asymptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- generate.A(dim, R=1)
+#' A <- generateA(dim, R=1)
 #' xx <- generate(dim, T=100)
 #' SIGMA <- TAR1.SE.LSE(xx, A, Sigma=diag(prod(dim)))
 TAR1.SE.LSE <- function(xx, A.true, Sigma){
@@ -1413,7 +1413,7 @@ TAR1.SE.LSE <- function(xx, A.true, Sigma){
 #'@return asmptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- generate.A(dim, R=1)
+#' A <- generateA(dim, R=1)
 #' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
 TAR1.SE.MLE <- function(xx, A.true, Sigma){
@@ -1464,7 +1464,7 @@ TAR1.SE.MLE <- function(xx, A.true, Sigma){
 #'@return asmptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- generate.A(dim, R=1)
+#' A <- generateA(dim, R=1)
 #' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.LSE(xx, A, Sigma=diag(prod(dim)))
 TAR2.SE.LSE <- function(xx, A.true, Sigma){
@@ -1530,7 +1530,7 @@ TAR2.SE.LSE <- function(xx, A.true, Sigma){
 #'@return asmptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- generate.A(dim, R=1)
+#' A <- generateA(dim, R=1)
 #' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
 TAR2.SE.MLE <- function(xx, A.true, Sigma){

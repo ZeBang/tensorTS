@@ -19,7 +19,7 @@ a list containing the following:\describe{
 vector AR(1) Model.
 }
 \examples{
-A <- generate.A(dim=c(2,2,2), R=1)
+A <- generateA(dim=c(2,2,2), R=1)
 xx <- generate(c(m1,m2,m3), T=100)
 SIGMA <- TAR1.VAR(xx)
 }

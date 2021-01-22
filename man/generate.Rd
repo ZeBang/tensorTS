@@ -23,7 +23,7 @@ a list containing the following:\describe{
 For test only, with given coefficient matrices and time length t, generate an AR(1) tensor time series.
 }
 \examples{
-A <- generate.A(dim=c(2,2,2), R=1)
+A <- generateA(dim=c(2,2,2), R=1)
 xx <- generate(c(m1,m2,m3), T=100)
 }
 \seealso{
