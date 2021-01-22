@@ -11,10 +11,10 @@ TAR1.SE.LSE(xx, A.true, Sigma)
 
 \item{A.true}{coefficient matrices in TAR(1) model}
 
-\item{Sigma}{covariance matrix cov(vec(E_t)) in TAR(1) model}
+\item{Sigma}{covariance matrix \eqn{cov(vec(E_t))} in TAR(1) model}
 }
 \value{
-asmptotic covariance matrix
+asymptotic covariance matrix
 }
 \description{
 Asymptotic covariance Matrix of \code{TAR1.LS} for given A tensor-valued time series xx, see related Theorems in our paper.

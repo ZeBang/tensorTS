@@ -2,7 +2,6 @@
 % Please edit documentation in R/auto.R
 \name{generate.A}
 \alias{generate.A}
-\alias{generate}
 \title{Generate coefficient matrices}
 \usage{
 generate.A(dim, R)

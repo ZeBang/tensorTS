@@ -676,7 +676,7 @@ var1 <- function(xx){
 #'@param A p by p matrix in MAR(1) model
 #'@param B q by q matrix in MAR(1) model
 #'@param Sig covariance matrix cov(vec(E_t)) in MAR(1) model
-#'@return asmptotic covariance matrix
+#'@return asymptotic covariance matrix
 #'@examples
 #'# given T * p * q time series xx
 #'out2=MAR1.LS(xx)
@@ -716,7 +716,8 @@ MAR.SE <- function(xx, B, A, Sigma){
 #' For test only, to generate coefficient matrices
 #'@name generate.A
 #'@rdname generate.A
-#'@aliases generate
+#'@aliases generate.A
+#'@export
 #'@param dim an array of dimensions of matrices or tensors
 #'@param R number of terms
 #'@return a list containing coefficient matrices
@@ -761,6 +762,7 @@ generate.A <- function(dim,R){
 #'@name generate
 #'@rdname generate
 #'@aliases generate
+#'@export
 #'@param dim an array of dimensions of matrices or tensors
 #'@param t length of time
 #'@param setting the structure of random error, can be specified as "iid", "mle" and "svd", default value is "iid".
@@ -1354,8 +1356,8 @@ TAR1.VAR <- function(xx){
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param A.true coefficient matrices in TAR(1) model
-#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
-#'@return asmptotic covariance matrix
+#'@param Sigma covariance matrix \eqn{cov(vec(E_t))} in TAR(1) model
+#'@return asymptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
 #' A <- generate.A(dim, R=1)

@@ -16,7 +16,7 @@ MAR.SE(xx, B, A, Sigma)
 \item{Sig}{covariance matrix cov(vec(E_t)) in MAR(1) model}
 }
 \value{
-asmptotic covariance matrix
+asymptotic covariance matrix
 }
 \description{
 Asymptotic covariance Matrix of \code{MAR1.otimes} for given A, B and matrix-valued time series xx, see Theory 3 in paper.
