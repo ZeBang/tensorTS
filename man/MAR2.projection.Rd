@@ -4,7 +4,7 @@
 \alias{MAR2.projection}
 \title{Projection Method for matrix time series with multiple terms}
 \usage{
-MAR2.projection(xx)
+MAR2.projection(xx, r)
 }
 \arguments{
 \item{xx}{T * p * q matrix-valued time series}

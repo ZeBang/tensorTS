@@ -42,11 +42,11 @@ TAR <- function(xx, r=1, method="lse"){
       }
     } else if (r > 1){
       if (identical("projection", method)) {
-        MAR1.projection(xx)
+        MAR2.projection(xx, r)
       } else if (identical("lse", method)) {
-        MAR1.LS(xx)
+        MAR2.LS(xx, r)
       } else if (identical("mle", method)) {
-        MAR1.otimes(xx)
+        MAR2.otimes(xx, r)
       } else if (identical("ar", method)) {
         var1(xx)
       } else {
@@ -243,7 +243,7 @@ MAR1.projection <- function(xx){
 #'@export
 #'@param xx T * p * q matrix-valued time series
 #'@return a list containing the estimated coefficient matrices
-MAR2.projection <- function(xx){
+MAR2.projection <- function(xx, r){
   dim <- xx@modes[-1]
   k <- length(dim)
   t <- xx@modes[[1]]
