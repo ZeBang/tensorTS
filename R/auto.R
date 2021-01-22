@@ -779,6 +779,7 @@ generate <- function(A, t, setting="iid"){
   # return time series xx
   r <- length(A)
   k <- length(A[[1]])
+  dim <- c(nrow(A[[1]][[1]]), nrow(A[[1]][[2]]), nrow(A[[1]][[3]]))
   if (k == 2){
     x <- list(rand_tensor(dim))  # initialize X1
     for (i in c(2:t)){
