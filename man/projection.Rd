@@ -4,10 +4,12 @@
 \alias{projection}
 \title{Kronecker Product Approximation}
 \usage{
-projection(A, m1, m2, n1, n2)
+projection(A, r, m1, m2, n1, n2)
 }
 \arguments{
 \item{A}{m by n matrix such that \eqn{m = m1*n1} and \eqn{n = m2*n2}}
+
+\item{r}{number of terms}
 
 \item{m1}{\code{ncol} of A}
 
