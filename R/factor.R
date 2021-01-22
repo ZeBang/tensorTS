@@ -1,19 +1,38 @@
 ###Functions of Factor Models
 
-#'This approach is for the vector-valued estimation WITHOUT NaNs.
-#'
+library(igraph)
+
+# list of functions:
+
+# mfmda : Get the M matrix with 3 different methods
+# mfmda.estqk : Get the eigenvectors from the M matrix
+# matrix_factor : Fit matrix factor model
+# vector_factor : Fit matrix factor model with input as vectors
+# grouping.loading : Get the clustering of the loading matrix
+# dynamic_A : The loading matrix for plotting
+# PlotNetwork_AB : Plot the network graph
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+#---------------------------------------------------------------
+
+# This approach is for the vector-valued estimation WITHOUT NaNs.
 #'@name mfmda.nona.vec
 #'@rdname mfmda.nona.vec
 #'@aliases mfmda.nona.vec
 #'@export
 #'@param Yc Time Series data for a matrix(dimensions n*p*q), no NA input allowed
-#'@param hzero Pre-scribed parameter
+#'@param hzero Pre-scribed parameter h_0
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
-#'@examples
-#' A <- 1:180
-#' dim(A) <- c(3,3,20)
-#' M <- mfmda.nona.vec(A,2)
+#'@seealso \code{\link{vector_factor}}
+A <- runif(2000)
+dim(A) <- c(20,10,10)
+M <- mfmda.nona.vec(A,2)
 mfmda.nona.vec <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -28,16 +47,15 @@ mfmda.nona.vec <- function(Yc,hzero){
   Mhat
 }
 
-#'This approach is for the vector-valued estimation with NaNs.
-#'
+# This approach is for the vector-valued estimation with NaNs.
 #'@name mfmda.na.vec
 #'@rdname mfmda.na.vec
 #'@aliases mfmda.na.vec
 #'@export
 #'@param Yc Time Series data for a matrix(dimensions n*p*q), allowing NA input
-#'@param hzero Pre-scribed parameter h
+#'@param hzero Pre-scribed parameter h_0 
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@seealso \code{\link{vector_factor}}
 mfmda.na.vec <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -52,7 +70,7 @@ mfmda.na.vec <- function(Yc,hzero){
       if( (sum(is.na(Yc.matrix[,tt]))==0) && (sum(is.na(Yc.matrix[,tt+h]))==0) ){
         Omegah = Omegah + Yc.matrix[,tt] %*% t(Yc.matrix[,tt+h])
         count <- count+1
-      }
+      }                    
     }
     if (count>0){
       Omegah = Omegah/count
@@ -62,17 +80,15 @@ mfmda.na.vec <- function(Yc,hzero){
   Mhat
 }
 
-
-#'The input data do not have zeros. The estimation approach is noniterative.
-#'
+# The input data do not have zeros. The estimation approach is noniterative. 
 #'@name mfmda.nona.noniter
 #'@rdname mfmda.nona.noniter
 #'@aliases mfmda.nona.noniter
 #'@export
 #'@param Yc Time Series data for a matrix(dimensions n*p*q), no NA input allowed
-#'@param hzero Pre-scribed parameter
+#'@param hzero Pre-scribed parameter h_0
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@seealso \code{\link{mfmda}}
 mfmda.nona.noniter <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -91,13 +107,12 @@ mfmda.nona.noniter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh
+    Mhat = Mhat + Gammayh   
   }
   Mhat
 }
 
-#'The input data do not have zeros. The estimation approach is iterative.
-#'
+# The input data do not have zeros. The estimation approach is iterative.
 #'@name mfmda.nona.iter
 #'@rdname mfmda.nona.iter
 #'@aliases mfmda.nona.iter
@@ -105,7 +120,7 @@ mfmda.nona.noniter <- function(Yc,hzero){
 #'@param Yc Time Series data for a matrix(dimensions n*p*q), no NA input allowed
 #'@param hzero Pre-scribed parameter
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@seealso \code{\link{mfmda}}
 mfmda.nona.iter <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -124,14 +139,12 @@ mfmda.nona.iter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh
+    Mhat = Mhat + Gammayh   
   }
   Mhat
 }
 
-
-#'The input data could have NaNs. The estimation approach is iterative.
-#'
+# The input data could have NaNs. The estimation approach is iterative.
 #'@name mfmda.na.iter
 #'@rdname mfmda.na.iter
 #'@aliases mfmda.na.iter
@@ -139,7 +152,7 @@ mfmda.nona.iter <- function(Yc,hzero){
 #'@param Yc Time Series data for a matrix allowing NaNs
 #'@param hzero Pre-determined parameter
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@seealso \code{\link{mfmda}}
 mfmda.na.iter <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
@@ -157,7 +170,7 @@ mfmda.na.iter <- function(Yc,hzero){
           if( (sum(is.na(Yc[tt,,ii]))==0) && (sum(is.na(Yc[tt+h,,jj]))==0) ){
             Omegaijh = Omegaijh + Yc[tt,,ii] %*% t(Yc[tt+h,,jj])
             count <- count+1
-          }
+          }                    
         }
         if (count>0){
           Omegaijh = Omegaijh/count
@@ -165,14 +178,12 @@ mfmda.na.iter <- function(Yc,hzero){
         Gammayh = Gammayh + Omegaijh %*% t(Omegaijh);
       }
     }
-    Mhat = Mhat + Gammayh
+    Mhat = Mhat + Gammayh   
   }
   Mhat
 }
 
-
-#'This is a wrapper for all approaches
-#'
+## This is a wrapper for all approaches
 #'@name mfmda
 #'@rdname mfmda
 #'@aliases mfmda
@@ -182,10 +193,11 @@ mfmda.na.iter <- function(Yc,hzero){
 #'@param hzero Pre-determined parameter
 #'@param iscentering The data is subtracted by its mean value
 #'@return The sample version of M matrix
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@seealso \code{\link{matrix_factor}}
 #'@examples
-#' A <- 1:180
-#' dim(A) <- c(3,3,20)
+#'Use iterative method with $h_0=1$
+#' A <- runif(2000)
+#' dim(A) <- c(20,10,10)
 #' M <- mfmda(A,"3",1,0)
 mfmda <- function(Yt,approach="3",hzero=1,iscentering=1){
   ## Dimensions
@@ -214,20 +226,19 @@ mfmda <- function(Yt,approach="3",hzero=1,iscentering=1){
   Mhat
 }
 
-
-#'Compute the estimated number of factors and the corresponding eigen-space
-#'
+# Compute the estimated number of factors and the corresponding eigen-space
 #'@name mfmda.estqk
 #'@rdname mfmda.estqk
 #'@aliases mfmda.estqk
 #'@export
 #'@param Mhat The estimated value for matrix M
 #'@param inputk The pre-determined number of dimension of factor matrix
-#'@return The estimated number of factors to use, the corresponding estimated Q matrix, the eigenvalue,  the estimated Q matrix with requested number of factors
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
+#'@return The estimated number of factors to use, the corresponding estimated Q matrix, the eigenvalue,  the estimated Q matrix with requested number of factors 
+#'@seealso \code{\link{matrix_factor}}
 #'@examples
-#' A <- 1:180
-#' dim(A) <- c(3,3,20)
+#' #A 10*10 Matrix time series example with t=20 time points
+#' A <- runif(2000)
+#' dim(A) <- c(20,10,10)
 #' M <- mfmda(A,"3",1,0)
 #' inputk <- 3
 #' eig.ans <- mfmda.estqk(M,inputk)
@@ -252,9 +263,7 @@ mfmda.estqk <- function(Mhat,inputk=1){
   list("estk" = estk, "Qhatestk" = Qhatestk,"eigval" = eigval,"Qhatinputk"=Qhatinputk)
 }
 
-
-#'The main estimation function
-#'
+# The main estimation function
 #'@name matrix_factor
 #'@rdname matrix_factor
 #'@aliases matrix_factor
@@ -263,8 +272,7 @@ mfmda.estqk <- function(Mhat,inputk=1){
 #'@param inputk1 The pre-determined row dimension of the factor matrix
 #'@param inputk2 The pre-determined column dimension of the factor matrix
 #'@param iscentering The data is subtracted by its mean value
-#'@param hzero Pre-determined parameter
-
+#'@param hzero Pre-determined parameter h_0
 #'@return a list containing the following:\describe{
 #'\item{\code{eigval1}}{estimated row dimension of the factor matrix}
 #'\item{\code{eigval2}}{estimated column dimension of the factor matrix}
@@ -274,15 +282,14 @@ mfmda.estqk <- function(Mhat,inputk=1){
 #'\item{\code{Ft.all}}{Sum of Ft}
 #'\item{\code{Et}}{The estimated residual, by subtracting estimated signal term from the data}
 #'}
-
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 #'@examples
-#' A <- 1:180
-#' dim(A) <- c(3,3,20)
+#' A <- runif(2000)
+#' dim(A) <- c(20,10,10)
 #' out = matrix_factor(A,3,3)
 #' eig1 = out$eigval1
 #' loading1 = out$loading1
 #' Ft = out$Ft.all
+
 matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
   dims <- dim(Yt)
   n <- dims[1] ## number of time points (observations)
@@ -295,9 +302,10 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
     Yt.sd[Yt.sd==0]=1   ## if sd=0, do nothing. series will be constant zero
     Yc <- (Yt - array(rep(Yt.mean,rep(n,p*q)),c(n,p,q)))/array(rep(Yt.sd,rep(n,p*q)),c(n,p,q))
   }
-  else{
-    Yc <- Yt}
-    ## ------------- ESTIMATION FOR p dimension --------------------------
+  else{ 
+    Yc <- Yt
+    }
+    ## ------------- ESTIMATION FOR p dimension -------------------------- 
     Mhat1 <- mfmda(Yc,"3",hzero,iscentering)
     eig1.ans <- mfmda.estqk(Mhat1,inputk1)
     k1hat <- eig1.ans$estk
@@ -309,7 +317,7 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
     for(i in 1:inputk1){
       Q1hatinputkrot[,i]=Q1hatinputkrot[,i]*sign(sum(Q1hatinputkrot[,i]))
     }
-    ## ------------- ESTIMATION FOR q dimension --------------------------
+    ## ------------- ESTIMATION FOR q dimension -------------------------- 
     tYc = array(0,c(n,q,p))
     for(nk in 1:n){
       tYc[nk,,] = t(Yc[nk,,])
@@ -335,14 +343,12 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
     for(tk in 1:n){
       Et.inputk.rot[tk,,] <- Yc[tk,,] - Q1hatinputkrot %*% t(Q1hatinputkrot) %*% Yc[tk,,] %*% Q2hatinputkrot %*% t(Q2hatinputkrot)
     }
-    return(list(eigval1=eigval1/p/q,eigval2=eigval2/p/q,
-                loading1=Q1hatinputkrot,loading2=Q2hatinputkrot,
-                Ft=Ft.inputk.rot,Ft.all=Ft.all,Et=Et.inputk.rot))
+  return(list(eigval1=eigval1/p/q,eigval2=eigval2/p/q,
+              loading1=Q1hatinputkrot,loading2=Q2hatinputkrot,
+              Ft=Ft.inputk.rot,Ft.all=Ft.all,Et=Et.inputk.rot))
 }
-
-
-#'The main estimation function, vector version
-#'
+  
+# The main estimation function, vector version
 #'@name vector_factor
 #'@rdname vector_factor
 #'@aliases vector_factor
@@ -350,7 +356,7 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
 #'@param Yt Time Series data for a matrix
 #'@param inputk.vec The pre-determined dimensions of the factor matrix in vector
 #'@param iscentering The data is subtracted by its mean value
-#'@param hzero Pre-determined parameter
+#'@param hzero Pre-determined parameter h_0
 #'@return a list containing the following:\describe{
 #'\item{\code{eigval1}}{estimated dimensions of the factor matrix}
 #'\item{\code{loading}}{estimated loading matrices}
@@ -358,24 +364,14 @@ matrix_factor=function(Yt,inputk1,inputk2,iscentering=1,hzero=1){
 #'\item{\code{Ft.all}}{Sum of Ft}
 #'\item{\code{Et}}{The estimated random term, by subtracting estimated signal term from the data}
 #'}
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
-#'@examples
-#' A <- 1:180
-#' dim(A) <- c(3,3,20)
-#' M <- mfmda(A,"3",1,0)
-#' eig.ans <- vector_factor(M,3,0,1)
-#' khat <- eig.ans$estk
-#' Qhat <- eig.ans$Qhatestk
-#' eigval <- eig.ans$eigval
-#' Q1hatinputk <- eig.ans$Qhatinputk
 vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
-  Mhat.vec.zero <- mfmda.nona.vec(Yc,hzero)
+  Mhat.vec.zero <- mfmda.nona.vec(Yt,hzero)
   eig.vec.zero.ans <- mfmda.estqk(Mhat.vec.zero,inputk.vec)
   khat.vec.zero <- eig.vec.zero.ans$estk
   Qhat.vec.zero <- eig.vec.zero.ans$Qhatestk
   eigval.vec.zero <- eig.vec.zero.ans$eigval
   Qhatinputk.vec.zero <- eig.vec.zero.ans$Qhatinputk
-  Yc.matrix <- t(matrix(Yc,nrow=n))
+  Yc.matrix <- t(matrix(Yc,nrow=n))  
   ## Extract latent factors: Ft of dimension ( inputk \times n)
   Ft.vec.inputk <- t(Qhatinputk.vec.zero) %*% Yc.matrix
   Ft.all=apply(Ft.vec.inputk,2,sum)
@@ -386,9 +382,7 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
               Ft=Ft.vec.inputk,Ft.all=Ft.all,Et=Et.vec.inputk))
 }
 
-
-#'Get the group of loadings
-#'
+# Get the clustering of loading matrix
 #'@name grouping.loading
 #'@rdname grouping.loading
 #'@aliases grouping.loading
@@ -398,11 +392,9 @@ vector_factor=function(Yt,inputk.vec,iscentering=1,hzero=1){
 #'@param rowname The name of the rows
 #'@param plot plot the clustering graph, defacult True
 #'@return Loading matrix after grouping
-
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 grouping.loading=function(loading,ncluster,rowname,plot=T){
   ddd <- dist(loading, method = "euclidean") # distance matrix
-  fit <- hclust(ddd, method="ward.D")
+  fit <- hclust(ddd, method="ward.D") 
   if(plot==T){
     par(mfrow=c(1,1),mai=0.5*c(1,1,1,1))
     plot(fit, main='clustering') # display dendogram
@@ -416,9 +408,7 @@ grouping.loading=function(loading,ncluster,rowname,plot=T){
   return(list(new.loading=new.loading))
 }
 
-
-#'Get the adjacency matrix for plotting
-#'
+# Get the adjacency matrix for plotting
 #'@name dynamic_A
 #'@rdname dynamic_A
 #'@aliases dynamic_A
@@ -428,7 +418,6 @@ grouping.loading=function(loading,ncluster,rowname,plot=T){
 #'@param simple.flag if True, only eliminate the entries below threshold and make all row sums to be 1; if False, the approach further eliminates the entries of the rows that are very close to threshold value and only leaves the maximum entry of each row
 #'@param threshold A parameter to eliminate very small entries of the loading matrix
 #'@return The new loading matrix with all rows sum to be 1
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
 dynamic_A <- function(x,factor_count,simple.flag,threshold){
   if(simple.flag==F){
     m <- round(10*x)
@@ -465,9 +454,7 @@ dynamic_A <- function(x,factor_count,simple.flag,threshold){
   return(m)
 }
 
-
-#'Plot the network graph
-#'
+# Plot the network graph
 #'@name PlotNetwork_AB
 #'@rdname PlotNetwork_AB
 #'@aliases PlotNetwork_AB
@@ -477,8 +464,19 @@ dynamic_A <- function(x,factor_count,simple.flag,threshold){
 #'@param iterated_B The right loading matrix
 #'@param labels The row labels
 #'@return Plot the network graph
-#'#'#'@seealso \code{\link{MAR1.projection}}            # Not decided
-PlotNetwork_AB <- function(Ft,iterated_A,iterated_B=iterated_A,labels=use2){
+#'@examples
+#' A <- runif(2000)
+#' dim(A) <- c(20,10,10)
+#' out = matrix_factor(A,3,3)
+#' eig1 = out$eigval1
+#' loading1 = out$loading1
+#' loading2 = out$loading2
+#' Ft = out$Ft.all
+#' iterated_A = dynamic_A(loading1,3,F,0.1)
+#' iterated_B = dynamic_A(loading2,3,F,0.1)
+#' labels = 1:10
+#' PlotNetwork_AB(Ft,iterated_A,iterated_A,labels)
+PlotNetwork_AB <- function(Ft,iterated_A,iterated_B,labels){
   pre_F <- Ft
   country_label <- labels
   F_row <- dim(pre_F)[1]
