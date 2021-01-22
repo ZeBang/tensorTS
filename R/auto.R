@@ -75,7 +75,7 @@ TAR <- function(xx, r=1, method="lse"){
 #'Canonical Polyadic Decomposition
 #'
 #'Canonical Polyadic (CP) decomposition of a tensor, aka CANDECOMP/PARAFRAC. Approximate a K-Tensor using a sum of \code{num_components} rank-1 K-Tensors. A rank-1 K-Tensor can be written as an outer product of K vectors. There are a total of \code{num_compoents *tnsr@@num_modes} vectors in the output, stored in \code{tnsr@@num_modes} matrices, each with \code{num_components} columns. This is an iterative algorithm, with two possible stopping conditions: either relative error in Frobenius norm has gotten below \code{tol}, or the \code{max_iter} number of iterations has been reached. For more details on CP decomposition, consult Kolda and Bader (2009).
-#'@importFrom rTensor fnorm rs_unfold ttl
+#'@importFrom rTensor fnorm rs_unfold ttl hadamard_list
 #'@export
 #'@details Uses the Alternating Least Squares (ALS) estimation procedure. A progress bar is included to help monitor operations on large tensors.
 #'@name cp
