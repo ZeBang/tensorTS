@@ -11,9 +11,9 @@
 #'@return The sample version of M matrix
 #'@seealso \code{\link{vector_factor}}
 #'@examples
-#` A <- runif(2000)
-#` dim(A) <- c(20,10,10)
-#` M <- mfmda.nona.vec(A,2)
+#' A <- runif(2000)
+#' dim(A) <- c(20,10,10)
+#' M <- mfmda.nona.vec(A,2)
 mfmda.nona.vec <- function(Yc,hzero){
   dimYc = dim(Yc)
   n = dimYc[1]
