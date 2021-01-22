@@ -22,6 +22,6 @@ Asymptotic covariance Matrix of \code{TAR2.MLE} for given A tensor-valued time s
 \examples{
 dim <- c(2,2,2)
 A <- generate.A(dim, R=1)
-xx <- generate(c(m1,m2,m3), T=100)
+xx <- generate(dim, T=100)
 SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
 }

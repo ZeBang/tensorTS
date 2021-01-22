@@ -9,6 +9,8 @@ TAR(xx, type = c("projection", "LS", "MLE", "ar"))
 \arguments{
 \item{xx}{\eqn{T * m_1 * \cdots * m_K} tensor-valued time series}
 
+\item{dim}{dimension of coefficient matrices}
+
 \item{method}{character string, specifying the type of the estimation method to be used. \describe{
  \item{\code{"projection",}}{Projection method.}
  \item{\code{"lse",}}{Iterated least squares.}
@@ -18,7 +20,7 @@ TAR(xx, type = c("projection", "LS", "MLE", "ar"))
 }
 \value{
 a list containing the following:\describe{
-\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
 \item{\code{res}}{residual of the MAR(1)}
 \item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 \item{\code{niter}}{number of iterations}

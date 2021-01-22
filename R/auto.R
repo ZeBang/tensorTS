@@ -10,7 +10,7 @@
 #'@usage TAR(xx, type = c("projection", "LS", "MLE", "ar"))
 #'@export
 #'@param xx \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
-#'@param dim
+#'@param dim dimension of coefficient matrices
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"projection",}}{Projection method.}
 #'  \item{\code{"lse",}}{Iterated least squares.}
@@ -18,7 +18,7 @@
 #'  \item{\code{"ar",}}{Stacked vector AR(1) Model.}
 #'}
 #'@return a list containing the following:\describe{
-#'\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
 #'\item{\code{res}}{residual of the MAR(1)}
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
@@ -749,7 +749,8 @@ generate.A <- function(dim,R){
 generate <- function(A,t,setting="iid"){
   # to generate time series with given coefficient matrices and time length t
   # return time series xx
-  k <- length(dim)
+  r <- length(A)
+  k <- length(A[[1]])
   if (k == 2){
     x <- list(rand_tensor(dim))  # initialize X1
     for (i in c(2:t)){
@@ -1184,9 +1185,9 @@ TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param niter maximum number of iterations if error stays above \code{tol}
 #'@param tol relative Frobenius norm error tolerance
-#'@param print.true printe \eqn{A_i}
+#'@param print.true print \eqn{A_i}
 #'@return a list containing the following:\describe{
-#'\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
 #'\item{\code{res}}{residual of the MAR(1)}
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
@@ -1330,7 +1331,7 @@ TAR1.VAR <- function(xx){
 #'@examples
 #' dim <- c(2,2,2)
 #' A <- generate.A(dim, R=1)
-#' xx <- generate(c(m1,m2,m3), T=100)
+#' xx <- generate(dim, T=100)
 #' SIGMA <- TAR1.SE.LSE(xx, A, Sigma=diag(prod(dim)))
 TAR1.SE.LSE <- function(xx, A.true, Sigma){
   dim <- xx@modes[-1]
@@ -1383,7 +1384,7 @@ TAR1.SE.LSE <- function(xx, A.true, Sigma){
 #'@examples
 #' dim <- c(2,2,2)
 #' A <- generate.A(dim, R=1)
-#' xx <- generate(c(m1,m2,m3), T=100)
+#' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
 TAR1.SE.MLE <- function(xx, A.true, Sigma){
   dim <- xx@modes[-1]
@@ -1434,7 +1435,7 @@ TAR1.SE.MLE <- function(xx, A.true, Sigma){
 #'@examples
 #' dim <- c(2,2,2)
 #' A <- generate.A(dim, R=1)
-#' xx <- generate(c(m1,m2,m3), T=100)
+#' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.LSE(xx, A, Sigma=diag(prod(dim)))
 TAR2.SE.LSE <- function(xx, A.true, Sigma){
   r <- length(A.true)
@@ -1500,7 +1501,7 @@ TAR2.SE.LSE <- function(xx, A.true, Sigma){
 #'@examples
 #' dim <- c(2,2,2)
 #' A <- generate.A(dim, R=1)
-#' xx <- generate(c(m1,m2,m3), T=100)
+#' xx <- generate(dim, T=100)
 #' SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
 TAR2.SE.MLE <- function(xx, A.true, Sigma){
   r <- length(A.true)

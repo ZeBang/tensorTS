@@ -14,11 +14,11 @@ TAR2.MLE(xx, r, niter = 200, tol = 1e-06, print.true = FALSE)
 
 \item{tol}{relative Frobenius norm error tolerance}
 
-\item{print.true}{printe \eqn{A_i}}
+\item{print.true}{print \eqn{A_i}}
 }
 \value{
 a list containing the following:\describe{
-\item{\code{A}}{estimator of coeficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
 \item{\code{res}}{residual of the MAR(1)}
 \item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 \item{\code{niter}}{number of iterations}
