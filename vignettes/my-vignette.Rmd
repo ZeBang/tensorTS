@@ -14,19 +14,22 @@ knitr::opts_chunk$set(
 )
 ```
 
-## Package ‘timeFA’: Factor and Autoregressive Models for Tensor Time Series
+## Factor and Autoregressive Models for Tensor Time Series
 
-The R package "timeFA" includes methods in our recent papers, including [factor models](https://arxiv.org/abs/1905.07530) and [Autoregressive models](https://arxiv.org/abs/1812.08916) for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.
+The R package **timeFA** includes methods in our recent papers, including [Factor Models](https://arxiv.org/abs/1905.07530) and [Autoregressive Models](https://arxiv.org/abs/1812.08916) for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.
 
 #### Installation
 
 Temporarily, we use GitHub to host this package source code then users can install the package directly from GitHub using the `install_github` function in the [devtools](https://github.com/r-lib/devtools#readme) package:
-```{r}
+```{r, eval=FALSE}
 library(devtools)
 install_github("zebang/timeFA")
 ```
 
 
 #### Autoregressive Models
+
+We collect all estimation methods in one function `TAR`
+
 
 #### Factor Models

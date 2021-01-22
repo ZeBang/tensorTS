@@ -2,7 +2,7 @@
 % Please edit documentation in R/auto.R
 \name{trearrange}
 \alias{trearrange}
-\title{trearrange}
+\title{(alpha version) rearrangement operator for tensor.}
 \usage{
 trearrange(A, m1, m2, m3, n1, n2, n3)
 }

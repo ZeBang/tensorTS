@@ -19,3 +19,9 @@ asmptotic covariance matrix
 \description{
 Asymptotic covariance Matrix of \code{TAR1.MLE} for given A tensor-valued time series xx, see related Theorems in our paper.
 }
+\examples{
+dim <- c(2,2,2)
+A <- generate.A(dim, R=1)
+xx <- generate(c(m1,m2,m3), T=100)
+SIGMA <- TAR2.SE.MLE(xx, A, Sigma=diag(prod(dim)))
+}

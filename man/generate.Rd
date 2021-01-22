@@ -2,27 +2,30 @@
 % Please edit documentation in R/auto.R
 \name{generate}
 \alias{generate}
-\title{Generate an AR(1) tensor time series}
+\title{Generate an AR(1) tensor time series with given coefficient matrices}
 \usage{
-generate(dim, t)
+generate(A, t, setting = "iid")
 }
 \arguments{
-\item{dim}{an array of dimentions of matrices \eqn{A_1,A_2,\cdots,A_k}}
-
 \item{t}{length of time}
+
+\item{setting}{the structure of random error, can be specified as "iid", "mle" and "svd", default value is "iid".}
+
+\item{dim}{an array of dimensions of matrices or tensors}
 }
 \value{
 a list containing the following:\describe{
 \item{\code{A}}{matrices \eqn{A_1,A_2,\cdots,A_k}}
 \item{\code{X}}{AR(1) tensor time series}
 }
-#'@seealso \code{\link{run.test}}
 }
 \description{
-For test only, randomly generate matrices A1,A2,..Ak by iid standard gaussians with given dimensions, and then generate an AR(1) tensor time series.
+For test only, with given coefficient matrices and time length t, generate an AR(1) tensor time series.
 }
 \examples{
-dim <- c(1,2,3)
-T <- 100
-xx <- generate(c(m1,m2,m3),T)
+A <- generate.A(dim=c(2,2,2), R=1)
+xx <- generate(c(m1,m2,m3), T=100)
+}
+\seealso{
+\code{\link{run.test}}
 }

@@ -6,13 +6,18 @@
 \usage{
 em(m, n, i, j)
 }
+\arguments{
+\item{m, n, i, j}{set \eqn{m \times n} zero matrix with \eqn{A_{ij} = 1}}
+}
 \value{
-Permutation matrix em
-#'@seealso \code{\link{trearrange}}
+Permutation matrix em such that \eqn{A_{ij} = 1} and other entries equals 0.
 }
 \description{
 Permutation matrix em.
 }
 \examples{
-em(m,n,i,j)
+A = em(3,3,1,1)
+}
+\seealso{
+\code{\link{trearrange}}
 }

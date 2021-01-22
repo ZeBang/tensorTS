@@ -7,17 +7,19 @@
 pm(m, n)
 }
 \arguments{
-\item{m}{an array of dimentions of matrices \eqn{A_1,A_2,\cdots,A_k}}
+\item{m}{an array of dimensions of matrices \eqn{A_1,A_2,\cdots,A_k}}
 
 \item{n}{length of time}
 }
 \value{
 Permutation matrix pm
-#'@seealso \code{\link{trearrange}}
 }
 \description{
 Permutation matrix pm.
 }
 \examples{
-pm(m,n)
+P = pm(3,3)
+}
+\seealso{
+\code{\link{trearrange}}
 }

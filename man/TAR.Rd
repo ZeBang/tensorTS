@@ -9,10 +9,10 @@ TAR(xx, type = c("projection", "LS", "MLE", "ar"))
 \arguments{
 \item{xx}{\eqn{T * m_1 * \cdots * m_K} tensor-valued time series}
 
-\item{type}{character string, specifying the type of the estimation method to be used. \describe{
+\item{method}{character string, specifying the type of the estimation method to be used. \describe{
  \item{\code{"projection",}}{Projection method.}
- \item{\code{"LS",}}{Iterated least squares.}
- \item{\code{"MLE",}}{MLE under a structured covariance tensor.}
+ \item{\code{"lse",}}{Iterated least squares.}
+ \item{\code{"mle",}}{MLE under a structured covariance tensor.}
  \item{\code{"ar",}}{Stacked vector AR(1) Model.}
 }}
 }
@@ -25,6 +25,6 @@ a list containing the following:\describe{
 }
 }
 \description{
-Estimation function for tensor-valued time series, including the projection method,
-the Iterated least squares method, MLE under a structured covariance tensor and stacked vector AR(1) model, as determined by the value of \code{type}.
+Estimation function for tensor-valued time series.
+Projection method, the Iterated least squares method, MLE under a structured covariance tensor and stacked vector AR(1) model, as determined by the value of \code{type}.
 }
