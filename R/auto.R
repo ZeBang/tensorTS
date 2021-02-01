@@ -779,17 +779,19 @@ generate <- function(A, t, setting="iid"){
   # return time series xx
   r <- length(A)
   k <- length(A[[1]])
-  dim <- c(nrow(A[[1]][[1]]), nrow(A[[1]][[2]]), nrow(A[[1]][[3]]))
+  dim <- c()
+  for (i in c(1:length(A[[1]]))){dim[i] = nrow(A[[1]][[i]])}
   if (k == 2){
     x <- list(rand_tensor(dim))  # initialize X1
-    for (i in c(2:t)){
+    for (i in c(2:t)){ # matrix case
       e <- new("Tensor", as.integer(k), as.integer(dim), array(rnorm(prod(dim)), dim))
       x[[i]] <-  rTensor::ttl(x[[i-1]], A, c(1:k)) + e
     }
     return(rTensor::as.tensor(x))
-  } else if (k == 3){
+  } else if (k >= 3){
     x <- array(0, c(t,dim))
-    x[1,,,] <- array(rnorm(prod(dim)), c(1,dim))
+    xmat <- array(x, c(t,prod(dim)))
+    xmat[1,] <- rnorm(prod(dim))
     for (i in c(2:t)){
       if (setting == "iid"){
         e <- array(rnorm(prod(dim)), dim)
@@ -800,8 +802,9 @@ generate <- function(A, t, setting="iid"){
       } else {
         return("Please specify setting")
       }
-      x[i,,,] <-  (Reduce("+", lapply(1:r, function (j) rTensor::ttl(rTensor::as.tensor(x[i-1,,,]), A[[j]], c(1:k)))) + e)@data  # sum terms 1:r and add error E, use reduce since ttl returns a list
+      xmat[i,] <-  as.vector((Reduce("+", lapply(1:r, function (j) rTensor::ttl(rTensor::as.tensor(array(xmat[i-1,],dim)), A[[j]], c(1:k)))) + e)@data)  # sum terms 1:r and add error E, use reduce since ttl returns a list
     }
+    x <- array(xmat, c(t,dim))
     return(rTensor::as.tensor(x))
   }
 }
@@ -1585,6 +1588,46 @@ TAR2.SE.MLE <- function(xx, A.true, Sigma){
 }
 
 
+#' Plot Matrix-Valued Time Series
+#'
+#' Plot Matrix-Valued time series or Tensor-Valued time series by given mode.
+#'@name mplot
+#'@rdname mplot
+#'@aliases mplot
+#'@export
+#'@param xx  \eqn{T * m_1 * m_2} tensor-valued time series. Note that the number of mode is 3, where the first mode is time.
+#'@examples
+#' dim <- c(2,2,2,2)
+#' A <- generateA(dim, R=1)
+#' xx <- generate(dim, T=100)
+#' mplot(xx[,,,1])
+mplot <- function(x){
+  if (mode(x) == "S4"){x = x@data}
+  dim = dim(x)
+  time = array(c(1:dim[1]),dim[1])
+  par(mfrow=c(dim[2],dim[3]),mai=0.05*c(1,1,1,1),oma=c(2,2,0,0))
+  for(i in 1:dim[2]){
+    for(j in 1:dim[3]){
+      if(i!=dim[2] & j!=1){
+        plot(time,x[,i,j],type='l',xaxt='n',yaxt='n',ylim=range(x[,i,]))
+      }
+      if(i!=dim[2] & j==1){
+        plot(time,x[,i,j],type='l',xaxt='n',ylim=range(x[,i,]))
+      }
+      if(i==dim[2] & j!=1){
+        plot(time,x[,i,j],type='l',yaxt='n',ylim=range(x[,i,]))
+      }
+      if(i==dim[2] & j==1){
+        plot(time,x[,i,j],type='l',ylim=range(x[,i,]))
+      }
+    }
+  }
+
+}
+
+
+
+
 #' Test Function
 #'
 #' For test only
@@ -1618,4 +1661,19 @@ run.test <- function(m1,m2,m3,n=100,T){
   return(list(err1,err2,err3,err12,err22))
 }
 
+.getpos <- function(mode, rank){
+  pos = 0
+  for (k in c(1:length(mode))){
+    if (k > 1){mode[k] = mode[k] - 1}
+    pos = pos + rank[k]*mode[k]
+  }
+  return(pos)
+}
 
+.getrank <- function(dim){
+  rank = array(1, length(dim))
+  for (k in c(1:length(dim))){
+    if (k > 1){ for (q in c(1:(k-1))){rank[k] = rank[k]*(rev(dim)[q])}}
+  }
+  return(rank)
+}

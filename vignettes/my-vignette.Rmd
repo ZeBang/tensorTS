@@ -68,6 +68,15 @@ residual = result$res
 Sigma = result$Sig
 ```
 
+## Plotting
+
+We offered the function to plot the matrix-valued time series. This function can be applied to any mode of tensors. For example, we want to plot the second and third mode by given the fourth mode equals 1. By default, the order of first mode represents order of time.
+
+```{r}
+mplot(xx[,,,1])
+```
+
+
 ## Discussion
 
 - Our source code is now on https://github.com/ZeBang/timeFA. 
