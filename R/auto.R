@@ -4,10 +4,10 @@
 #'
 #' Estimation function for tensor-valued time series.
 #' Projection method, the Iterated least squares method, MLE under a structured covariance tensor and stacked vector AR(1) model, as determined by the value of \code{type}.
-#'@name TAR
-#'@rdname TAR
-#'@aliases TAR
-#'@usage TAR(xx, type = c("projection", "LS", "MLE", "ar"))
+#'@name TenAR
+#'@rdname TenAR
+#'@aliases TenAR
+#'@usage TenAR(xx, type = c("projection", "LS", "MLE", "ar"))
 #'@export
 #'@param xx \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param dim dimension of coefficient matrices
@@ -23,31 +23,31 @@
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TAR <- function(xx, r=1, method="lse"){
+TenAR <- function(xx, r=1, method="LSE"){
   dim = xx@num_modes - 1
   if (dim == 1){
     var1(xx)
   } else if (dim == 2){
     if (r == 1){
-      if (identical("projection", method)) {
+      if (identical("PROJ", method)) {
         MAR1.projection(xx)
-      } else if (identical("lse", method)) {
+      } else if (identical("LSE", method)) {
         MAR1.LS(xx)
-      } else if (identical("mle", method)) {
+      } else if (identical("MLE", method)) {
         MAR1.otimes(xx)
-      } else if (identical("ar", method)) {
+      } else if (identical("AR", method)) {
         var1(xx)
       } else {
         stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
       }
     } else if (r > 1){
-      if (identical("projection", method)) {
+      if (identical("PROJ", method)) {
         MAR2.projection(xx, r)
-      } else if (identical("lse", method)) {
+      } else if (identical("LSE", method)) {
         MAR2.LS(xx, r)
-      } else if (identical("mle", method)) {
+      } else if (identical("MLE", method)) {
         MAR2.otimes(xx, r)
-      } else if (identical("ar", method)) {
+      } else if (identical("AR", method)) {
         var1(xx)
       } else {
         stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
@@ -777,18 +777,18 @@ generateA <- function(dim,R){
 generate <- function(A, t, setting="iid"){
   # to generate time series with given coefficient matrices and time length t
   # return time series xx
-  r <- length(A)
-  k <- length(A[[1]])
+  R <- length(A)
+  K <- length(A[[1]])
   dim <- c()
   for (i in c(1:length(A[[1]]))){dim[i] = nrow(A[[1]][[i]])}
-  if (k == 2){
+  if (K == 2){
     x <- list(rand_tensor(dim))  # initialize X1
     for (i in c(2:t)){ # matrix case
-      e <- new("Tensor", as.integer(k), as.integer(dim), array(rnorm(prod(dim)), dim))
-      x[[i]] <-  rTensor::ttl(x[[i-1]], A, c(1:k)) + e
+      e <- new("Tensor", as.integer(K), as.integer(dim), array(rnorm(prod(dim)), dim))
+      x[[i]] <-  rTensor::ttl(x[[i-1]], A, c(1:K)) + e
     }
     return(rTensor::as.tensor(x))
-  } else if (k >= 3){
+  } else if (K >= 3){
     x <- array(0, c(t,dim))
     xmat <- array(x, c(t,prod(dim)))
     xmat[1,] <- rnorm(prod(dim))
@@ -796,13 +796,13 @@ generate <- function(A, t, setting="iid"){
       if (setting == "iid"){
         e <- array(rnorm(prod(dim)), dim)
       } else if (setting == "mle"){
-        e <- as.vector(rTensor::ttl(rTensor::as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:k)))
+        e <- as.vector(rTensor::ttl(rTensor::as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:K)))
       } else if (setting == "svd"){
         e <- as.vector(array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma2), dim))
       } else {
         return("Please specify setting")
       }
-      xmat[i,] <-  as.vector((Reduce("+", lapply(1:r, function (j) rTensor::ttl(rTensor::as.tensor(array(xmat[i-1,],dim)), A[[j]], c(1:k)))) + e)@data)  # sum terms 1:r and add error E, use reduce since ttl returns a list
+      xmat[i,] <-  as.vector((Reduce("+", lapply(1:R, function (j) rTensor::ttl(rTensor::as.tensor(array(xmat[i-1,],dim)), A[[j]], c(1:k)))) + e)@data)  # sum terms 1:r and add error E, use reduce since ttl returns a list
     }
     x <- array(xmat, c(t,dim))
     return(rTensor::as.tensor(x))
@@ -1626,7 +1626,54 @@ mplot <- function(x){
 }
 
 
+#' Model Predictions
+#'
+#' predict.tenar is a function for predictions from the results of model fitting functions. The function invokes particular methods which depend on the class of the first argument.
+#'@name predict.tenar
+#'@rdname predict.tenar
+#'@aliases predict.tenar
+#'@export
+#'@param object a fit from TenAR()
+#'@param data data to which to apply the prediction.
+#'@param n.head number of steps ahead at which to predict.
+#'@param se.fit	 logical: return estimated standard errors of the prediction error. default is TRUE.
+#'@param rolling logical: use rolling forcast
+#'@param method method used by rolling forecast
+#'@return predicted value
+#'
+#' Our function is similar to the usage of classical `predict.ar` in package "stats".
+#'
+#'@seealso `predict.ar` or `predict.arima`
+#'@examples
+#' dim <- c(2,2,2)
+#' A <- generateA(dim, R=1)
+#' xx <- generate(dim, T=100)
+#' pred.xx <- predict.tenar(model, xx, n.head = 5)
+predict.tenar <- function(object, data, n.head, se.fit=TRUE, roling=FALSE, method="LSE"){
+  A <- object$A
+  R <- length(A)
+  K <- data@num_modes - 1
+  dim <- data@modes
+  ttt <- (dim[1]+1):(dim[1]+n.head)
+  x.mat <- array(data@data, c(dim[1],prod(dim[-1])))
+  xpred.mat <- array(0, c(n.head, prod(dim[-1])))
+  x.mat <- rbind(x.mat, xpred.mat)
 
+  for(tt in ttt){
+    tti <- tt - ttt[1] + 1
+    if (rolling = TRUE & tti > 1){
+      print(paste("==================complete",tti))
+      xx.new <- array(x.mat[1:(tt-1)], c(dim[1] + tti - 1, dim[-1]))
+      xx.nm <- .remove.mean(xx.new)
+      model = TenAR(xx.nm, R, method)
+      A <- model$A
+    }
+    temp.xx <- rTensor::as.tensor(array(x.mat[tt - 1,],dim))
+    x.mat[tt,] <-  as.vector((Reduce("+", lapply(1:R, function (j) rTensor::ttl(temp.xx, A[[j]], c(1:K)))))@data)
+  }
+  pred <- array(x.mat[ttt,], c(n.head, dim[-1]))
+  return(pred)
+}
 
 #' Test Function
 #'
@@ -1661,6 +1708,8 @@ run.test <- function(m1,m2,m3,n=100,T){
   return(list(err1,err2,err3,err12,err22))
 }
 
+
+
 .getpos <- function(mode, rank){
   pos = 0
   for (k in c(1:length(mode))){
@@ -1676,4 +1725,11 @@ run.test <- function(m1,m2,m3,n=100,T){
     if (k > 1){ for (q in c(1:(k-1))){rank[k] = rank[k]*(rev(dim)[q])}}
   }
   return(rank)
+}
+
+.remove.mean <- function(xx){
+  dim <- xx@modes
+  m <- apply(xx@data, c(2:xx@num_modes), mean)
+  mm <- aperm(array(m, c(dim[-1],dim[1])), c(xx@num_modes,c(1:(xx@num_modes-1))))
+  return(xx - mm)
 }

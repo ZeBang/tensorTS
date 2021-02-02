@@ -1,5 +1,5 @@
 ---
-title: "timeFA Package"
+title: "TenTS Package"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{my-vignette}
@@ -16,14 +16,14 @@ knitr::opts_chunk$set(
 
 ## Factor and Autoregressive Models for Tensor Time Series
 
-The R package **timeFA** includes methods in our recent papers, including [Factor Models](https://arxiv.org/abs/1905.07530) and [Autoregressive Models](https://arxiv.org/abs/1812.08916) for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.
+The R package **TenTS** includes methods in our recent papers, including [Factor Models](https://arxiv.org/abs/1905.07530) and [Autoregressive Models](https://arxiv.org/abs/1812.08916) for High-Dimensional tensor Time Series. We demonstrate some examples for how to use our package here. To have more details please see the manual file for the full documentation.
 
 ## Installation
 
 Temporarily, we use GitHub to host this package source code then users can install the package directly from GitHub using the `install_github` function in the [devtools](https://github.com/r-lib/devtools#readme) package:
 ```{r, eval=FALSE}
 library(devtools)
-install_github("zebang/timeFA")
+install_github("zebang/TenTS")
 ```
 
 Remark: You may need download latest [Rtools](https://cran.r-project.org/bin/windows/Rtools/) if error message says so.
@@ -51,7 +51,7 @@ Specify the estimation you want to use in function `TAR` by parameter `method`, 
 And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
 
 ```{r, eval=FALSE}
-result = TAR(xx, r=2, method="lse")
+model = TenAR(xx, r=2, method="lse")
 ```
 
 The return of this function includes,
@@ -63,9 +63,24 @@ The return of this function includes,
 and other parameters depends on the method you used. These parameters are storage in the form of a list, so you can use `$` to extract them,
 
 ```{r, eval=FALSE}
-A.estimate = result$A
-residual = result$res
-Sigma = result$Sig
+A.estimate = model$A
+residual = model$res
+Sigma = model$Sig
+```
+
+## Prediction
+
+There is a function `predict.tenar` for predictions. We offered a number of parameters, 
+
+* `object` a fit from TenAR()
+* `data` data to which to apply the prediction.
+* `n.head` number of steps ahead at which to predict.
+* `sd` logical: return standard errors of the prediction error. default is TRUE.
+* `rolling` logical: use rolling forecast. default is TRUE.
+* `method` method used by rolling forecast. default is "LSE".
+
+```{r, eval=FALSE}
+pred.xx <- predict.tenar(model, xx, n.head = 5)
 ```
 
 ## Plotting
