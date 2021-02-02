@@ -907,7 +907,7 @@ mrearrange <- function(A,m1,m2,n1,n2){
 
 #' Projection Method for Tensor-Valued Time Series
 #'
-#' TAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
+#' TenAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
 #'@name TAR1.projection
 #'@rdname TAR1.projection
 #'@aliases TAR1.projection
@@ -941,7 +941,7 @@ TAR1.projection <- function(xx){
 
 #' Projection Method for Tensor-Valued Time Series with Multiple Terms
 #'
-#' TAR(1) one step projection estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
+#' TenAR(1) one step projection estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
 #'@name TAR2.projection
 #'@rdname TAR2.projection
 #'@aliases TAR2.projection
@@ -1661,7 +1661,7 @@ predict.tenar <- function(object, data, n.head, se.fit=TRUE, roling=FALSE, metho
 
   for(tt in ttt){
     tti <- tt - ttt[1] + 1
-    if (rolling = TRUE & tti > 1){
+    if (rolling == TRUE & tti > 1){
       print(paste("==================complete",tti))
       xx.new <- array(x.mat[1:(tt-1)], c(dim[1] + tti - 1, dim[-1]))
       xx.nm <- .remove.mean(xx.new)

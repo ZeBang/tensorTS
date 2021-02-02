@@ -15,5 +15,5 @@ TAR2.projection(xx, r)
 a list containing the estimation of matrices \eqn{A_1^{(1)},A_2^{(1)},\cdots,A_K^{(R)}}
 }
 \description{
-TAR(1) one step projection estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
+TenAR(1) one step projection estimation in the model \eqn{X_t = \sum_{r=1}^{R} X_{t-1} \times A_1^{(r)} \times \cdots \times A_K^{(r)} + E_t}.
 }

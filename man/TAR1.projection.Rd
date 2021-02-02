@@ -19,5 +19,5 @@ TAR1.projection(xx)
 a list containing the estimation of matrices \eqn{A_1,A_2,\cdots,A_K}
 }
 \description{
-TAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
+TenAR(1) one step projection estimation in the model \eqn{X_t = X_{t-1} \times A_1 \times \cdots \times A_K + E_t}.
 }
