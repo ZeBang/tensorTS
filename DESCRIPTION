@@ -1,4 +1,4 @@
-Package: timeFA
+Package: tensorTS
 Type: Package
 Title: Factor Models and Autoregressive Models for Time Series
 Version: 0.1.0
