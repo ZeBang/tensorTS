@@ -57,11 +57,11 @@ TenAR <- function(xx, r=1, method="LSE"){
   } else if (dim == 3){
     if (identical("projection", method)) {
       TAR1.projection(xx)
-    } else if (identical("lse", method)) {
+    } else if (identical("LSE", method)) {
       TAR2.LS(xx,r)
-    } else if (identical("mle", method)) {
+    } else if (identical("MLE", method)) {
       TAR2.MLE(xx,r)
-    } else if (identical("ar", method)) {
+    } else if (identical("AR", method)) {
       TAR1.VAR(xx)
     } else {
       stop("Please specify the type you want to use. See manuals or run ?TAR for details.")
