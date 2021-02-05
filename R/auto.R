@@ -802,7 +802,7 @@ generate <- function(A, t, setting="iid"){
       } else {
         return("Please specify setting")
       }
-      xmat[i,] <-  as.vector((Reduce("+", lapply(1:R, function (j) rTensor::ttl(rTensor::as.tensor(array(xmat[i-1,],dim)), A[[j]], c(1:k)))) + e)@data)  # sum terms 1:r and add error E, use reduce since ttl returns a list
+      xmat[i,] <-  as.vector((Reduce("+", lapply(1:R, function (j) rTensor::ttl(rTensor::as.tensor(array(xmat[i-1,],dim)), A[[j]], c(1:K)))) + e)@data)  # sum terms 1:r and add error E, use reduce since ttl returns a list
     }
     x <- array(xmat, c(t,dim))
     return(rTensor::as.tensor(x))
