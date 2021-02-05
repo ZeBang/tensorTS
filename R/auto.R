@@ -737,12 +737,25 @@ generateA <- function(dim,R){
       } else if (i == K){
         A.true[[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
         fnorm[j,i] <- norm(A.true[[j]][[i]],'f')
-        A.true[[j]][[i]] <- A.true[[j]][[i]]/fnorm[j,i]
       } else {
         stop("sOMETHING WRONG in generate.A")
       }
     }
   }
+
+  phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A.true[[j]]))}))
+  eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
+  if (eigen > 1){
+    for (j in c(1:R)){
+      for (i in c(1:(K))){
+        A.true[[j]][[i]] <-A.true[[j]][[i]]/eigen
+      }
+    }
+    phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A.true[[j]]))}))
+    eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
+    if (eigen >= 1){stop("non-stationary process")}
+  }
+
   A.norm <- c()
   for (j in c(1:R)){
     A.norm[j] <- norm(A.true[[j]][[1]], 'f') * norm(A.true[[j]][[2]], 'f') * norm(A.true[[j]][[3]], 'f')
@@ -752,6 +765,8 @@ generateA <- function(dim,R){
   for (j in c(1:R)){
     A.true[[j]] <- A.temp[[order.norm[j]]]
   }
+
+
   return(A.true)
 }
 
@@ -1340,14 +1355,12 @@ TAR2.MLE <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
 TAR1.VAR <- function(xx){
   dd=xx@modes
   T <- dd[1]
-  d1 <- dd[2]
-  d2 <- dd[3]
-  d3 <- dd[4]
+  if (prod(dd[-1]) > T){stop("sample size T too small")}
   yy=apply(xx@data,MARGIN=1,as.vector)
   yy2=yy[,2:T];yy1=yy[,1:(T-1)]
   out=lm(t(yy2)~0+t(yy1))
   # res=array(t(out$res),dim=c(dd[1]-1,dd[2],dd[3])) ## should NOT transpose!
-  res=array((out$res),dim=c(dd[1]-1,dd[2],dd[3],dd[4]))
+  res= out$res
   return(list(coef=out$coef, res=res))
 }
 
