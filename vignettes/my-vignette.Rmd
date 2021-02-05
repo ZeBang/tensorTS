@@ -1,5 +1,5 @@
 ---
-title: "TenTS Package"
+title: "tensorTS Package"
 output: rmarkdown::html_vignette
 vignette: >
   %\VignetteIndexEntry{my-vignette}
@@ -30,7 +30,7 @@ Remark: You may need download latest [Rtools](https://cran.r-project.org/bin/win
 
 ## Autoregressive Models
 
-We collect all estimation methods in one function `TAR`. So you can just use this single function to have all estimation methods you want to use.
+We collect all estimation methods in one function `TenAR`. So you can just use this single function to have all estimation methods you want to use.
 
 For demonstration, we first randomly generate some coefficient matrices and tensor time series as follows,
 ```{r}
@@ -41,17 +41,17 @@ xx <- generate(A, t=500) # generate tensor time series with AR(1) structure
 ```
 
 
-Specify the estimation you want to use in function `TAR` by parameter `method`, which can be
+Specify the estimation you want to use in function `TenAR` by parameter `method`, which can be
 
 * "lse" (Iterated least squares), 
 * "mle" (MLE under a structured covariance tensor)
 * "projection" (Projection method)
 * "ar" (stacked VAR(1) model). 
 
-And specify you want to use multiple term model or one term model by parameter `r`. For example, if we want to estimate by LSE method under multiple term model with number of terms $r=2$, run as follows,
+And specify you want to use multiple term model or one term model by parameter `r`, and the order in TenAR($p$) by parameter `p`, For example, if we want to estimate by `LSE` method under multiple term model with number of terms $r=2$ in TenAR(1) with $p=1$, run as follows,
 
 ```{r, eval=FALSE}
-model = TenAR(xx, r=2, method="LSE")
+model = TenAR(xx, r=2, p=1, method="LSE")
 ```
 
 The return of this function includes,
@@ -80,7 +80,7 @@ There is a function `predict.tenar` for predictions. We offered a number of para
 * `method` method used by rolling forecast. default is "LSE".
 
 ```{r, eval=FALSE}
-pred.xx <- predict.tenar(model, xx, n.head = 5)
+pred.xx <- predict.tenar(model, xx, n.head = 5, sd = TRUE)
 ```
 
 ## Plotting
@@ -88,7 +88,7 @@ pred.xx <- predict.tenar(model, xx, n.head = 5)
 We offered the function to plot the matrix-valued time series. This function can be applied to any mode of tensors. For example, we want to plot the second and third mode by given the fourth mode equals 1. By default, the order of first mode represents order of time.
 
 ```{r, fig.width=6,fig.height=4}
-mplot(xx[,,,1])
+mplot(xx[1:100,,,1])
 ```
 
 
