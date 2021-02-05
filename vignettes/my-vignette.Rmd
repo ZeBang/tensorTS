@@ -23,7 +23,7 @@ The R package **TenTS** includes methods in our recent papers, including [Factor
 Temporarily, we use GitHub to host this package source code then users can install the package directly from GitHub using the `install_github` function in the [devtools](https://github.com/r-lib/devtools#readme) package:
 ```{r, eval=FALSE}
 library(devtools)
-install_github("zebang/TenTS")
+install_github("zebang/tensorTS")
 ```
 
 Remark: You may need download latest [Rtools](https://cran.r-project.org/bin/windows/Rtools/) if error message says so.
