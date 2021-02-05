@@ -34,7 +34,7 @@ We collect all estimation methods in one function `TAR`. So you can just use thi
 
 For demonstration, we first randomly generate some coefficient matrices and tensor time series as follows,
 ```{r}
-library(timeFA)
+library(tensorTS)
 dim <- c(4,5,6) # dimension of tensor at time t is 2 * 2 * 2
 A <- generateA(dim, R=1) # randomly generate coefficient matrices with number of terms R = 1
 xx <- generate(A, t=100) # generate tensor time series with AR(1) structure
