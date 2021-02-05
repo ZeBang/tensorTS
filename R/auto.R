@@ -743,7 +743,7 @@ generateA <- function(dim,R){
     }
   }
 
-  phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A.true[[j]]))}))
+  phi <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.true[[j]]))}))
   eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
   if (eigen > 1){
     for (j in c(1:R)){
@@ -751,7 +751,7 @@ generateA <- function(dim,R){
         A.true[[j]][[i]] <-A.true[[j]][[i]]/eigen
       }
     }
-    phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A.true[[j]]))}))
+    phi <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.true[[j]]))}))
     eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
     if (eigen >= 1){stop("non-stationary process")}
   }
