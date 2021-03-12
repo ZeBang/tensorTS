@@ -4,10 +4,10 @@
 #'
 #' Estimation function for tensor-valued time series.
 #' Projection method (proj), the Iterated least squares method (LSE), MLE under a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{type}.
-#'@name TenAR
-#'@rdname TenAR
-#'@aliases TenAR
-#'@usage TenAR(xx, method)
+#'@name tenAR
+#'@rdname tenAR
+#'@aliases tenAR
+#'@usage tenAR(xx, method)
 #'@export
 #'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series
 #'@param R number of terms
@@ -26,31 +26,31 @@
 #'}
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
-#' TenAR(xx, R=1, P=1, method="LSE")
-TenAR <- function(xx, R=1, P=1, method="LSE", k1=NULL, k2=NULL){
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
+#' tenAR(xx, R=1, P=1, method="LSE")
+tenAR <- function(xx, R=1, P=1, method="LSE", k1=NULL, k2=NULL){
   if (identical("PROJ", method)) {
-    TenAR.PROJ(xx, R, P)
+    tenAR.PROJ(xx, R, P)
   } else if (identical("LSE", method)) {
-    TenAR.LS(xx, R, P)
+    tenAR.LS(xx, R, P)
   } else if (identical("MLE", method)) {
-    TenAR.MLE(xx, R, P)
+    tenAR.MLE(xx, R, P)
   } else if (identical("VAR", method)) {
-    TenAR.VAR(xx, P)
+    tenAR.VAR(xx, P)
   } else if (identical("RRLSE", method)) {
     MAR1.RR(xx, k1, k2)
   } else if (identical("RRMLE", method)) {
     MAR1.CC(xx, k1, k2)
   } else {
-    stop("Please specify the type you want to use. See manuals or run ?TenAR for details.")
+    stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
   }
 }
 
 
 #' Estimation for Autoregressive Model of Matrix-Valued Time Series
 #'
-#' Although MAR model is a special case in TenAR model. We still include this original function as reference.
+#' Although MAR model is a special case in tenAR model. We still include this original function as reference.
 #' Estimation function for matrix-valued time series, including the projection method (PROJ),
 #' the Iterated least squares method (LSE) and MLE under a Kronecker structured covariance (MLE) and vectorized AR(1) model (VAR) as determined by the value of \code{method}.
 #'@name MAR
@@ -73,8 +73,8 @@ TenAR <- function(xx, R=1, P=1, method="LSE", k1=NULL, k2=NULL){
 #'}
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
 #' MAR(xx, method="LSE")
 MAR <- function(xx, method){
   if (identical("PROJ", method)) {
@@ -87,7 +87,7 @@ MAR <- function(xx, method){
     MAR1.MLE(xx)
   }
   if (identical("VAR", method)) {
-    TenAR.VAR(xx, P=1)
+    tenAR.VAR(xx, P=1)
   }
   else {
     return("Please specify the type you want to use. See manuals for details.")
@@ -350,9 +350,9 @@ MAR.SE <- function(xx, B, A, Sigma){
 #' Stacked vector AR(p) Model
 #'
 #' vector AR(p) Model for vectorized Tensor time series
-#'@name TenAR.VAR
-#'@rdname TenAR.VAR
-#'@aliases TenAR.VAR
+#'@name tenAR.VAR
+#'@rdname tenAR.VAR
+#'@aliases tenAR.VAR
 #'@export
 #'@param xx \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
 #'@param P number of orders
@@ -361,9 +361,9 @@ MAR.SE <- function(xx, B, A, Sigma){
 #'\item{\code{res}}{residual of the VAR(1) model}
 #'}
 #'@examples
-#'out.var = TenAR.VAR(xx)
+#'out.var = tenAR.VAR(xx)
 #'sum(out.var$res**2)
-TenAR.VAR <- function(xx, P){
+tenAR.VAR <- function(xx, P){
   xx <- as.tensor(xx)
   dd=xx@modes
   t <- dd[1]
@@ -389,9 +389,9 @@ TenAR.VAR <- function(xx, P){
 #' Generate coefficient matrices
 #'
 #' For test only, generate coefficient matrices in TenAR model
-#'@name TenAR.A
-#'@rdname TenAR.A
-#'@aliases TenAR.A
+#'@name tenAR.A
+#'@rdname tenAR.A
+#'@aliases tenAR.A
 #'@export
 #'@param dim an array of dimensions of matrices or tensors
 #'@param R number of terms
@@ -400,9 +400,9 @@ TenAR.VAR <- function(xx, P){
 #'@return a list containing coefficient matrices
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho=0.5)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
-TenAR.A <- function(dim,R,P,rho){
+#' A <- tenAR.A(dim,R=2,P=1,rho=0.5)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
+tenAR.A <- function(dim,R,P,rho){
   K <- length(dim)
   A <- lapply(1:P, function(p) {lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})})
   for (p in c(1:P)){
@@ -431,9 +431,9 @@ TenAR.A <- function(dim,R,P,rho){
 #' Generate an AR(1) tensor time series with given coefficient matrices
 #'
 #' For test only, with given coefficient matrices and time length t, generate an AR(1) tensor time series.
-#'@name TenAR.xx
-#'@rdname TenAR.xx
-#'@aliases TenAR.xx
+#'@name tenAR.xx
+#'@rdname tenAR.xx
+#'@aliases tenAR.xx
 #'@export
 #'@param t length of time
 #'@param A true coefficient matrices (the dimensions, number of terms and orders are implied by structure of A)
@@ -442,9 +442,9 @@ TenAR.A <- function(dim,R,P,rho){
 #'@seealso \code{\link{run.test}}
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho=0.5)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
-TenAR.xx <- function(t,A, setting){
+#' A <- tenAR.A(dim,R=2,P=1,rho=0.5)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
+tenAR.xx <- function(t,A, setting){
   P <- length(A)
   R <- length(A[[1]])
   K <- length(A[[1]][[1]])
@@ -480,18 +480,18 @@ TenAR.xx <- function(t,A, setting){
 #' Projection estimation for TenAR(p) model
 #'
 #' projection estimation
-#'@name TenAR.PROJ
-#'@rdname TenAR.PROJ
-#'@aliases TenAR.PROJ
+#'@name tenAR.PROJ
+#'@rdname tenAR.PROJ
+#'@aliases tenAR.PROJ
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param R number of terms
 #'@param P number of orders
 #'@return a list containing the estimation of matrices
-TenAR.PROJ <- function(xx,R,P){
+tenAR.PROJ <- function(xx,R,P){
   xx <- as.tensor(xx)
   dim <- xx@modes[-1]
-  mm <- TenAR.VAR(xx, P)$coef
+  mm <- tenAR.VAR(xx, P)$coef
   A = list()
   for (p in c(1:P)){
     tt <- trearrange(mm[[p]], rev(dim))
@@ -506,9 +506,9 @@ TenAR.PROJ <- function(xx,R,P){
 #' Least Squares Iterative Estimation for TenAR(p)
 #'
 #' Iterated least squares estimation
-#'@name TenAR.LS
-#'@rdname TenAR.LS
-#'@aliases TenAR.LS
+#'@name tenAR.LS
+#'@rdname tenAR.LS
+#'@aliases tenAR.LS
 #'@import tensor rTensor
 #'@export
 #'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
@@ -524,13 +524,13 @@ TenAR.PROJ <- function(xx,R,P){
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
+tenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
   xx <- as.tensor(xx)
   dim <- xx@modes[-1]
   K <- length(dim)
   t <- xx@modes[[1]]
 
-  if (is.null(init)) {A.old <- TenAR.PROJ(xx,R,P)$A} else {A.old <- init}
+  if (is.null(init)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init}
 
   A.new <- A.old
 
@@ -607,9 +607,9 @@ TenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
 #' MLEs for TenAR(p) Model
 #'
 #' MLEs under Kronecker structures covariance matrix
-#'@name TenAR.MLE
-#'@rdname TenAR.MLE
-#'@aliases TenAR.MLE
+#'@name tenAR.MLE
+#'@rdname tenAR.MLE
+#'@aliases tenAR.MLE
 #'@import tensor rTensor
 #'@export
 #'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
@@ -627,7 +627,7 @@ TenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
 #'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{niter}}{number of iterations}
 #'}
-TenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
+tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
   xx <- as.tensor(xx)
   dim <- xx@modes[-1]
   K <- length(dim)
@@ -635,7 +635,7 @@ TenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, 
   if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
-  if (is.null(init.A)) {A.old <- TenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
+  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
   A.new <- A.old
   dis <- 1
   iiter <- 1
@@ -739,8 +739,8 @@ TenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, 
 #'@export
 #'@examples
 #'dim <- c(4,5) # dimension of matrix at time t is 4 * 5
-#'A <- TenAR.A(dim, R=1, P=1, rho=0.5)
-#'xx <- TenAR.xx(t=500, A, setting="iid")
+#'A <- tenAR.A(dim, R=1, P=1, rho=0.5)
+#'xx <- tenAR.xx(t=500, A, setting="iid")
 #'model <- MAR1.RR(xx, k1=2, k2=2)
 MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, print.true=FALSE, LL.init=NULL, RR.init=NULL){
   # xx: T * p * q
@@ -849,8 +849,8 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, print.true=FALSE, LL.init=N
 #'}
 #'@examples
 #'dim <- c(4,5) # dimension of matrix at time t is 4 * 5
-#'A <- TenAR.A(dim, R=1, P=1, rho=0.5)
-#'xx <- TenAR.xx(t=500, A, setting="iid")
+#'A <- tenAR.A(dim, R=1, P=1, rho=0.5)
+#'xx <- tenAR.xx(t=500, A, setting="iid")
 #'model <- MAR1.RR(xx, k1=2, k2=2)
 MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NULL,niter=200,tol=1e-4,print.true = FALSE){
   # xx: T * p * q
@@ -977,9 +977,9 @@ MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NU
 #' Asymptotic Covariance Matrix of LSE in TenAR(1)
 #'
 #' Asymptotic covariance Matrix of LSE in TenAR(1) for given a tensor-valued time series xx, see related Theorems in our paper.
-#'@name TenAR.SE.LSE
-#'@rdname TenAR.SE.LSE
-#'@aliases TenAR.SE.LSE
+#'@name tenAR.SE.LSE
+#'@rdname tenAR.SE.LSE
+#'@aliases tenAR.SE.LSE
 #'@export
 #'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param A.true coefficient matrices in TAR(1) model
@@ -987,11 +987,11 @@ MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NU
 #'@return asmptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
 #' Sigma <- diag(prod(dim))
-#' SIGMA <- TenAR.SE.LSE(xx, A[[1]], Sigma)
-TenAR.SE.LSE <- function(xx, A.true, Sigma){
+#' SIGMA <- tenAR.SE.LSE(xx, A[[1]], Sigma)
+tenAR.SE.LSE <- function(xx, A.true, Sigma){
   xx <- as.tensor(xx)
   r <- length(A.true)
   dim <- xx@modes[-1]
@@ -1045,9 +1045,9 @@ TenAR.SE.LSE <- function(xx, A.true, Sigma){
 #' Asymptotic Covariance Matrix of MLEs in TenAR(1)
 #'
 #' Asymptotic covariance Matrix of MLEs in TenAR(1) for given a tensor-valued time series xx, see related Theorems in our paper.
-#'@name TenAR.SE.MLE
-#'@rdname TenAR.SE.MLE
-#'@aliases TenAR.SE.MLE
+#'@name tenAR.SE.MLE
+#'@rdname tenAR.SE.MLE
+#'@aliases tenAR.SE.MLE
 #'@import tensor rTensor
 #'@export
 #'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
@@ -1056,11 +1056,11 @@ TenAR.SE.LSE <- function(xx, A.true, Sigma){
 #'@return asmptotic covariance matrix
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
+#' A <- tenAR.A(dim,R=2,P=1,rho)
 #' Sigma <- diag(prod(dim))
-#' xx <- TenAR.xx(t=500, A, setting='iid')
-#' SIGMA <- TenAR.SE.MLE(xx, A[[1]], Sigma)
-TenAR.SE.MLE <- function(xx, A.true, Sigma){
+#' xx <- tenAR.xx(t=500, A, setting='iid')
+#' SIGMA <- tenAR.SE.MLE(xx, A[[1]], Sigma)
+tenAR.SE.MLE <- function(xx, A.true, Sigma){
   xx <- as.tensor(xx)
   r <- length(A.true)
   dim <- xx@modes[-1]
@@ -1498,23 +1498,24 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
 #' select the number of terms by BIC
 #'
 #' select the number of terms by BIC
-#'@name TenAR.bic
-#'@rdname TenAR.bic
-#'@aliases TenAR.bic
+#'@name tenAR.bic
+#'@rdname tenAR.bic
+#'@aliases tenAR.bic
+#'@import rTensor
 #'@export
 #'@param xx  \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
-#' TenAR.bic(xx, rmax=5)
-TenAR.bic <- function(xx, rmax=5){
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
+#' tenAR.bic(xx, rmax=5)
+tenAR.bic <- function(xx, rmax=5){
   xx <- as.tensor(xx)
   dim <- xx@modes[-1]
   t <- xx@modes[[1]]
   ans <- c()
   for (r in c(1:rmax)){
-    est <- TenAR.LS(xx, R=r, P=1)
+    est <- tenAR.LS(xx, R=r, P=1)
     res <- est$res
     ans[r] <- IC(xx,res,r,t, dim)
   }
@@ -1531,8 +1532,8 @@ TenAR.bic <- function(xx, rmax=5){
 #'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
 #' mplot(xx[,,1])
 mplot <- function(x){
   if (mode(x) == "S4"){x = x@data}
@@ -1578,8 +1579,8 @@ mplot <- function(x){
 #'@seealso `predict.ar` or `predict.arima`
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
 #' pred.xx <- predict.tenar(model, xx, n.head = 5)
 predict.tenar <- function(object, xx, n.head, method="LSE"){
   xx <- as.tensor(xx)
@@ -1622,8 +1623,8 @@ predict.tenar <- function(object, xx, n.head, method="LSE"){
 #'@seealso `predict.ar` or `predict.arima`
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- TenAR.A(dim,R=2,P=1,rho)
-#' xx <- TenAR.xx(t=500, A, setting='iid')
+#' A <- tenAR.A(dim,R=2,P=1,rho)
+#' xx <- tenAR.xx(t=500, A, setting='iid')
 #' pred.xx <- predict.rolling(model, xx, n.head = 5)
 predict.rolling <- function(object, data, n.head, method="LSE"){
   xx <- as.tensor(xx)
@@ -1640,7 +1641,7 @@ predict.rolling <- function(object, data, n.head, method="LSE"){
       print(paste("==================complete",tti))
       xx.new <- array(x.mat[1:(tt-1)], c(dim[1] + tti - 1, dim[-1]))
       xx.nm <- .remove.mean(xx.new)
-      model = TenAR(xx.nm, R, P, method)
+      model = tenAR(xx.nm, R, P, method)
       A <- model$A
     }
     L1 = 0

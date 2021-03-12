@@ -1,10 +1,10 @@
 #' Tensor factor estimation method
 #'
 #' Estimation function for tensor-valued time series factor model.
-#'@name TenFM.est
-#'@rdname TenFM.est
-#'@aliases TenFM.est
-#'@usage TenFM.est(x,r,method='TIPUP')
+#'@name tenFM.est
+#'@rdname tenFM.est
+#'@aliases tenFM.est
+#'@usage tenFM.est(x,r,method='TIPUP')
 #'@export
 #'@param x \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
 #'@param r input rank of factor tensor
@@ -33,9 +33,9 @@
 #'bF = gen.F(ar_coef,20,1)
 #'x = aperm(gen.X(Q1,Q1,bF),c(3,1,2))
 #'x = as.tensor(x) # Generate x and permute the axes
-#'result <- TenFM.est(x,c(2,2),method='TOPUP')  # Estimate the factor and loadings
+#'result <- tenFM.est(x,c(2,2),method='TOPUP')  # Estimate the factor and loadings
 #'Ft <- result$Ft
-TenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter=100){
+tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter=100){
   x <- aperm(x@data,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
@@ -180,9 +180,9 @@ Rank.est = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,pe
   for(i in 1:(d-1)){
     if(rank=='BIC'){
       sigmas.hat=1
-      factor.num[i,,1]=tensor.bic(ans.init$lambda[[i]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
+      factor.num[i,,1]=tenFM.bic(ans.init$lambda[[i]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
     }else if(rank=='ER'){
-      factor.num[i,,1]=tensor.ratio(ans.init$lambda[[i]],ddd[i],ddd[-i],n)
+      factor.num[i,,1]=tenFM.ratio(ans.init$lambda[[i]],ddd[i],ddd[-i],n)
     }else{
       stop('Wrong rank method !')  # should catch exception
     }
@@ -211,9 +211,9 @@ Rank.est = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,pe
         ddd=dd[-d]
 
         if(rank=='BIC'){
-          factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
+          factor.num[i,,1+iiter]=tenFM.bic(ans.iter$lambda[[1]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
         }else if(rank=='ER'){
-          factor.num[i,,1+iiter]=tensor.ratio(ans.iter$lambda[[1]],ddd[i],ddd[-i],n)
+          factor.num[i,,1+iiter]=tenFM.ratio(ans.iter$lambda[[1]],ddd[i],ddd[-i],n)
         }else{
           stop('Wrong rank method !')  # should be error
         }
@@ -246,9 +246,9 @@ Rank.est = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,pe
 
 #' BIC estimators for determing the numbers of factors
 #'
-#'@name tensor.bic
-#'@rdname tensor.bic
-#'@aliases tensor.bic
+#'@name tenFM.bic
+#'@rdname tenFM.bic
+#'@aliases tenFM.bic
 #'@export
 #'@param reigen list of eigenvalues
 #'@param h0 lag number
@@ -256,7 +256,7 @@ Rank.est = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,pe
 #'@param p2 p2
 #'@param n n
 #'@return factor.p1: Estimated number of factors
-tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
+tenFM.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   #p1
   #p2
   #n
@@ -290,9 +290,9 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
 
 #' Eigenvalue ratio estimators for determining the numbers of factors
 #'
-#'@name tensor.ratio
-#'@rdname tensor.ratio
-#'@aliases tensor.ratio
+#'@name tenFM.ratio
+#'@rdname tenFM.ratio
+#'@aliases tenFM.ratio
 #'@export
 #'@param reigen list of eigenvalues
 #'@param h0 lag number
@@ -301,7 +301,7 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
 #'@param n n
 #'@return factor.p1: Estimated number of factors
 #'
-tensor.ratio<-function(reigen,p1,p2,n){
+tenFM.ratio<-function(reigen,p1,p2,n){
   #p1
   #p2
   #n
