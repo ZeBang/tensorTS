@@ -137,7 +137,6 @@ The factor model part contains two main functions : tenFM.est for factor estimat
 We use the same set of data in tenAR model, here we specify a rank r.
 ```{r eval=FALSE}
 # Use the same simulated data x as in tenAR part
-xx <- as.tensor(xx)
 r <- c(2,2,2)  # Pre-specified rank
 ```
 

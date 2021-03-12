@@ -1639,9 +1639,8 @@ tenAR.rolling <- function(object, data, n.head, method="LSE"){
     tti <- tt - ttt[1] + 1
     if (tti > 1){
       print(paste("==================complete",tti))
-      xx.new <- array(x.mat[1:(tt-1)], c(dim[1] + tti - 1, dim[-1]))
-      xx.nm <- .remove.mean(xx.new)
-      model = tenAR(xx.nm, R, P, method)
+      xx <- .remove.mean(xx)
+      model = tenAR(xx, R, P, method)
       A <- model$A
     }
     L1 = 0
