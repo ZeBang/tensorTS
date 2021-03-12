@@ -19,7 +19,7 @@ tenAR.rolling(object, data, n.head, method="LSE")
 predicted value
 }
 \description{
-tenAR.rolling is a function for predictions from the results of model fitting functions.
+`tenAR.rolling` is a function for predictions from the results of model fitting functions.
 The function invokes particular methods which depend on the class of the first argument.
 Our function is similar to the usage of classical `predict.ar` in package "stats".
 }

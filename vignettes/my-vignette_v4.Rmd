@@ -78,28 +78,28 @@ Sigma = model$Sig
 
 #### Prediction
 
-For predictions, we have function `predict.tenar` with following parameters. Specifically, using given model parameters `object`, start from the last time point $X_t$ in `data`, we obtain the one step ahead prediction $X_{t+1}$. Then again using given model parameters `object` to obtain $X_{t+2}$. Repeat this process to $X_{t + n.head}$. 
+For predictions, we have function `tenAR.predict` with following parameters. Specifically, using given model parameters `object`, start from the last time point $X_t$ in `data`, we obtain the one step ahead prediction $X_{t+1}$. Then again using given model parameters `object` to obtain $X_{t+2}$. Repeat this process to $X_{t + n.head}$. 
 
 
-* `object` a fit from TenAR()
+* `object` a fit from `tenAR`
 * `data` data to which to apply the prediction.
 * `n.head` number of steps ahead at which to predict.
 * `method` method used by rolling forecast. default is "LSE".
 
 ```{r, eval=FALSE}
-pred.xx <- predict.tenar(model, xx, n.head = 5, method = "LSE")
+pred.xx <- tenAR.predict(model, xx, n.head = 5, method = "LSE")
 ```
 
-We also have out-sample rolling forecast prediction function `predict.rolling` with following parameters. Specifically, using given model parameters `object`, start from the last time point $X_t$ in `data`, we obtain the one step ahead prediction $X_{t+1}$. Then fit the corresponding model using all available `data` and $X_{t+1}$ to obtain $X_{t+2}$. Repeat this process to $X_{t + n.head}$. 
+We also have out-sample rolling forecast prediction function `tenAR.rolling` with following parameters. Specifically, using given model parameters `object`, start from the last time point $X_t$ in `data`, we obtain the one step ahead prediction $X_{t+1}$. Then fit the corresponding model using all available `data` and $X_{t+1}$ to obtain $X_{t+2}$. Repeat this process to $X_{t + n.head}$. 
 
-* `object` a fit from TenAR()
+* `object` a fit from `tenAR`
 * `data` data to which to apply the prediction.
 * `n.head` number of steps ahead at which to predict.
 * `method` method used by rolling forecast. default is "LSE".
 
 
 ```{r, eval=FALSE}
-pred.xx <- predict.rolling(model, data=xx, n.head = 5, method = "LSE")
+pred.xx <- tenAR.rolling(model, data=xx, n.head = 5, method = "LSE")
 ```
 
 

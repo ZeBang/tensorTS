@@ -1562,14 +1562,14 @@ mplot <- function(x){
 
 #' Model Predictions
 #'
-#' tenAR.predict is a function for predictions from the results of model fitting functions.
+#' `tenAR.predict` is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
 #' Our function is similar to the usage of classical `predict.ar` in package "stats".
 #'@name tenAR.predict
 #'@rdname tenAR.predict
 #'@aliases tenAR.predict
 #'@import rTensor abind
-#'@usage predict.tenar(object, xx, n.head, method="LSE")
+#'@usage tenAR.predict(object, xx, n.head, method="LSE")
 #'@export
 #'@param object a fit from TenAR(P) model
 #'@param data data to which to apply the prediction.
@@ -1606,7 +1606,7 @@ tenAR.predict <- function(object, xx, n.head, method="LSE"){
 
 #' Model Predictions by rolling forecast
 #'
-#' tenAR.rolling is a function for predictions from the results of model fitting functions.
+#' `tenAR.rolling` is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
 #' Our function is similar to the usage of classical `predict.ar` in package "stats".
 #'@name tenAR.rolling

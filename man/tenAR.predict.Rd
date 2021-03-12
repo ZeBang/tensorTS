@@ -4,7 +4,7 @@
 \alias{tenAR.predict}
 \title{Model Predictions}
 \usage{
-predict.tenar(object, xx, n.head, method="LSE")
+tenAR.predict(object, xx, n.head, method="LSE")
 }
 \arguments{
 \item{object}{a fit from TenAR(P) model}
@@ -19,7 +19,7 @@ predict.tenar(object, xx, n.head, method="LSE")
 predicted value
 }
 \description{
-tenAR.predict is a function for predictions from the results of model fitting functions.
+`tenAR.predict` is a function for predictions from the results of model fitting functions.
 The function invokes particular methods which depend on the class of the first argument.
 Our function is similar to the usage of classical `predict.ar` in package "stats".
 }
