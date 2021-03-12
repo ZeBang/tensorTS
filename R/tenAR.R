@@ -364,7 +364,7 @@ MAR.SE <- function(xx, B, A, Sigma){
 #'out.var = tenAR.VAR(xx)
 #'sum(out.var$res**2)
 tenAR.VAR <- function(xx, P){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   dd=xx@modes
   t <- dd[1]
   n <- prod(dd[-1])
@@ -489,7 +489,7 @@ tenAR.xx <- function(t,A, setting){
 #'@param P number of orders
 #'@return a list containing the estimation of matrices
 tenAR.PROJ <- function(xx,R,P){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   dim <- xx@modes[-1]
   mm <- tenAR.VAR(xx, P)$coef
   A = list()
@@ -525,7 +525,7 @@ tenAR.PROJ <- function(xx,R,P){
 #'\item{\code{niter}}{number of iterations}
 #'}
 tenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   dim <- xx@modes[-1]
   K <- length(dim)
   t <- xx@modes[[1]]
@@ -628,7 +628,7 @@ tenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
 #'\item{\code{niter}}{number of iterations}
 #'}
 tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   dim <- xx@modes[-1]
   K <- length(dim)
   t <- xx@modes[[1]]
@@ -992,7 +992,7 @@ MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NU
 #' Sigma <- diag(prod(dim))
 #' SIGMA <- tenAR.SE.LSE(xx, A[[1]], Sigma)
 tenAR.SE.LSE <- function(xx, A.true, Sigma){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   r <- length(A.true)
   dim <- xx@modes[-1]
   m1 <- dim[1]
@@ -1061,7 +1061,7 @@ tenAR.SE.LSE <- function(xx, A.true, Sigma){
 #' xx <- tenAR.xx(t=500, A, setting='iid')
 #' SIGMA <- tenAR.SE.MLE(xx, A[[1]], Sigma)
 tenAR.SE.MLE <- function(xx, A.true, Sigma){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   r <- length(A.true)
   dim <- xx@modes[-1]
   m1 <- dim[1]
@@ -1510,7 +1510,7 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
 #' xx <- tenAR.xx(t=500, A, setting='iid')
 #' tenAR.bic(xx, rmax=5)
 tenAR.bic <- function(xx, rmax=5){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   dim <- xx@modes[-1]
   t <- xx@modes[[1]]
   ans <- c()
@@ -1583,7 +1583,7 @@ mplot <- function(x){
 #' xx <- tenAR.xx(t=500, A, setting='iid')
 #' pred.xx <- predict.tenar(model, xx, n.head = 5)
 predict.tenar <- function(object, xx, n.head, method="LSE"){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   A <- object$A
   P <- length(A)
   R <- length(A[[1]])
@@ -1627,7 +1627,7 @@ predict.tenar <- function(object, xx, n.head, method="LSE"){
 #' xx <- tenAR.xx(t=500, A, setting='iid')
 #' pred.xx <- predict.rolling(model, xx, n.head = 5)
 predict.rolling <- function(object, data, n.head, method="LSE"){
-  xx <- as.tensor(xx)
+  xx <- rTensor::as.tensor(xx)
   A <- object$A
   P <- length(A)
   R <- length(A[[1]])
