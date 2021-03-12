@@ -40,7 +40,7 @@ LSE for the matrix reduced rank model \eqn{X_t = LL \times X_{t-1} \times {RR}^{
 }
 \examples{
 dim <- c(4,5) # dimension of matrix at time t is 4 * 5
-A <- TenAR.A(dim, R=1, P=1, rho=0.5)
-xx <- TenAR.xx(t=500, A, setting="iid")
+A <- tenAR.A(dim, R=1, P=1, rho=0.5)
+xx <- tenAR.xx(t=500, A, setting="iid")
 model <- MAR1.RR(xx, k1=2, k2=2)
 }

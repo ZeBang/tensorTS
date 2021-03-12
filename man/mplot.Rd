@@ -14,7 +14,7 @@ Plot matrix-valued time series or Tensor-Valued time series by given mode.
 }
 \examples{
 dim <- c(3,3,3)
-A <- TenAR.A(dim,R=2,P=1,rho)
-xx <- TenAR.xx(t=500, A, setting='iid')
+A <- tenAR.A(dim,R=2,P=1,rho)
+xx <- tenAR.xx(t=500, A, setting='iid')
 mplot(xx[,,1])
 }

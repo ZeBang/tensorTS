@@ -43,7 +43,7 @@ xx <- TenAR.xx(t=500, A, setting="iid") # generate tensor time series with AR(1)
 We can choose the number of terms by function `bic`,
 
 ```{r, eval=FALSE}
-r = bic(xx)
+r = TenAR.bic(xx)
 ```
 
 

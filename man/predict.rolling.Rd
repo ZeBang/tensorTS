@@ -25,8 +25,8 @@ Our function is similar to the usage of classical `predict.ar` in package "stats
 }
 \examples{
 dim <- c(2,2,2)
-A <- TenAR.A(dim,R=2,P=1,rho)
-xx <- TenAR.xx(t=500, A, setting='iid')
+A <- tenAR.A(dim,R=2,P=1,rho)
+xx <- tenAR.xx(t=500, A, setting='iid')
 pred.xx <- predict.rolling(model, xx, n.head = 5)
 }
 \seealso{

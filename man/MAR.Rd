@@ -25,13 +25,13 @@ a list containing the following:\describe{
 }
 }
 \description{
-Although MAR model is a special case in TenAR model. We still include this original function as reference.
+Although MAR model is a special case in tenAR model. We still include this original function as reference.
 Estimation function for matrix-valued time series, including the projection method (PROJ),
 the Iterated least squares method (LSE) and MLE under a Kronecker structured covariance (MLE) and vectorized AR(1) model (VAR) as determined by the value of \code{method}.
 }
 \examples{
 dim <- c(3,3,3)
-A <- TenAR.A(dim,R=2,P=1,rho)
-xx <- TenAR.xx(t=500, A, setting='iid')
+A <- tenAR.A(dim,R=2,P=1,rho)
+xx <- tenAR.xx(t=500, A, setting='iid')
 MAR(xx, method="LSE")
 }
