@@ -2,7 +2,7 @@ Package: tensorTS
 Type: Package
 Title: Factor Models and Autoregressive Models for Time Series
 Version: 0.1.0
-Author@R: person("Zebang", "Li", email = "zebang.li@rutgers.edu",
+Author@R: person("First Name", "Last Name", email = "zl326@rutgers.edu",
                role = c("aut", "cre"))
 Description: Factor and Autoregressive Models for Tensor Time Series
 License: GPL (>= 2)
@@ -12,7 +12,6 @@ Imports:
     tensor,
     rTensor,
     MASS,
-    abind,
-    igraph
+    abind
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
