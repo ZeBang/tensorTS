@@ -1562,12 +1562,12 @@ mplot <- function(x){
 
 #' Model Predictions
 #'
-#' predict.tenar is a function for predictions from the results of model fitting functions.
+#' tenAR.predict is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
 #' Our function is similar to the usage of classical `predict.ar` in package "stats".
-#'@name predict.tenar
-#'@rdname predict.tenar
-#'@aliases predict.tenar
+#'@name tenAR.predict
+#'@rdname tenAR.predict
+#'@aliases tenAR.predict
 #'@import rTensor abind
 #'@usage predict.tenar(object, xx, n.head, method="LSE")
 #'@export
@@ -1581,8 +1581,8 @@ mplot <- function(x){
 #' dim <- c(2,2,2)
 #' A <- tenAR.A(dim,R=2,P=1,rho)
 #' xx <- tenAR.xx(t=500, A, setting='iid')
-#' pred.xx <- predict.tenar(model, xx, n.head = 5)
-predict.tenar <- function(object, xx, n.head, method="LSE"){
+#' pred.xx <- tenAR.predict(model, xx, n.head = 5)
+tenAR.predict <- function(object, xx, n.head, method="LSE"){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   A <- object$A
   P <- length(A)
@@ -1606,14 +1606,14 @@ predict.tenar <- function(object, xx, n.head, method="LSE"){
 
 #' Model Predictions by rolling forecast
 #'
-#' predict.rolling is a function for predictions from the results of model fitting functions.
+#' tenAR.rolling is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
 #' Our function is similar to the usage of classical `predict.ar` in package "stats".
-#'@name predict.rolling
-#'@rdname predict.rolling
-#'@aliases predict.rolling
+#'@name tenAR.rolling
+#'@rdname tenAR.rolling
+#'@aliases tenAR.rolling
 #'@import rTensor abind
-#'@usage predict.rolling(object, data, n.head, method="LSE")
+#'@usage tenAR.rolling(object, data, n.head, method="LSE")
 #'@export
 #'@param object a fit from TenAR(P) model
 #'@param data data to which to apply the prediction.
@@ -1625,8 +1625,8 @@ predict.tenar <- function(object, xx, n.head, method="LSE"){
 #' dim <- c(2,2,2)
 #' A <- tenAR.A(dim,R=2,P=1,rho)
 #' xx <- tenAR.xx(t=500, A, setting='iid')
-#' pred.xx <- predict.rolling(model, xx, n.head = 5)
-predict.rolling <- function(object, data, n.head, method="LSE"){
+#' pred.xx <- tenAR.rolling(model, xx, n.head = 5)
+tenAR.rolling <- function(object, data, n.head, method="LSE"){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   A <- object$A
   P <- length(A)
