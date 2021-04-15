@@ -16,7 +16,7 @@ RV2=diag(k2),mpower=100)
 
 \item{k2}{rank of A2}
 
-\item{Sigma.e}{Cov(vec(\eqn{E_t})) = Sigma.e : of dimension \eqn{d_1 d_2 \times d_1 d_2}}
+\item{Sigma.e}{Cov(vec(E_t)) = Sigma.e : of dimension d1d2\times d1d2}
 
 \item{RU1, RV1, RU2, RV2:}{rotation of U1,V1,U2,V2, e.g., new_U1=U1 RU1}
 
@@ -24,11 +24,11 @@ RV2=diag(k2),mpower=100)
 }
 \value{
 a list containing the following:\describe{
-\item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec(\eqn{\hat{A}1}),vec(\eqn{\hat{A}2^{\prime}}))}
-\item{\code{Theta1.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}1})}
-\item{\code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}1})}
-\item{\code{Theta2.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}2})}
-\item{\code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}2})}
+\item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec(\hat A1),vec(\hat A2^T))}
+\item{\code{Theta1.LS.u}}{asymptotic covariance matrix of vec(\hat U1)}
+\item{\code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\hat V1)}
+\item{\code{Theta2.LS.u}}{asymptotic covariance matrix of vec(\hat U2)}
+\item{\code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\hat V2)}
 }
 }
 \description{

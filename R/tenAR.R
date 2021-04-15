@@ -1,452 +1,25 @@
 ###Functions of Autoregressive Models
 
-#' Estimation for Autoregressive Model of Tensor-Valued Time Series
+#' Generate an AR(p) tensor time series
 #'
-#' Estimation function for tensor-valued time series.
-#' Projection method (proj), the Iterated least squares method (LSE), MLE under a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{type}.
-#'@name tenAR
-#'@rdname tenAR
-#'@aliases tenAR
-#'@usage tenAR(xx, method)
+#' For simulation only, with given time length \code{t}, dimension \code{dim}, number of terms \code{R}, order \code{P}, spectral radius \code{rho} and \code{setting}, generate an AR(1) tensor time series.
+#'@name generate.AR
+#'@rdname generate.AR
+#'@aliases generate.AR
 #'@export
-#'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series
-#'@param R number of terms
-#'@param P number of lag-one orders
-#'@param method character string, specifying the type of the estimation method to be used. \describe{
-#'  \item{\code{"PROJ",}}{Projection method.}
-#'  \item{\code{"LSE",}}{Iterated least squares.}
-#'  \item{\code{"MLE",}}{MLE under a Kronecker structured covariance matrix.}
-#'  \item{\code{"VAR",}}{Stacked vector AR(1) Model.}
-#'}
-#'@return a list containing the following:\describe{
-#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
-#'\item{\code{res}}{residual of the model}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'\item{\code{niter}}{number of iterations}
-#'}
-#'@examples
-#' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' tenAR(xx, R=1, P=1, method="LSE")
-tenAR <- function(xx, R=1, P=1, method="LSE", k1=NULL, k2=NULL){
-  if (identical("PROJ", method)) {
-    tenAR.PROJ(xx, R, P)
-  } else if (identical("LSE", method)) {
-    tenAR.LS(xx, R, P)
-  } else if (identical("MLE", method)) {
-    tenAR.MLE(xx, R, P)
-  } else if (identical("VAR", method)) {
-    tenAR.VAR(xx, P)
-  } else if (identical("RRLSE", method)) {
-    MAR1.RR(xx, k1, k2)
-  } else if (identical("RRMLE", method)) {
-    MAR1.CC(xx, k1, k2)
-  } else {
-    stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
-  }
-}
-
-
-#' Estimation for Autoregressive Model of Matrix-Valued Time Series
-#'
-#' Although MAR model is a special case in tenAR model. We still include this original function as reference.
-#' Estimation function for matrix-valued time series, including the projection method (PROJ),
-#' the Iterated least squares method (LSE) and MLE under a Kronecker structured covariance (MLE) and vectorized AR(1) model (VAR) as determined by the value of \code{method}.
-#'@name MAR
-#'@rdname MAR
-#'@aliases MAR
-#'@usage MAR(xx, method)
-#'@export
-#'@param xx T * p * q matrix-valued time series
-#'@param method character string, specifying the method of the estimation to be used. \describe{
-#'  \item{\code{"PROJ",}}{Projection method.}
-#'  \item{\code{"LSE",}}{Iterated least squares.}
-#'  \item{\code{"MLE",}}{MLE under a Kronecker structured covariance matrix.}
-#'  \item{\code{"VAR",}}{Stacked vector AR(1) Model.}
-#'}
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimator of LL, a p by p matrix}
-#'\item{\code{RR}}{estimator of RR, a q by q matrix}
-#'\item{\code{res}}{residual of the MAR(1)}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'}
-#'@examples
-#' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' MAR(xx, method="LSE")
-MAR <- function(xx, method){
-  if (identical("PROJ", method)) {
-    MAR1.PROJ(xx)
-  }
-  if (identical("LSE", method)) {
-    MAR1.LS(xx)
-  }
-  if (identical("MLE", method)) {
-    MAR1.MLE(xx)
-  }
-  if (identical("VAR", method)) {
-    tenAR.VAR(xx, P=1)
-  }
-  else {
-    return("Please specify the type you want to use. See manuals for details.")
-  }
-}
-
-
-#' Projection Method for MAR(1)
-#'
-#' MAR(1) one step projection estimation in the model \eqn{X_t = LL \times X_{t-1} \times {RR}^{\prime} + E_t}.
-#'@name MAR1.PROJ
-#'@rdname MAR1.PROJ
-#'@aliases MAR1.PROJ
-#'@export
-#'@param xx T * p * q matrix-valued time series
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimator of LL, a p by p matrix}
-#'\item{\code{RR}}{estimator of RR, a q by q matrix}
-#'\item{\code{res}}{residual of the MAR(1)}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'}
-MAR1.PROJ <- function(xx){
-  # xx: T * p * q
-  # X_t = LL X_{t-1} RR + E_t
-  # Sig = cov(vec(E_t))
-  # one-step projection estimation
-  # Return LL, RR, and estimate of Sig
-  dd <- dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  xx.mat <- matrix(xx,T,p*q)
-  kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
-  ans.projection <- projection(kroneck,r=1,q,p,q,p)
-  a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
-  LL <- ans.projection$C / a
-  RR <- t(ans.projection$B) * a
-  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
-  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
-  return(list(LL=LL,RR=RR,res=res,Sig=Sig))
-}
-
-
-
-
-
-#' Least Squares Iterative Estimation for Matrix Time Series
-#'
-#' Iterated least squares estimation in the model \eqn{X_t = LL \times X_{t-1} \times {RR}^{\prime} + E_t}.
-#'@name MAR1.LS
-#'@rdname MAR1.LS
-#'@aliases MAR1.LS
-#'@export
-#'@param xx T * p * q matrix-valued time series
-#'@param niter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@param print.true printe LL and RR
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimator of LL, a p by p matrix}
-#'\item{\code{RR}}{estimator of RR, a q by q matrix}
-#'\item{\code{res}}{residual of the MAR(1)}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'\item{\code{dis}}{Frobenius norm difference of last update}
-#'\item{\code{niter}}{number of iterations}
-#'}
-MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
-  # xx: T * p * q
-  # X_t = LL X_{t-1} RR + E_t
-  # Sig = cov(vec(E_t))
-  # LS criterion
-  # iterative algorithm between LL <--> RR
-  # Return LL, RR, and estimate of Sig
-  dd=dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  LL.old <- diag(p)
-  RR.old <- diag(q)
-  dis <- 1
-  iiter <- 1
-
-  while(iiter <= niter & dis >= tol){
-    # estimate RR0
-    temp <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
-    AA <- tensor(temp,temp,c(1,3),c(1,3))
-    BB <- tensor(temp,xx[2:T,,,drop=FALSE],c(1,3),c(1,2))
-    RR <- solve(AA,BB)
-    # estimate LL0
-    temp <- tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1)  # (T-1) * p * q
-    AA <- tensor(temp,temp,c(1,3),c(1,3))
-    BB <- t(tensor(temp,xx[2:T,,,drop=FALSE],c(1,3),c(1,3)))
-    LL <- t(solve(t(AA),t(BB)))
-    a <- svd(LL,nu=0,nv=0)$d[1]
-    LL <- LL / a
-    RR <- RR * a
-    # update for the next iteration
-    dis <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.old),LL.old))^2))
-    LL.old <- LL
-    RR.old <- RR
-    iiter <- iiter + 1
-    if(print.true==TRUE){
-      print(LL)
-      print(RR)
-    }
-  }
-  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
-  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
-  return(list(LL=LL,RR=RR,res=res,Sig=Sig,dis=dis,niter=iiter))
-}
-
-
-#' MLE under a structured covariance tensor
-#'
-#' MAR(1) iterative estimation with Kronecker covariance structure: \eqn{X_t = LL \times X_{t-1} \times {RR}^{\prime} + E_t} such that \eqn{\Sigma = cov(vec(E_t)) = \Sigma_r \otimes \Sigma_l}.
-#'@name MAR1.MLE
-#'@rdname MAR1.MLE
-#'@aliases MAR1.MLE
-#'@usage MAR1.MLE(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,
-#'tol=1e-6,print.true = FALSE)
-#'@export
-#'@param xx T * p * q matrix-valued time series
-#'@param LL.init initial value of LL
-#'@param Sigl.init initial value of Sigl
-#'@param Sigr.init initial value of Sigr
-#'@param niter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@param print.true print LL and RR
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimator of LL, a p by p matrix}
-#'\item{\code{RR}}{estimator of RR, a q by q matrix}
-#'\item{\code{res}}{residual of the MAR(1)}
-#'\item{\code{Sigl}}{one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
-#'\item{\code{Sigr}}{one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
-#'\item{\code{dis}}{Frobenius norm difference of the final update step}
-#'\item{\code{niter}}{number of iterations}
-#'}
-MAR1.MLE <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,tol=1e-6,print.true = FALSE){
-  # xx: T * p * q
-  # X_t = LL X_{t-1} RR + E_t
-  # Sig = cov(vec(E_t)) = Sigr otimes Sigl
-  # optimization criterion is likelihood
-  # iterative algorithm between LL <--> RR <--> Sig_r <--> Sig_l
-  # Return LL, RR, Sigl, Sigr
-  dd=dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  if(is.null(LL.init)){
-    LL.old <- diag(p)
-  } else{
-    LL.old <- LL.init
-  }
-  RR.old <- diag(q)
-  if(is.null(Sigl.init)){
-    Sigl.old <- diag(p)
-  } else{
-    Sigl.old <- Sigl.init
-  }
-  if(is.null(Sigr.init)){
-    Sigr.old <- diag(q)
-  } else{
-    Sigr.old <- Sigr.init
-  }
-  dis <- 1
-  iiter <- 1
-
-  while(iiter <= niter & dis >= tol){
-    Sigl.inv.old <- ginv(Sigl.old)
-    Sigr.inv.old <- ginv(Sigr.old)
-    # estimate RR0
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
-    temp2 <- tensor(temp1,Sigl.inv.old,3,2)  # (T-1) * q * p
-    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
-    BB <- tensor(temp2,xx[2:T,,,drop=FALSE],c(1,3),c(1,2))
-    RR <- solve(AA,BB)
-    # estimate LL0
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1)  # (T-1) * p * q
-    temp2 <- tensor(temp1,Sigr.inv.old,3,1)  # (T-1) * p * q
-    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
-    BB <- t(tensor(temp2,xx[2:T,,,drop=FALSE],c(1,3),c(1,3)))
-    LL <- t(solve(t(AA),t(BB)))
-    res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
-    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
-    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
-    temp <- tensor(res,ginv(Sigr),3,1) # (T-1) * p * q
-    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
-    a <- svd(LL,nu=0,nv=0)$d[1]
-    LL <- LL / a
-    RR <- RR * a
-    a <- eigen(Sigl)$values[1]
-    Sigl <- Sigl / a
-    Sigr <- Sigr * a
-
-    # update for the next iteration
-    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.old),LL.old))^2))
-    dis2 <- sqrt(sum((kronecker(Sigr,Sigl)-kronecker(Sigr.old,Sigl.old))^2))
-    dis <- max(dis1,dis2)
-    LL.old <- LL
-    RR.old <- RR
-    Sigr.old <- Sigr
-    Sigl.old <- Sigl
-    iiter <- iiter + 1
-    if(print.true==TRUE){
-      print(LL)
-      print(RR)
-    }
-  }
-  Sig <- kronecker(Sigr,Sigl)
-  return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,dis=dis,niter=iiter))
-}
-
-
-#' Asymptotic Covariance Matrix of \code{MAR1.MLE}
-#'
-#' Asymptotic covariance Matrix of \code{MAR1.MLE} for given A, B and matrix-valued time series xx, see Theory 3 in paper.
-#'@name MAR.SE
-#'@rdname MAR.SE
-#'@aliases MAR.SE
-#'@export
-#'@param xx T * p * q matrix-valued time series
-#'@param A p by p matrix in MAR(1) model
-#'@param B q by q matrix in MAR(1) model
-#'@param Sig covariance matrix cov(vec(E_t)) in MAR(1) model
-#'@return asymptotic covariance matrix
-#'@examples
-#'# given T * p * q time series xx
-#'out = MAR1.LS(xx)
-#'FnormLL = sqrt(sum(out$LL))
-#'xdim=3;ydim=4
-#'out.Xi=MAR.SE(xx.nm,out$RR*FnormLL,out$LL/FnormLL,out$Sig)
-#'out.SE=sqrt(diag(out.Xi))
-#'SE.A=matrix(out.SE[1:xdim^2],nrow=xdim)
-#'SE.B=t(matrix(out.SE[-(1:xdim^2)],nrow=ydim))
-MAR.SE <- function(xx, B, A, Sigma){
-  dd <- dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  BX <- tensor(xx,B,3,2) # Tpq
-  AX <- tensor(xx,A,2,2) # Tqp
-  BXI <- apply(BX,1,function(x){kronecker(t(x),diag(p))})
-  AXI <- apply(AX,1,function(x){kronecker(diag(q),t(x))})
-  BXI.array <- array(BXI,c(p*q,p^2,T)) #pq*p^2*T
-  AXI.array <- array(AXI,c(p*q,q^2,T)) #pq*q^2*T
-  # W transpose
-  Wt <- abind(BXI.array,AXI.array,along=2) #pq*(p^2+q^2)*T
-  EWWt <- tensor(Wt,Wt,c(1,3),c(1,3))/T #(p^2+q^2)*(p^2+q^2)
-  alpha <- as.vector(A)
-  beta <- as.vector(t(B))
-  gamma <- c(alpha,rep(0,q^2))
-  H <- EWWt + gamma %*% t(gamma) #(p^2+q^2)*(p^2+q^2)
-  WSigma <- tensor(Wt,Sigma,1,1) #(p^2+q^2)*T*pq
-  EWSigmaWt <- tensor(WSigma,Wt,c(3,2),c(1,3))/T
-  Hinv <- solve(H)
-  Xi <- Hinv %*% EWSigmaWt %*% Hinv
-  Xi <- Xi/T
-}
-
-
-#' Stacked vector AR(p) Model
-#'
-#' vector AR(p) Model for vectorized Tensor time series
-#'@name tenAR.VAR
-#'@rdname tenAR.VAR
-#'@aliases tenAR.VAR
-#'@export
-#'@param xx \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
-#'@param P number of orders
-#'@return a list containing the following:\describe{
-#'\item{\code{coef}}{coeficient of the fitted VAR(1) model}
-#'\item{\code{res}}{residual of the VAR(1) model}
-#'}
-#'@examples
-#'out.var = tenAR.VAR(xx)
-#'sum(out.var$res**2)
-tenAR.VAR <- function(xx, P){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dd=xx@modes
-  t <- dd[1]
-  n <- prod(dd[-1])
-  if (prod(dd[-1]) > t){stop("sample size T too small")}
-  yy=apply(xx@data,MARGIN=1,as.vector)
-
-  x = 0
-  for (l in c(1:P)){
-    if (l == 1){x = yy[,(P):(t-1)]} else {x = rbind(x, yy[,(P+1-l):(t-l)])}
-  }
-  y = yy[,(P+1):t]
-  coef = t(solve(x %*% t(x)) %*% x %*% t(y))
-  res= y - coef %*% x
-  phi = list()
-  for (l in c(1:P)){
-    phi[[l]] = coef[,(n*(l-1)+1):(n*l)]
-  }
-  return(list(coef=phi, res=res))
-}
-
-
-#' Generate coefficient matrices
-#'
-#' For test only, generate coefficient matrices in TenAR model
-#'@name tenAR.A
-#'@rdname tenAR.A
-#'@aliases tenAR.A
-#'@export
+#'@param t length of time
 #'@param dim an array of dimensions of matrices or tensors
 #'@param R number of terms
 #'@param P number of orders
-#'@param rho spectral radius
-#'@return a list containing coefficient matrices
-#'@examples
-#' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho=0.5)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-tenAR.A <- function(dim,R,P,rho){
-  K <- length(dim)
-  A <- lapply(1:P, function(p) {lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})})
-  for (p in c(1:P)){
-    for (j in c(1:R)){
-      for (i in c(1:K)){
-        A[[p]][[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
-      }
-    }
-  }
-
-  eigen = M.eigen(A)
-  while (eigen >= 1){
-    for (l in c(1:P)){
-      for (j in c(1:R)){
-        A[[l]][[j]][[K]] <- rho * matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))/ eigen
-      }
-      A[[l]] <- fro.order(fro.rescale(A[[l]]))
-    }
-    eigen = M.eigen(A)
-  }
-  stopifnot(M.eigen(A) < 1)
-  return(A)
-}
-
-
-#' Generate an AR(1) tensor time series with given coefficient matrices
-#'
-#' For test only, with given coefficient matrices and time length t, generate an AR(1) tensor time series.
-#'@name tenAR.xx
-#'@rdname tenAR.xx
-#'@aliases tenAR.xx
-#'@export
-#'@param t length of time
-#'@param A true coefficient matrices (the dimensions, number of terms and orders are implied by structure of A)
+#'@param rho spectral radius of coefficient matrix \eqn{\Phi}
 #'@param setting the structure of random error, can be specified as "iid", "mle" and "svd", default value is "iid".
 #'@return Tensor-valued time series generated by TenAR model
-#'@seealso \code{\link{run.test}}
+#'@seealso \code{\link{generate.FM}}
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho=0.5)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-tenAR.xx <- function(t,A, setting){
-  P <- length(A)
-  R <- length(A[[1]])
+#' xx <- generate.AR(t=500, dim, R=2, P=1, rho=0.5, setting='iid')
+generate.AR <- function(t, dim, R, P, rho, setting){
+  A <- tenAR.A(dim, R, P, rho)
   K <- length(A[[1]][[1]])
   dim <- c()
   for (i in c(1:K)){
@@ -477,637 +50,126 @@ tenAR.xx <- function(t,A, setting){
 }
 
 
-#' Projection estimation for TenAR(p) model
+#' Estimation for Autoregressive Model of Tensor-Valued Time Series
 #'
-#' projection estimation
-#'@name tenAR.PROJ
-#'@rdname tenAR.PROJ
-#'@aliases tenAR.PROJ
+#' Estimation function for tensor-valued time series.
+#' Projection method (PROJ), the Iterated least squares method (LSE), MLE under
+#' a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{method}.
+#'@name tenAR
+#'@rdname tenAR
+#'@aliases tenAR
+#'@usage tenAR(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
+#'niter=500, tol=1e-6, print.true=FALSE)
 #'@export
-#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
+#'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series
+#'@param method character string, specifying the type of the estimation method to be used. \describe{
+#'  \item{\code{"PROJ",}}{Projection method.}
+#'  \item{\code{"LSE",}}{Iterated least squares.}
+#'  \item{\code{"MLE",}}{MLE under a Kronecker structured covariance matrix.}
+#'  \item{\code{"VAR",}}{Stacked vector AR(1) Model.}
+#'}
 #'@param R number of terms
-#'@param P number of orders
-#'@return a list containing the estimation of matrices
-tenAR.PROJ <- function(xx,R,P){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
-  mm <- tenAR.VAR(xx, P)$coef
-  A = list()
-  for (p in c(1:P)){
-    tt <- trearrange(mm[[p]], rev(dim))
-    tt <- as.tensor(aperm(tt@data))
-    A[[p]] <- fro.order(fro.rescale(ten.proj(tt, dim, R)))
-  }
-  return(list(A=A))
-}
-
-
-
-#' Least Squares Iterative Estimation for TenAR(p)
-#'
-#' Iterated least squares estimation
-#'@name tenAR.LS
-#'@rdname tenAR.LS
-#'@aliases tenAR.LS
-#'@import tensor rTensor
-#'@export
-#'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
-#'@param R number of terms
-#'@param P number of orders
-#'@param init initial value of A
-#'@param niter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@param print.true print \eqn{A_i}
-#'@return a list containing the following:\describe{
-#'\item{\code{A}}{estimator of coefficient matrices}
+#'@param P number of lag-one orders
+#'@param init.A initial value of \eqn{A}, by default is diagonal matrices
+#'@param init.sig if only \code{method=MLE},initial value of Sigma, by default is diagonal matrices
+#'@param niter maximum number of iterations if error stays above \code{tol}, is 500 by default
+#'@param tol relative Frobenius norm error tolerance, is 1e-6 by default
+#'@param print.true TRUE or FALSE, print distance
+#'@return return a list containing the following:\describe{
+#'\item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+#'\item{\code{sigma}}{if only \code{method=MLE}, estimator of Sigma}
 #'\item{\code{res}}{residual of the model}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+#'\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
+#'\item{\code{cov}}{covariance matrix cov(vec(\eqn{A}))}
+#'\item{\code{sd}}{standard error of coefficient matrices \eqn{A}, which is a list with same data structure as \eqn{A}}
 #'\item{\code{niter}}{number of iterations}
-#'}
-tenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
-  K <- length(dim)
-  t <- xx@modes[[1]]
-
-  if (is.null(init)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init}
-
-  A.new <- A.old
-
-  dis <- 1
-  iiter <- 1
-  a <- c()
-  while(iiter <= niter & dis >= tol & dis <= 1e3){
-    for (p in c(1:P)){
-      for (r in c(1:R)){
-        for (k in c(1:K)){
-          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE]
-
-          L1 <- 0
-          for (l in c(1:P)){
-            if (l == p){
-              if (R > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
-              }
-            } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
-            }
-          }
-
-
-          L2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
-          temp2 <- L2@data
-
-          RR <- tensor(temp,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          LL <- tensor(temp2,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
-        }
-      }
-    }
-    for (p in c(1:P)){
-      for (r in c(1:R)){
-        a <- c()
-        for (k in c(1:K)){
-          m <- A.new[[p]][[r]][[k]]
-          if (k != K){
-            a[k] <- svd(m,nu=0,nv=0)$d[1]
-            A.new[[p]][[r]][[k]] <- m/a[k]
-          } else {
-            A.new[[p]][[r]][[k]] <- m * prod(a)
-          }
-        }
-      }
-    }
-    phi.new <- list()
-    phi.old <- list()
-    for (p in c(1:P)){
-      phi.new[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.new[[p]][[j]]))}))
-      phi.old[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.old[[p]][[j]]))}))
-    }
-
-    dis <- Reduce("+", lapply(1:P, function(j) {sqrt(sum((phi.new[[j]] - phi.old[[j]])^2))}))
-    A.old <- A.new
-    iiter <- iiter + 1
-    if (print.true == TRUE){
-      print(dis)
-      print(paste('iiter num=',iiter))
-    }
-  }
-  for (p in c(1:P)){
-    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
-  }
-  res <- ten.res(xx,A.new,P,R,K)
-  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  return(list(A=A.new,niter=iiter,Sig=Sig,res=res))
-}
-
-
-
-#' MLEs for TenAR(p) Model
-#'
-#' MLEs under Kronecker structures covariance matrix
-#'@name tenAR.MLE
-#'@rdname tenAR.MLE
-#'@aliases tenAR.MLE
-#'@import tensor rTensor
-#'@export
-#'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
-#'@param R number of terms
-#'@param P number of orders
-#'@param init.A initial value of A
-#'@param init.sig initial value of Sigma
-#'@param niter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@param print.true print \eqn{A_i}
-#'@return a list containing the following:\describe{
-#'\item{\code{A}}{estimator of coefficient matrices}
-#'\item{\code{sigma}}{estimator of Sigma}
-#'\item{\code{res}}{residual}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'\item{\code{niter}}{number of iterations}
-#'}
-tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
-  K <- length(dim)
-  t <- xx@modes[[1]]
-  if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
-  Sig.new <- Sig.old
-  Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
-  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
-  A.new <- A.old
-  dis <- 1
-  iiter <- 1
-  while(iiter <= niter & dis >= tol){
-    stopifnot(dis <= 1e3)
-    for (p in c(1:P)){
-      for (r in c(1:R)){
-        for (k in c(1:K)){
-
-          sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
-          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
-
-          s1 <- rTensor::ttl(xx, sphi[-k],c(2:(K+1))[-k])
-          temp1 <- s1@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
-
-          L1 <- 0
-          for (l in c(1:P)){
-            if (l == p){
-              if (R > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
-              }
-            } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
-            }
-          }
-          temp2 <-  (xx[(1+P):t,,,,drop=FALSE] - L1)@data
-
-
-          RR <- tensor(temp,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          LL <- tensor(temp2,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
-        }
-      }
-    }
-
-    for (k in c(1:K)){
-      res.old <- rTensor::as.tensor(ten.res(xx,A.new,P,R,K))
-      rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])
-      Sig.new[[k]] <- tensor(res.old@data, rs@data, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
-      Sig.new.inv <- lapply(1:K, function (i) {solve(Sig.new[[i]])})
-    }
-
-    for (p in c(1:P)){
-      A.new[[P]] <- svd.rescale(A.new[[P]])
-    }
-    Sig.new <- eigen.rescale(list(Sig.new))[[1]]
-
-    phi.new <- list()
-    phi.old <- list()
-    for (p in c(1:P)){
-      phi.new[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.new[[p]][[j]]))}))
-      phi.old[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.old[[p]][[j]]))}))
-    }
-    dis <- Reduce("+", lapply(1:P, function(j) {sqrt(sum((phi.new[[j]] - phi.old[[j]])^2))}))
-
-    Sig.old <- Sig.new
-    A.old <- A.new
-    iiter <- iiter + 1
-    if (print.true == TRUE){
-      print(dis)
-      print(paste('iiter num=',iiter))
-    }
-  }
-
-  for (p in c(1:P)){
-    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
-  }
-  res <- ten.res(xx,A.new,P,R,K)
-  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res))
-}
-
-
-#' Reduced Rank MAR(1) iterative estimation
-#'
-#' LSE for the matrix reduced rank model \eqn{X_t = LL \times X_{t-1} \times {RR}^{\prime} + E_t}.
-#'@name MAR1.RR
-#'@rdname MAR1.RR
-#'@aliases MAR1.RR
-#'@import MASS
-#'@usage MAR1.RR(xx, k1, k2, niter=200, tol=1e-4, print.true=FALSE,
-#' LL.init=NULL, RR.init=NULL)
-#'@param xx matrix-valued time series
-#'@param k1 rank of A1
-#'@param k2 rank of A2
-#'@param niter maximum number of iterations if error stays above \code{tol}
-#'@param tol relative Frobenius norm error tolerance
-#'@param print.true print \eqn{A_i}
-#'@param LL.init initial values of A1 in iterations, by default is diagonal matrices
-#'@param RR.init initial values of A2 in iterations, by default is diagonal matrices
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimator of coefficient matrices \eqn{A_1}}
-#'\item{\code{RR}}{estimator of coefficient matrices \eqn{A_2}}
-#'\item{\code{res}}{residual}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
 #'\item{\code{BIC}}{value of information criteria}
-#'\item{\code{dis}}{Frobenius norm difference of last update}
-#'\item{\code{niter}}{number of iterations}
-#'}
-#'@export
-#'@examples
-#'dim <- c(4,5) # dimension of matrix at time t is 4 * 5
-#'A <- tenAR.A(dim, R=1, P=1, rho=0.5)
-#'xx <- tenAR.xx(t=500, A, setting="iid")
-#'model <- MAR1.RR(xx, k1=2, k2=2)
-MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, print.true=FALSE, LL.init=NULL, RR.init=NULL){
-  # xx: T * p * q
-  # X_t = LL X_{t-1} RR' + E_t ### NOTE! This function is written with RR'.
-  # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
-  # optimization criterion is likelihood
-  # iterative algorithm between LL <--> Sigma_l <--> RR <--> Sig_r
-  # Return LL, RR, Sigl, Sigr
-  dd=dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  if(is.null(LL.init)){
-    LL.old <- diag(p)
-  } else{
-    LL.old <- LL.init
-  }
-  if(is.null(RR.init)){
-    RR.old <- diag(q)
-  } else{
-    RR.old <- RR.init
-  }
-  Tol=tol*sqrt(p^2+q^2)
-  dis <- 1
-  iiter <- 1
-
-  while(iiter <= niter & dis >= Tol){
-
-
-    ## Save old
-    LL.oold=LL.old
-    RR.oold=RR.old
-
-    # estimate LL0
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
-    AA <- tensor(temp1,temp1,c(1,3),c(1,3))
-    BB <- tensor(xx[2:T,,,drop=FALSE],temp1,c(1,3),c(1,3))
-    LL <- BB%*%ginv(AA)
-    U <- svd(LL%*%t(BB))$u[,1:k1]
-    LL <- U%*%t(U)%*%LL
-    # update for next iteration
-    a=svd(LL,nu=0,nv=0)$d[1]
-    LL=LL/a
-    dis3=sum((LL-LL.old)^2)
-    LL.old <- LL
-
-    # estimate RR0
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
-    AA <- tensor(temp1,temp1,c(1,3),c(1,3))
-    BB <- tensor(xx[2:T,,,drop=FALSE],temp1,c(1,2),c(1,3))
-    RR <- BB%*%ginv(AA)
-    U <- svd(RR%*%t(BB))$u[,1:k2]
-    RR <- U%*%t(U)%*%RR
-    # update for next iteration
-    dis3=dis3+sum((RR-RR.old)^2)
-    RR.old <- RR
-
-    # update for the next iteration
-    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
-    dis3 = sqrt(dis3)
-    dis <- dis3
-    iiter <- iiter + 1
-    if(print.true==TRUE){
-      print(dis)
-      print(paste('iiter num=',iiter))
-    }
-  }
-  a <- sqrt(sum(LL^2))
-  LL <- LL / a
-  RR <- RR * a
-  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL,2,2),c(1,3,2))
-  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
-  bic <- T*p*q*log(sum(res^2/(T*p*q))) ##+log(T*p*q)*(bic.penalty(p,k1)+bic.penalty(q,k2))
-  return(list(LL=LL,RR=RR,res=res,Sig=Sig,BIC=bic,dis=dis,niter=iiter-1))
-}
-
-
-#' Reduced Rank MAR(1) iterative estimation with Kronecker covariance structure
-#'
-#' MLE for the matrix reduced rank model \eqn{X_t = LL \times X_{t-1} \times {RR}^{\prime} + E_t}.
-#'@name MAR1.CC
-#'@rdname MAR1.CC
-#'@aliases MAR1.CC
-#'@usage MAR1.CC(xx, k1, k2, LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NULL,
-#' niter=200,tol=1e-4,print.true = FALSE)
-#'@export
-#'@param xx  matrix-valued time series
-#'@param k1  rank of A1
-#'@param k2  rank of A2
-#'@param niter maximum number of iterations if error stays above \code{tol}, by default niter=200
-#'@param tol relative Frobenius norm error tolerance, by default tol=1e-4
-#'@param print.true print \eqn{A_i}
-#'@param LL.init  initial values of A1 in iterations, by default is diagonal matrices
-#'@param RR.init  initial values of A2 in iterations, by default is diagonal matrices
-#'@param Sigl.init  initial values of Sigma_1 in iterations, by default is diagonal matrices
-#'@param Sigr.init  initial values of Sigma_2 in iterations, by default is diagonal matrices
-#'@return a list containing the following:\describe{
-#'\item{\code{LL}}{estimated \eqn{A_1}}
-#'\item{\code{RR}}{estimated \eqn{A_2}}
-#'\item{\code{Sigl}}{estimated Sigma_1}
-#'\item{\code{Sigr}}{estimated Sigma_2}
-#'\item{\code{res}}{residual}
-#'\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
-#'\item{\code{dis}}{Frobenius norm difference of last update}
-#'\item{\code{niter}}{number of iterations}
 #'}
 #'@examples
-#'dim <- c(4,5) # dimension of matrix at time t is 4 * 5
-#'A <- tenAR.A(dim, R=1, P=1, rho=0.5)
-#'xx <- tenAR.xx(t=500, A, setting="iid")
-#'model <- MAR1.RR(xx, k1=2, k2=2)
-MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NULL,niter=200,tol=1e-4,print.true = FALSE){
-  # xx: T * p * q
-  # X_t = LL X_{t-1} RR' + E_t ### NOTE! This function is written with RR'.
-  # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
-  # optimization criterion is likelihood
-  # iterative algorithm between LL <--> Sigma_l <--> RR <--> Sig_r
-  # Return LL, RR, Sigl, Sigr
-  dd=dim(xx)
-  T <- dd[1]
-  p <- dd[2]
-  q <- dd[3]
-  if(is.null(LL.init)){
-    LL.old <- diag(p)
-  } else{
-    LL.old <- LL.init
+#' dim <- c(3,3,3)
+#' xx <- generate.AR(t=500, dim,R=2,P=1,rho=0.5, setting='iid')
+#' est <- tenAR(xx, R=1, P=1, method="LSE")
+tenAR <- function(xx, method="LSE", R=1, P=1, init.A=NULL, init.sig=NULL, niter=500, tol=1e-6, print.true=FALSE){
+  if (identical("PROJ", method)) {
+    tenAR.PROJ(xx, R, P)
+  } else if (identical("LSE", method)) {
+    tenAR.LS(xx, R, P)
+  } else if (identical("MLE", method)) {
+    tenAR.MLE(xx, R, P)
+  } else if (identical("VAR", method)) {
+    tenAR.VAR(xx, P)
+  } else {
+    stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
   }
-  if(is.null(RR.init)){
-    RR.old <- diag(q)
-  } else{
-    RR.old <- RR.init
-  }
-  if(is.null(Sigl.init)){
-    Sigl.old <- diag(p)
-  } else{
-    Sigl.old <- Sigl.init
-  }
-  if(is.null(Sigr.init)){
-    Sigr.old <- diag(q)
-  } else{
-    Sigr.old <- Sigr.init
-  }
-  Tol=tol*sqrt(p^2+q^2)
-  dis <- 1
-  iiter <- 1
-
-  while(iiter <= niter & dis >= Tol){
-
-    ## Save old
-    LL.oold=LL.old
-    RR.oold=RR.old
-    Sigl.oold=Sigl.old
-    Sigr.oold=Sigr.old
-
-    # estimate LL0 and Sigl
-    Sigr.inv.old <- ginv(Sigr.old)
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
-    temp2 <- tensor(temp1,Sigr.inv.old,3,1)  # (T-1) * p * q
-    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
-    BB <- tensor(xx[2:T,,,drop=FALSE],temp2,c(1,3),c(1,3))
-    LL <- BB%*%ginv(AA)
-    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2),LL,2,2),c(1,3,2)) # (T-1) * p * q
-    temp <- tensor(res,Sigr.inv.old,3,1) # (T-1) * p * q
-    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
-    Sigl.spec <- eigen(Sigl)
-    Sigl.root <- Sigl.spec$vectors%*%diag(sqrt(Sigl.spec$values))%*%t(Sigl.spec$vectors)
-    Sigl.root.inv <- Sigl.spec$vectors%*%diag(1/sqrt(Sigl.spec$values))%*%t(Sigl.spec$vectors)
-    U <- svd(Sigl.root.inv%*%LL%*%t(BB)%*%Sigl.root.inv)$u[,1:k1]
-    LL <- Sigl.root%*%U%*%t(U)%*%Sigl.root.inv%*%LL
-    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2),LL,2,2),c(1,3,2)) # (T-1) * p * q
-    temp <- tensor(res,Sigr.inv.old,3,1) # (T-1) * p * q
-    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
-    # update for next iteration
-    a=svd(LL,nu=0,nv=0)$d[1]
-    LL=LL/a
-    dis3=sum((LL-LL.old)^2)
-    LL.old <- LL
-    Sigl.old <- Sigl
-
-
-    # estimate RR0 and Sigr
-    Sigl.inv.old <- ginv(Sigl.old)
-    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
-    temp2 <- tensor(temp1,Sigl.inv.old,3,1)  # (T-1) * q * p
-    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
-    BB <- tensor(xx[2:T,,,drop=FALSE],temp2,c(1,2),c(1,3))
-    RR <- BB%*%ginv(AA)
-    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL.old,2,2),c(1,3,2)) # (T-1) * p * q
-    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
-    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
-    Sigr.spec <- eigen(Sigr)
-    Sigr.root <- Sigr.spec$vectors%*%diag(sqrt(Sigr.spec$values))%*%t(Sigr.spec$vectors)
-    Sigr.root.inv <- Sigr.spec$vectors%*%diag(1/sqrt(Sigr.spec$values))%*%t(Sigr.spec$vectors)
-    U <- svd(Sigr.root.inv%*%RR%*%t(BB)%*%Sigr.root.inv)$u[,1:k2]
-    RR <- Sigr.root%*%U%*%t(U)%*%Sigr.root.inv%*%RR
-    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL.old,2,2),c(1,3,2)) # (T-1) * p * q
-    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
-    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
-    # update for next iteration
-    dis3=dis3+sum((RR-RR.old)^2)
-    RR.old <- RR
-    Sigr.old <- Sigr
-
-
-    a <- eigen(Sigl)$values[1]
-    Sigl <- Sigl / a
-    Sigr <- Sigr * a
-    ### cat(eigen(Sigl)$values[1]," ",eigen(Sigr)$values[1], " ")
-
-    # update for the next iteration
-    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
-    ### cat(dis1," ")
-    dis2 <- sqrt(sum((kronecker(Sigr,Sigl)-kronecker(Sigr.oold,Sigl.oold))^2))
-    ### cat(dis2," ",dis3,"\n")
-    dis3 = sqrt(dis3)
-    ### dis <- max(dis1,dis2)
-    dis <- dis3
-    Sigr.old <- Sigr
-    Sigl.old <- Sigl
-    iiter <- iiter + 1
-    if(print.true==TRUE){
-      print(LL)
-      print(RR)
-    }
-  }
-  a <- sqrt(sum(LL^2))
-  LL <- LL / a
-  RR <- RR * a
-  Sig <- kronecker(Sigr,Sigl)
-  return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,dis=dis,niter=iiter-1))
 }
 
 
-#' Asymptotic Covariance Matrix of LSE in TenAR(1)
+#' Reduced Rank MAR(1) iterative estimation for matrix-valued time series
 #'
-#' Asymptotic covariance Matrix of LSE in TenAR(1) for given a tensor-valued time series xx, see related Theorems in our paper.
-#'@name tenAR.SE.LSE
-#'@rdname tenAR.SE.LSE
-#'@aliases tenAR.SE.LSE
+#' Reduced Rank MAR(1) iterative estimation for matrix-valued time series,
+#' including the Reduced Rank MAR(1) iterative estimation (RRLSE), and Reduced Rank MAR(1) iterative estimation with Kronecker covariance structure (RRMLE),
+#' which should be specified by the value of \code{method}.
+#'@name MAR.RR
+#'@rdname MAR.RR
+#'@aliases MAR.RR
+#'@usage MAR.RR(xx, method=c("RRLSE","RRMLE"), LL.init=NULL, RR.init=NULL,Sigl.init=NULL,
+#'Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
 #'@export
-#'@param xx  \eqn{T * m_1 * \cdots * m_K} tensor-valued time series
-#'@param A.true coefficient matrices in TAR(1) model
-#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
-#'@return asmptotic covariance matrix
+#'@param xx \eqn{T \times d_1 \times d_2} matrix-valued time series
+#'@param LL.init initial value of \eqn{A_1} in iterations, by default is diagonal matrices
+#'@param RR.init  initial values of \eqn{A_2} in iterations, by default is diagonal matrices
+#'@param Sigl.init if only \code{method=MLE}, initial value of Sigl, by default is diagonal matrices
+#'@param Sigr.init if only \code{method=MLE}, initial value of Sigr, by default is diagonal matrices
+#'@param k1  if only \code{method=RRLSE} or \code{method=RRMLE}, rank of \eqn{A_1}, is `NULL` by default
+#'@param k2  if only \code{method=RRLSE} or \code{method=RRMLE}, rank of \eqn{A_2}, is `NULL` by default
+#'@param niter maximum number of iterations if error stays above \code{tol}, is 100 by default
+#'@param tol relative Frobenius norm error tolerance, is 1e-6 by default
+#'@param method character string, specifying the method of the estimation to be used. \describe{
+#'  \item{\code{"RRLSE",}}{Reduced Rank MAR(1) iterative estimation}
+#'  \item{\code{"RRMLE",}}{Reduced Rank MAR(1) iterative estimation with Kronecker covariance structure}
+#'  \item{\code{"VAR",}}{Stacked vector AR(1) Model.}
+#'}
+#'@param niter maximum number of iterations if error stays above \code{tol}
+#'@param tol relative Frobenius norm error tolerance
+#'@param print.true TRUE or FALSE, printe LL and RR
+#'@return return a list containing the following:\describe{
+#'\item{\code{LL}}{estimator of LL, a p by p matrix}
+#'\item{\code{RR}}{estimator of RR, a q by q matrix}
+#'\item{\code{Sigl}}{if only \code{method=MLE}, one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
+#'\item{\code{Sigr}}{if only \code{method=MLE}, one part of structured covariance matrix \eqn{\Sigma=\Sigma_r \otimes \Sigma_l}}
+#'\item{\code{res}}{residual of the MAR(1)}
+#'\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
+#'\item{\code{cov}}{covariance matrix cov(vec(\eqn{A}))}
+#'\item{\code{sd}}{standard error of coefficient matrices \eqn{A}, which is a list with same data structure as \eqn{A}}
+#'\item{\code{dis}}{Frobenius norm difference of last update}
+#'\item{\code{niter}}{number of iterations}
+#'\item{\code{BIC}}{value of information criteria}
+#'}
 #'@examples
-#' dim <- c(2,2,2)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' Sigma <- diag(prod(dim))
-#' SIGMA <- tenAR.SE.LSE(xx, A[[1]], Sigma)
-tenAR.SE.LSE <- function(xx, A.true, Sigma){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  r <- length(A.true)
-  dim <- xx@modes[-1]
-  m1 <- dim[1]
-  m2 <- dim[2]
-  m3 <- dim[3]
-  k <- length(dim)
-  T <- xx@modes[[1]]
-  ndim <- m1^2+m2^2+m3^2
-  Gamma <- matrix(0,r*ndim,r*ndim)
-  r1 <- matrix(0, r*ndim, 1)
-  for (x in c(1:r)){
-    for (y in c(1:(k-1))) {
-      if (y == 1) {
-        a <- as.matrix(as.vector(A.true[[x]][[y]]))
-        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
-      } else if (y == 2) {
-        a <- as.matrix(as.vector(A.true[[x]][[y]]))
-        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
-      } else  {
-        print("Only Support k=3 but now k>3")
-      }
-      Gamma <- Gamma + r1 %*% t(r1)
-
-    }
+#' dim <- c(3,3,3)
+#' xx <- generate.AR(t=500, dim, R=2, P=1, rho=0.5, setting='iid')
+#' est <- MAR.RR(xx, method="RRLSE", k1=1, k2=1)
+MAR.RR <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init=NULL, Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
+  if (identical("PROJ", method)) {
+    MAR1.PROJ(xx)
   }
-  Hdim <- r*ndim
-  HT <- array(1,c(T,Hdim,Hdim))
-  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
-  for (i in c(1:r)) {
-    C <- A.true[[i]][[3]]
-    B <- A.true[[i]][[2]]
-    A <- A.true[[i]][[1]]
-    for (t in c(1:T)){
-      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
-      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
-      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
-      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
-      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
-    }
+  if (identical("LSE", method)) {
+    MAR1.LS(xx)
   }
-  WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
-  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
-  H <- tensor(WT,WT,c(3,1),c(3,1))/T + Gamma #r(m1^2+m2^2+m^3)*r(m1^2+m2^2+m^3)
-  Hinv <- solve(H)
-  Xi <- Hinv %*% EWSigmaWt %*% Hinv
-  return(Xi)
+  if (identical("MLE", method)) {
+    MAR1.MLE(xx)
+  }
+  if (identical("VAR", method)) {
+    tenAR.VAR(xx, P=1)
+  } else if (identical("RRLSE", method)) {
+    MAR1.RR(xx, k1, k2)
+  } else if (identical("RRMLE", method)) {
+    MAR1.CC(xx, k1, k2)
+  } else {
+    stop("Please specify the method in MAR.")
+  }
 }
 
-
-#' Asymptotic Covariance Matrix of MLEs in TenAR(1)
-#'
-#' Asymptotic covariance Matrix of MLEs in TenAR(1) for given a tensor-valued time series xx, see related Theorems in our paper.
-#'@name tenAR.SE.MLE
-#'@rdname tenAR.SE.MLE
-#'@aliases tenAR.SE.MLE
-#'@import tensor rTensor
-#'@export
-#'@param xx  \eqn{T * d_1 * \cdots * d_K} tensor-valued time series
-#'@param A.true coefficient matrices in TAR(1) model
-#'@param Sigma covariance matrix cov(vec(E_t)) in TAR(1) model
-#'@return asmptotic covariance matrix
-#'@examples
-#' dim <- c(2,2,2)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' Sigma <- diag(prod(dim))
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' SIGMA <- tenAR.SE.MLE(xx, A[[1]], Sigma)
-tenAR.SE.MLE <- function(xx, A.true, Sigma){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  r <- length(A.true)
-  dim <- xx@modes[-1]
-  m1 <- dim[1]
-  m2 <- dim[2]
-  m3 <- dim[3]
-  k <- length(dim)
-  T <- xx@modes[[1]]
-  ndim <- m1^2+m2^2+m3^2
-  Gamma <- matrix(0,r*ndim,r*ndim)
-  r1 <- matrix(0, r*ndim, 1)
-  for (x in c(1:r)){
-    for (y in c(1:(k-1))) {
-      if (y == 1) {
-        a <- as.matrix(as.vector(A.true[[x]][[y]]))
-        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
-      } else if (y == 2) {
-        a <- as.matrix(as.vector(A.true[[x]][[y]]))
-        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
-      } else  {
-        print("Only Support k=3 but now k>3")
-      }
-      Gamma <- Gamma + r1 %*% t(r1)
-    }
-  }
-  Hdim <- r*ndim
-  HT <- array(1,c(T,Hdim,Hdim))
-  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
-  for (i in c(1:r)) {
-    C <- A.true[[i]][[3]]
-    B <- A.true[[i]][[2]]
-    A <- A.true[[i]][[1]]
-    for (t in c(1:T)){
-      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
-      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
-      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
-      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
-      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
-    }
-  }
-  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
-  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
-  H <- EWSigmaWt + Gamma
-  Hinv <- solve(H)
-  Xi <- Hinv %*% EWSigmaWt %*% Hinv
-  return(Xi)
-}
 
 #' Asymptotic Covariance Matrix of Reduced rank MAR(1)
 #'
@@ -1123,15 +185,15 @@ tenAR.SE.MLE <- function(xx, A.true, Sigma){
 #'@param A2 coefficient matrix
 #'@param k1 rank of A1
 #'@param k2 rank of A2
-#'@param Sigma.e Cov(vec(\eqn{E_t})) = Sigma.e : of dimension \eqn{d_1 d_2 \times d_1 d_2}
+#'@param Sigma.e Cov(vec(E_t)) = Sigma.e : of dimension d1d2\times d1d2
 #'@param RU1,RV1,RU2,RV2: rotation of U1,V1,U2,V2, e.g., new_U1=U1 RU1
 #'@param mpower truncate vec(X_t) to mpower term, i.e. VMA(mpower). By default is 100.
 #'@return a list containing the following:\describe{
-#'\item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec(\eqn{\hat{A}1}),vec(\eqn{\hat{A}2^{\prime}}))}
-#'\item{\code{Theta1.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}1})}
-#'\item{\code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}1})}
-#'\item{\code{Theta2.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}2})}
-#'\item{\code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}2})}
+#'\item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec(\hat A1),vec(\hat A2^T))}
+#'\item{\code{Theta1.LS.u}}{asymptotic covariance matrix of vec(\hat U1)}
+#'\item{\code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\hat V1)}
+#'\item{\code{Theta2.LS.u}}{asymptotic covariance matrix of vec(\hat U2)}
+#'\item{\code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\hat V2)}
 #'}
 MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100){
   # iterative least square
@@ -1301,7 +363,7 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
 
 #' Asymptotic Covariance Matrix of Reduced rank MAR(1) with Kronecker covariance structure
 #'
-#' Asymptotic covariance matrix of Reduced rank MAR(1) Kronecker covariance structure for given a matrix-valued time series xx, see related Theorems in our paper.
+#' Asymptotic covariance Matrix of Reduced rank MAR(1) Kronecker covariance structure for given a matrix-valued time series xx, see related Theorems in our paper.
 #'@name MAR1.RRCC.SE
 #'@rdname MAR1.RRCC.SE
 #'@aliases MAR1.RRCC.SE
@@ -1313,15 +375,15 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
 #'@param A2 coefficient matrix
 #'@param k1 rank of A1
 #'@param k2 rank of A2
-#'@param Sigma1,Sigma2 Cov(vec(\eqn{E_t})) = Sigma1 \eqn{\otimes} Sigma2
+#'@param Sigma1,Sigma2 Cov(vec(E_t)) = Sigma1 \otimes Sigma2
 #'@param RU1,RV1,RU2,RV2: rotation of U1,V1,U2,V2, e.g., new_U1=U1 RU1
 #'@param mpower truncate vec(X_t) to mpower term, i.e. VMA(mpower). By default is 100.
 #'@return a list containing the following:\describe{
-#'\item{\code{Sigma.CC}}{asymptotic covariance matrix of (vec(\eqn{\hat{A}1}),vec(\eqn{\hat{A}2^{\prime}}))}
-#'\item{\code{Theta1.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}1})}
-#'\item{\code{Theta1.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}1})}
-#'\item{\code{Theta2.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}2})}
-#'\item{\code{Theta2.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}2})}
+#'\item{\code{Sigma.CC}}{asymptotic covariance matrix of (vec(\hat A1),vec(\hat A2^T))}
+#'\item{\code{Theta1.CC.u}}{asymptotic covariance matrix of vec(\hat U1)}
+#'\item{\code{Theta1.CC.v}}{asymptotic covariance matrix of vec(\hat V1)}
+#'\item{\code{Theta2.CC.u}}{asymptotic covariance matrix of vec(\hat U2)}
+#'\item{\code{Theta2.CC.v}}{asymptotic covariance matrix of vec(\hat V2)}
 #'}
 MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100){
   # canonical correlation analysis
@@ -1495,20 +557,715 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
 }
 
 
-#' select the number of terms by BIC
-#'
-#' select the number of terms by BIC
-#'@name tenAR.bic
-#'@rdname tenAR.bic
-#'@aliases tenAR.bic
-#'@import rTensor
-#'@export
-#'@param xx  \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series
-#'@examples
-#' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' tenAR.bic(xx, rmax=5)
+MAR1.PROJ <- function(xx){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR + E_t
+  # Sig = cov(vec(E_t))
+  # one-step projection estimation
+  # Return LL, RR, and estimate of Sig
+  dd <- dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  xx.mat <- matrix(xx,T,p*q)
+  kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
+  ans.projection <- projection(kroneck,r=1,q,p,q,p)
+  a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
+  LL <- ans.projection$C / a
+  RR <- t(ans.projection$B) * a
+  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
+  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
+  sd <- MAR.SE(xx, t(RR), LL, Sig)
+  return(list(LL=LL,RR=RR,res=res,Sig=Sig, sd=sd))
+}
+
+
+MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR + E_t
+  # Sig = cov(vec(E_t))
+  # LS criterion
+  # iterative algorithm between LL <--> RR
+  # Return LL, RR, and estimate of Sig
+  dd=dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  LL.old <- diag(p)
+  RR.old <- diag(q)
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= tol){
+    # estimate RR0
+    temp <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
+    AA <- tensor(temp,temp,c(1,3),c(1,3))
+    BB <- tensor(temp,xx[2:T,,,drop=FALSE],c(1,3),c(1,2))
+    RR <- solve(AA,BB)
+    # estimate LL0
+    temp <- tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1)  # (T-1) * p * q
+    AA <- tensor(temp,temp,c(1,3),c(1,3))
+    BB <- t(tensor(temp,xx[2:T,,,drop=FALSE],c(1,3),c(1,3)))
+    LL <- t(solve(t(AA),t(BB)))
+    a <- svd(LL,nu=0,nv=0)$d[1]
+    LL <- LL / a
+    RR <- RR * a
+    # update for the next iteration
+    dis <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.old),LL.old))^2))
+    LL.old <- LL
+    RR.old <- RR
+    iiter <- iiter + 1
+    if(print.true==TRUE){
+      print(LL)
+      print(RR)
+    }
+  }
+  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
+  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
+  sd <- MAR.SE(xx, t(RR), LL, Sig)
+  return(list(LL=LL,RR=RR,res=res,Sig=Sig,dis=dis,niter=iiter,sd=sd))
+}
+
+
+MAR1.MLE <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,tol=1e-6,print.true = FALSE){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR + E_t
+  # Sig = cov(vec(E_t)) = Sigr otimes Sigl
+  # optimization criterion is likelihood
+  # iterative algorithm between LL <--> RR <--> Sig_r <--> Sig_l
+  # Return LL, RR, Sigl, Sigr
+  dd=dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  if(is.null(LL.init)){
+    LL.old <- diag(p)
+  } else{
+    LL.old <- LL.init
+  }
+  RR.old <- diag(q)
+  if(is.null(Sigl.init)){
+    Sigl.old <- diag(p)
+  } else{
+    Sigl.old <- Sigl.init
+  }
+  if(is.null(Sigr.init)){
+    Sigr.old <- diag(q)
+  } else{
+    Sigr.old <- Sigr.init
+  }
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= tol){
+    Sigl.inv.old <- ginv(Sigl.old)
+    Sigr.inv.old <- ginv(Sigr.old)
+    # estimate RR0
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
+    temp2 <- tensor(temp1,Sigl.inv.old,3,2)  # (T-1) * q * p
+    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
+    BB <- tensor(temp2,xx[2:T,,,drop=FALSE],c(1,3),c(1,2))
+    RR <- solve(AA,BB)
+    # estimate LL0
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1)  # (T-1) * p * q
+    temp2 <- tensor(temp1,Sigr.inv.old,3,1)  # (T-1) * p * q
+    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
+    BB <- t(tensor(temp2,xx[2:T,,,drop=FALSE],c(1,3),c(1,3)))
+    LL <- t(solve(t(AA),t(BB)))
+    res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
+    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
+    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
+    temp <- tensor(res,ginv(Sigr),3,1) # (T-1) * p * q
+    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
+    a <- svd(LL,nu=0,nv=0)$d[1]
+    LL <- LL / a
+    RR <- RR * a
+    a <- eigen(Sigl)$values[1]
+    Sigl <- Sigl / a
+    Sigr <- Sigr * a
+
+    # update for the next iteration
+    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.old),LL.old))^2))
+    dis2 <- sqrt(sum((kronecker(Sigr,Sigl)-kronecker(Sigr.old,Sigl.old))^2))
+    dis <- max(dis1,dis2)
+    LL.old <- LL
+    RR.old <- RR
+    Sigr.old <- Sigr
+    Sigl.old <- Sigl
+    iiter <- iiter + 1
+    if(print.true==TRUE){
+      print(LL)
+      print(RR)
+    }
+  }
+  Sig <- kronecker(Sigr,Sigl)
+  sd <- MAR.SE(xx, t(RR), LL, Sig)
+  return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,dis=dis,niter=iiter,sd=sd))
+}
+
+
+MAR.SE <- function(xx, B, A, Sigma){
+  dd <- dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  BX <- tensor(xx,B,3,2) # Tpq
+  AX <- tensor(xx,A,2,2) # Tqp
+  BXI <- apply(BX,1,function(x){kronecker(t(x),diag(p))})
+  AXI <- apply(AX,1,function(x){kronecker(diag(q),t(x))})
+  BXI.array <- array(BXI,c(p*q,p^2,T)) #pq*p^2*T
+  AXI.array <- array(AXI,c(p*q,q^2,T)) #pq*q^2*T
+  # W transpose
+  Wt <- abind(BXI.array,AXI.array,along=2) #pq*(p^2+q^2)*T
+  EWWt <- tensor(Wt,Wt,c(1,3),c(1,3))/T #(p^2+q^2)*(p^2+q^2)
+  alpha <- as.vector(A)
+  beta <- as.vector(t(B))
+  gamma <- c(alpha,rep(0,q^2))
+  H <- EWWt + gamma %*% t(gamma) #(p^2+q^2)*(p^2+q^2)
+  WSigma <- tensor(Wt,Sigma,1,1) #(p^2+q^2)*T*pq
+  EWSigmaWt <- tensor(WSigma,Wt,c(3,2),c(1,3))/T
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  Xi <- Xi/T
+}
+
+
+tenAR.VAR <- function(xx, P){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dd=xx@modes
+  t <- dd[1]
+  n <- prod(dd[-1])
+  if (prod(dd[-1]) > t){stop("sample size T too small")}
+  yy=apply(xx@data,MARGIN=1,as.vector)
+
+  x = 0
+  for (l in c(1:P)){
+    if (l == 1){x = yy[,(P):(t-1)]} else {x = rbind(x, yy[,(P+1-l):(t-l)])}
+  }
+  y = yy[,(P+1):t]
+  coef = t(solve(x %*% t(x)) %*% x %*% t(y))
+  res= y - coef %*% x
+  phi = list()
+  for (l in c(1:P)){
+    phi[[l]] = coef[,(n*(l-1)+1):(n*l)]
+  }
+  return(list(coef=phi, res=res))
+}
+
+
+tenAR.A <- function(dim,R,P,rho){
+  K <- length(dim)
+  A <- lapply(1:P, function(p) {lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})})
+  for (p in c(1:P)){
+    for (j in c(1:R)){
+      for (i in c(1:K)){
+        A[[p]][[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
+      }
+    }
+  }
+
+  eigen = M.eigen(A)
+
+  for (l in c(1:P)){
+    for (j in c(1:R)){
+      A[[l]][[j]][[K]] <- rho * A[[l]][[j]][[K]]/ eigen
+    }
+    A[[l]] <- fro.order(fro.rescale(A[[l]]))
+  }
+  eigen = M.eigen(A)
+
+  stopifnot(M.eigen(A) < 1)
+  return(A)
+}
+
+
+
+tenAR.PROJ <- function(xx,R,P){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dim <- xx@modes[-1]
+  mm <- tenAR.VAR(xx, P)$coef
+  A = list()
+  for (p in c(1:P)){
+    tt <- trearrange(mm[[p]], rev(dim))
+    tt <- as.tensor(aperm(tt@data))
+    A[[p]] <- fro.order(fro.rescale(ten.proj(tt, dim, R)))
+  }
+  return(list(A=A))
+}
+
+
+tenAR.LS <- function(xx,R, P, init=NULL, niter=500,tol=1e-6,print.true = FALSE){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dim <- xx@modes[-1]
+  K <- length(dim)
+  t <- xx@modes[[1]]
+
+  if (is.null(init)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init}
+
+  A.new <- A.old
+
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol & dis <= 1e3){
+    for (p in c(1:P)){
+      for (r in c(1:R)){
+        for (k in c(1:K)){
+          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
+          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE]
+
+          L1 <- 0
+          for (l in c(1:P)){
+            if (l == p){
+              if (R > 1){
+                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              }
+            } else {
+              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+            }
+          }
+
+
+          L2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
+          temp2 <- L2@data
+
+          RR <- tensor(temp,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          LL <- tensor(temp2,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+        }
+      }
+    }
+    for (p in c(1:P)){
+      for (r in c(1:R)){
+        a <- c()
+        for (k in c(1:K)){
+          m <- A.new[[p]][[r]][[k]]
+          if (k != K){
+            a[k] <- svd(m,nu=0,nv=0)$d[1]
+            A.new[[p]][[r]][[k]] <- m/a[k]
+          } else {
+            A.new[[p]][[r]][[k]] <- m * prod(a)
+          }
+        }
+      }
+    }
+    phi.new <- list()
+    phi.old <- list()
+    for (p in c(1:P)){
+      phi.new[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.new[[p]][[j]]))}))
+      phi.old[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.old[[p]][[j]]))}))
+    }
+
+    dis <- Reduce("+", lapply(1:P, function(j) {sqrt(sum((phi.new[[j]] - phi.old[[j]])^2))}))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  for (p in c(1:P)){
+    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
+  }
+  res <- ten.res(xx,A.new,P,R,K)
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  cov <- tenAR.SE.LSE(xx, A.new[[1]], Sig) # temporarily for P=1 only
+  sd <- covtosd(cov, dim, R)
+  bic <- IC(xx, res, R, t, dim)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,cov=cov,sd=sd,BIC=bic))
+}
+
+
+tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dim <- xx@modes[-1]
+  K <- length(dim)
+  t <- xx@modes[[1]]
+  if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
+  Sig.new <- Sig.old
+  Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
+  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  while(iiter <= niter & dis >= tol){
+    stopifnot(dis <= 1e3)
+    for (p in c(1:P)){
+      for (r in c(1:R)){
+        for (k in c(1:K)){
+
+          sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
+          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
+          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+          s1 <- rTensor::ttl(xx, sphi[-k],c(2:(K+1))[-k])
+          temp1 <- s1@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+          L1 <- 0
+          for (l in c(1:P)){
+            if (l == p){
+              if (R > 1){
+                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              }
+            } else {
+              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+            }
+          }
+          temp2 <-  (xx[(1+P):t,,,,drop=FALSE] - L1)@data
+
+
+          RR <- tensor(temp,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          LL <- tensor(temp2,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+        }
+      }
+    }
+
+    for (k in c(1:K)){
+      res.old <- rTensor::as.tensor(ten.res(xx,A.new,P,R,K))
+      rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])
+      Sig.new[[k]] <- tensor(res.old@data, rs@data, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
+      Sig.new.inv <- lapply(1:K, function (i) {solve(Sig.new[[i]])})
+    }
+
+    for (p in c(1:P)){
+      A.new[[P]] <- svd.rescale(A.new[[P]])
+    }
+    Sig.new <- eigen.rescale(list(Sig.new))[[1]]
+
+    phi.new <- list()
+    phi.old <- list()
+    for (p in c(1:P)){
+      phi.new[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.new[[p]][[j]]))}))
+      phi.old[[p]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.old[[p]][[j]]))}))
+    }
+    dis <- Reduce("+", lapply(1:P, function(j) {sqrt(sum((phi.new[[j]] - phi.old[[j]])^2))}))
+
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+
+  for (p in c(1:P)){
+    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
+  }
+  res <- ten.res(xx,A.new,P,R,K)
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  cov <- tenAR.SE.MLE(xx, A.new[[1]], Sig) # temporarily for P=1 only
+  sd <- covtosd(cov, dim, R)
+  bic <- IC(xx, res, R, t, dim)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, cov=cov, sd=sd, BIC=bic))
+}
+
+
+MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, print.true=FALSE, LL.init=NULL, RR.init=NULL){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR' + E_t ### NOTE! This function is written with RR'.
+  # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
+  # optimization criterion is likelihood
+  # iterative algorithm between LL <--> Sigma_l <--> RR <--> Sig_r
+  # Return LL, RR, Sigl, Sigr
+  dd=dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  if(is.null(LL.init)){
+    LL.old <- diag(p)
+  } else{
+    LL.old <- LL.init
+  }
+  if(is.null(RR.init)){
+    RR.old <- diag(q)
+  } else{
+    RR.old <- RR.init
+  }
+  Tol=tol*sqrt(p^2+q^2)
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= Tol){
+
+
+    ## Save old
+    LL.oold=LL.old
+    RR.oold=RR.old
+
+    # estimate LL0
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
+    AA <- tensor(temp1,temp1,c(1,3),c(1,3))
+    BB <- tensor(xx[2:T,,,drop=FALSE],temp1,c(1,3),c(1,3))
+    LL <- BB%*%ginv(AA)
+    U <- svd(LL%*%t(BB))$u[,1:k1]
+    LL <- U%*%t(U)%*%LL
+    # update for next iteration
+    a=svd(LL,nu=0,nv=0)$d[1]
+    LL=LL/a
+    dis3=sum((LL-LL.old)^2)
+    LL.old <- LL
+
+    # estimate RR0
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
+    AA <- tensor(temp1,temp1,c(1,3),c(1,3))
+    BB <- tensor(xx[2:T,,,drop=FALSE],temp1,c(1,2),c(1,3))
+    RR <- BB%*%ginv(AA)
+    U <- svd(RR%*%t(BB))$u[,1:k2]
+    RR <- U%*%t(U)%*%RR
+    # update for next iteration
+    dis3=dis3+sum((RR-RR.old)^2)
+    RR.old <- RR
+
+    # update for the next iteration
+    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
+    dis3 = sqrt(dis3)
+    dis <- dis3
+    iiter <- iiter + 1
+    if(print.true==TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  a <- sqrt(sum(LL^2))
+  LL <- LL / a
+  RR <- RR * a
+  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL,2,2),c(1,3,2))
+  Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
+  bic <- T*p*q*log(sum(res^2/(T*p*q))) ##+log(T*p*q)*(bic.penalty(p,k1)+bic.penalty(q,k2))
+  cov <- MAR1.RRLS.SE(LL,RR,k1,k2,Sig,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
+  sd <- list(array(diag(cov)[1:p^2], c(p,p)), as.array(diag(cov)[(p^2+1):(p^2+q^2)], c(q,q)))
+  return(list(LL=LL,RR=RR,res=res,Sig=Sig,BIC=bic,dis=dis,niter=iiter-1,cov=cov,sd=sd))
+}
+
+
+MAR1.CC <- function(xx,k1,k2,LL.init=NULL,RR.init=LL,Sigl.init=NULL,Sigr.init=NULL,niter=200,tol=1e-4,print.true = FALSE){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR' + E_t ### NOTE! This function is written with RR'.
+  # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
+  # optimization criterion is likelihood
+  # iterative algorithm between LL <--> Sigma_l <--> RR <--> Sig_r
+  # Return LL, RR, Sigl, Sigr
+  dd=dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  if(is.null(LL.init)){
+    LL.old <- diag(p)
+  } else{
+    LL.old <- LL.init
+  }
+  if(is.null(RR.init)){
+    RR.old <- diag(q)
+  } else{
+    RR.old <- RR.init
+  }
+  if(is.null(Sigl.init)){
+    Sigl.old <- diag(p)
+  } else{
+    Sigl.old <- Sigl.init
+  }
+  if(is.null(Sigr.init)){
+    Sigr.old <- diag(q)
+  } else{
+    Sigr.old <- Sigr.init
+  }
+  Tol=tol*sqrt(p^2+q^2)
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= Tol){
+
+    ## Save old
+    LL.oold=LL.old
+    RR.oold=RR.old
+    Sigl.oold=Sigl.old
+    Sigr.oold=Sigr.old
+
+    # estimate LL0 and Sigl
+    Sigr.inv.old <- ginv(Sigr.old)
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
+    temp2 <- tensor(temp1,Sigr.inv.old,3,1)  # (T-1) * p * q
+    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
+    BB <- tensor(xx[2:T,,,drop=FALSE],temp2,c(1,3),c(1,3))
+    LL <- BB%*%ginv(AA)
+    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2),LL,2,2),c(1,3,2)) # (T-1) * p * q
+    temp <- tensor(res,Sigr.inv.old,3,1) # (T-1) * p * q
+    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
+    Sigl.spec <- eigen(Sigl)
+    Sigl.root <- Sigl.spec$vectors%*%diag(sqrt(Sigl.spec$values))%*%t(Sigl.spec$vectors)
+    Sigl.root.inv <- Sigl.spec$vectors%*%diag(1/sqrt(Sigl.spec$values))%*%t(Sigl.spec$vectors)
+    U <- svd(Sigl.root.inv%*%LL%*%t(BB)%*%Sigl.root.inv)$u[,1:k1]
+    LL <- Sigl.root%*%U%*%t(U)%*%Sigl.root.inv%*%LL
+    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2),LL,2,2),c(1,3,2)) # (T-1) * p * q
+    temp <- tensor(res,Sigr.inv.old,3,1) # (T-1) * p * q
+    Sigl <- tensor(temp,res,c(1,3),c(1,3))/T/q
+    # update for next iteration
+    a=svd(LL,nu=0,nv=0)$d[1]
+    LL=LL/a
+    dis3=sum((LL-LL.old)^2)
+    LL.old <- LL
+    Sigl.old <- Sigl
+
+
+    # estimate RR0 and Sigr
+    Sigl.inv.old <- ginv(Sigl.old)
+    temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
+    temp2 <- tensor(temp1,Sigl.inv.old,3,1)  # (T-1) * q * p
+    AA <- tensor(temp1,temp2,c(1,3),c(1,3))
+    BB <- tensor(xx[2:T,,,drop=FALSE],temp2,c(1,2),c(1,3))
+    RR <- BB%*%ginv(AA)
+    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL.old,2,2),c(1,3,2)) # (T-1) * p * q
+    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
+    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
+    Sigr.spec <- eigen(Sigr)
+    Sigr.root <- Sigr.spec$vectors%*%diag(sqrt(Sigr.spec$values))%*%t(Sigr.spec$vectors)
+    Sigr.root.inv <- Sigr.spec$vectors%*%diag(1/sqrt(Sigr.spec$values))%*%t(Sigr.spec$vectors)
+    U <- svd(Sigr.root.inv%*%RR%*%t(BB)%*%Sigr.root.inv)$u[,1:k2]
+    RR <- Sigr.root%*%U%*%t(U)%*%Sigr.root.inv%*%RR
+    res <- xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL.old,2,2),c(1,3,2)) # (T-1) * p * q
+    temp <- tensor(res,Sigl.inv.old,2,1) # (T-1) * q * p
+    Sigr <- tensor(temp,res,c(1,3),c(1,2))/T/p
+    # update for next iteration
+    dis3=dis3+sum((RR-RR.old)^2)
+    RR.old <- RR
+    Sigr.old <- Sigr
+
+
+    a <- eigen(Sigl)$values[1]
+    Sigl <- Sigl / a
+    Sigr <- Sigr * a
+    ### cat(eigen(Sigl)$values[1]," ",eigen(Sigr)$values[1], " ")
+
+    # update for the next iteration
+    dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
+    ### cat(dis1," ")
+    dis2 <- sqrt(sum((kronecker(Sigr,Sigl)-kronecker(Sigr.oold,Sigl.oold))^2))
+    ### cat(dis2," ",dis3,"\n")
+    dis3 = sqrt(dis3)
+    ### dis <- max(dis1,dis2)
+    dis <- dis3
+    Sigr.old <- Sigr
+    Sigl.old <- Sigl
+    iiter <- iiter + 1
+    if(print.true==TRUE){
+      print(LL)
+      print(RR)
+    }
+  }
+  a <- sqrt(sum(LL^2))
+  LL <- LL / a
+  RR <- RR * a
+  Sig <- kronecker(Sigr,Sigl)
+  cov <- MAR1.RRCC.SE(LL,RR,k1,k2,Sigr,Sigl,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
+  sd <- list(array(diag(cov)[1:p^2], c(p,p)), as.array(diag(cov)[(p^2+1):(p^2+q^2)], c(q,q)))
+  return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,dis=dis,niter=iiter-1, cov=cov, sd=sd))
+}
+
+
+tenAR.SE.LSE <- function(xx, A.true, Sigma){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+
+    }
+  }
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+  WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- tensor(WT,WT,c(3,1),c(3,1))/T + Gamma #r(m1^2+m2^2+m^3)*r(m1^2+m2^2+m^3)
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+tenAR.SE.MLE <- function(xx, A.true, Sigma){
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+    }
+  }
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWSigmaWt + Gamma
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+
+
 tenAR.bic <- function(xx, rmax=5){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   dim <- xx@modes[-1]
@@ -1522,9 +1279,9 @@ tenAR.bic <- function(xx, rmax=5){
   which.min(ans)
 }
 
-#' Plot Matrix-Valued Time Series
+#' Plot matrix-valued time series
 #'
-#' Plot matrix-valued time series or Tensor-Valued time series by given mode.
+#' Plot matrix-valued time series, can be also used to plot tensor-Valued time series by given mode.
 #'@name mplot
 #'@rdname mplot
 #'@aliases mplot
@@ -1532,8 +1289,7 @@ tenAR.bic <- function(xx, rmax=5){
 #'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
 #'@examples
 #' dim <- c(3,3,3)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
+#' xx <- generate.AR(t=500, dim, R=2, P=1, rho=0.5, setting='iid')
 #' mplot(xx[,,1])
 mplot <- function(x){
   if (mode(x) == "S4"){x = x@data}
@@ -1560,29 +1316,40 @@ mplot <- function(x){
 }
 
 
-#' Model Predictions
+#' Predictions for tensor autoregressive models
 #'
-#' `tenAR.predict` is a function for predictions from the results of model fitting functions.
+#' `predict.tenAR` is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
+#' If \code{rolling=TRUE}, this would be a rolling forecast, specifically, using given model parameters object,
+#' start from the last time point \eqn{X_t} in data, we obtain the one step ahead prediction \eqn{X_{t+1}}.
+#' Then fit the corresponding model using all available data and \eqn{X_{t+1}}
+#' to obtain \eqn{X_{t+2}}. Repeat this process to \eqn{X_{t+n.head}}.
 #' Our function is similar to the usage of classical `predict.ar` in package "stats".
-#'@name tenAR.predict
-#'@rdname tenAR.predict
-#'@aliases tenAR.predict
+#'@name predict.tenAR
+#'@rdname predict.tenAR
+#'@aliases predict.tenAR
 #'@import rTensor abind
-#'@usage tenAR.predict(object, xx, n.head, method="LSE")
+#'@usage predict.tenAR(object, xx, n.head, method, rolling=FALSE)
 #'@export
 #'@param object a fit from TenAR(P) model
-#'@param data data to which to apply the prediction.
-#'@param n.head number of steps ahead at which to predict.
+#'@param data data to which to apply the prediction
+#'@param n.head number of steps ahead at which to predict
 #'@param method method used by rolling forecast
+#'@param rolling TRUE or FALSE, rolling forcast, is FALSE by default
 #'@return predicted value
 #'@seealso `predict.ar` or `predict.arima`
 #'@examples
 #' dim <- c(2,2,2)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' pred.xx <- tenAR.predict(model, xx, n.head = 5)
-tenAR.predict <- function(object, xx, n.head, method="LSE"){
+#' xx <- generate.AR(t=500, dim,R=2,P=1,rho=0.5, setting='iid')
+#' est <- tenAR(xx, R=1, P=1, method="LSE")
+#' pred <- predict.tenAR(est, xx, n.head = 5)
+#' # rolling forcast
+#' pred.rolling <- predict.tenAR(model, xx, n.head = 5, method="LSE", rolling=TRUE)
+predict.tenAR <- function(object, xx, n.head, method="LSE", rolling=FALSE){
+  if (rolling == TRUE){
+    return(predict.rolling(object, xx, n.head, method="LSE"))
+  }
+
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   A <- object$A
   P <- length(A)
@@ -1604,29 +1371,7 @@ tenAR.predict <- function(object, xx, n.head, method="LSE"){
 }
 
 
-#' Model Predictions by rolling forecast
-#'
-#' `tenAR.rolling` is a function for predictions from the results of model fitting functions.
-#' The function invokes particular methods which depend on the class of the first argument.
-#' Our function is similar to the usage of classical `predict.ar` in package "stats".
-#'@name tenAR.rolling
-#'@rdname tenAR.rolling
-#'@aliases tenAR.rolling
-#'@import rTensor abind
-#'@usage tenAR.rolling(object, data, n.head, method="LSE")
-#'@export
-#'@param object a fit from TenAR(P) model
-#'@param data data to which to apply the prediction.
-#'@param n.head number of steps ahead at which to predict.
-#'@param method method used by rolling forecast
-#'@return predicted value
-#'@seealso `predict.ar` or `predict.arima`
-#'@examples
-#' dim <- c(2,2,2)
-#' A <- tenAR.A(dim,R=2,P=1,rho)
-#' xx <- tenAR.xx(t=500, A, setting='iid')
-#' pred.xx <- tenAR.rolling(model, xx, n.head = 5)
-tenAR.rolling <- function(object, data, n.head, method="LSE"){
+predict.rolling <- function(object, xx, n.head, method="LSE"){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   A <- object$A
   P <- length(A)

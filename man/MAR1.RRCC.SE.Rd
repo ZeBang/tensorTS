@@ -16,7 +16,7 @@ RV2=diag(k2),mpower=100))
 
 \item{k2}{rank of A2}
 
-\item{Sigma1, Sigma2}{Cov(vec(\eqn{E_t})) = Sigma1 \eqn{\otimes} Sigma2}
+\item{Sigma1, Sigma2}{Cov(vec(E_t)) = Sigma1 \otimes Sigma2}
 
 \item{RU1, RV1, RU2, RV2:}{rotation of U1,V1,U2,V2, e.g., new_U1=U1 RU1}
 
@@ -24,13 +24,13 @@ RV2=diag(k2),mpower=100))
 }
 \value{
 a list containing the following:\describe{
-\item{\code{Sigma.CC}}{asymptotic covariance matrix of (vec(\eqn{\hat{A}1}),vec(\eqn{\hat{A}2^{\prime}}))}
-\item{\code{Theta1.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}1})}
-\item{\code{Theta1.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}1})}
-\item{\code{Theta2.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat{U}2})}
-\item{\code{Theta2.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat{V}2})}
+\item{\code{Sigma.CC}}{asymptotic covariance matrix of (vec(\hat A1),vec(\hat A2^T))}
+\item{\code{Theta1.CC.u}}{asymptotic covariance matrix of vec(\hat U1)}
+\item{\code{Theta1.CC.v}}{asymptotic covariance matrix of vec(\hat V1)}
+\item{\code{Theta2.CC.u}}{asymptotic covariance matrix of vec(\hat U2)}
+\item{\code{Theta2.CC.v}}{asymptotic covariance matrix of vec(\hat V2)}
 }
 }
 \description{
-Asymptotic covariance matrix of Reduced rank MAR(1) Kronecker covariance structure for given a matrix-valued time series xx, see related Theorems in our paper.
+Asymptotic covariance Matrix of Reduced rank MAR(1) Kronecker covariance structure for given a matrix-valued time series xx, see related Theorems in our paper.
 }

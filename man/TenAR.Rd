@@ -4,14 +4,11 @@
 \alias{tenAR}
 \title{Estimation for Autoregressive Model of Tensor-Valued Time Series}
 \usage{
-tenAR(xx, method)
+tenAR(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
+niter=500, tol=1e-6, print.true=FALSE)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series}
-
-\item{R}{number of terms}
-
-\item{P}{number of lag-one orders}
 
 \item{method}{character string, specifying the type of the estimation method to be used. \describe{
  \item{\code{"PROJ",}}{Projection method.}
@@ -19,22 +16,40 @@ tenAR(xx, method)
  \item{\code{"MLE",}}{MLE under a Kronecker structured covariance matrix.}
  \item{\code{"VAR",}}{Stacked vector AR(1) Model.}
 }}
+
+\item{R}{number of terms}
+
+\item{P}{number of lag-one orders}
+
+\item{init.A}{initial value of \eqn{A}, by default is diagonal matrices}
+
+\item{init.sig}{if only \code{method=MLE},initial value of Sigma, by default is diagonal matrices}
+
+\item{niter}{maximum number of iterations if error stays above \code{tol}, is 500 by default}
+
+\item{tol}{relative Frobenius norm error tolerance, is 1e-6 by default}
+
+\item{print.true}{TRUE or FALSE, print distance}
 }
 \value{
-a list containing the following:\describe{
+return a list containing the following:\describe{
 \item{\code{A}}{estimator of coefficient matrices \eqn{A_1,A_2,\cdots,A_K}}
+\item{\code{sigma}}{if only \code{method=MLE}, estimator of Sigma}
 \item{\code{res}}{residual of the model}
-\item{\code{Sig}}{covariance matrix cov(vec(E_t))}
+\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
+\item{\code{cov}}{covariance matrix cov(vec(\eqn{A}))}
+\item{\code{sd}}{standard error of coefficient matrices \eqn{A}, which is a list with same data structure as \eqn{A}}
 \item{\code{niter}}{number of iterations}
+\item{\code{BIC}}{value of information criteria}
 }
 }
 \description{
 Estimation function for tensor-valued time series.
-Projection method (proj), the Iterated least squares method (LSE), MLE under a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{type}.
+Projection method (PROJ), the Iterated least squares method (LSE), MLE under
+a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{method}.
 }
 \examples{
 dim <- c(3,3,3)
-A <- tenAR.A(dim,R=2,P=1,rho)
-xx <- tenAR.xx(t=500, A, setting='iid')
-tenAR(xx, R=1, P=1, method="LSE")
+xx <- generate.AR(t=500, dim,R=2,P=1,rho=0.5, setting='iid')
+est <- tenAR(xx, R=1, P=1, method="LSE")
 }

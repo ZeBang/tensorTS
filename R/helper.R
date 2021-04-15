@@ -1,5 +1,19 @@
 ### Helper functions
 
+# standard error extraction
+covtosd <- function(cov, dim, R){
+  K <- length(dim)
+  sd <- lapply(1:R, function(n) {lapply(1:K, function(m) {list()})})
+  for (j in c(1:R)){
+    for (i in c(1:K)){
+      left <- sum(dim^2)*R + sum((dim^2)[1:(i-1)])+1
+      right <- sum(dim^2)*R + sum((dim^2)[1:i])
+      sd[[j]][[i]] <- array(diag(cov)[left:right], c(dim[i], dim[i]))
+    }
+  }
+  return(sd)
+}
+
 # Permutation matrix em
 em <- function(m,n,i,j){
   ## m,n,i,j set \eqn{m \times n} zero matrix with \eqn{A_{ij} = 1}

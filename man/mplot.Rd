@@ -2,7 +2,7 @@
 % Please edit documentation in R/tenAR.R
 \name{mplot}
 \alias{mplot}
-\title{Plot Matrix-Valued Time Series}
+\title{Plot matrix-valued time series}
 \usage{
 mplot(x)
 }
@@ -10,11 +10,10 @@ mplot(x)
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.}
 }
 \description{
-Plot matrix-valued time series or Tensor-Valued time series by given mode.
+Plot matrix-valued time series, can be also used to plot tensor-Valued time series by given mode.
 }
 \examples{
 dim <- c(3,3,3)
-A <- tenAR.A(dim,R=2,P=1,rho)
-xx <- tenAR.xx(t=500, A, setting='iid')
+xx <- generate.AR(t=500, dim, R=2, P=1, rho=0.5, setting='iid')
 mplot(xx[,,1])
 }

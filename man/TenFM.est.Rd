@@ -7,7 +7,7 @@
 tenFM.est(x,r,method='TIPUP')
 }
 \arguments{
-\item{x}{\eqn{T * m_1 * \cdots * m_K} tensor-valued time series}
+\item{x}{\eqn{T \times d_1 \times \cdots \times d_K} dimensional tensor-valued time series}
 
 \item{r}{input rank of factor tensor}
 
@@ -29,25 +29,25 @@ tenFM.est(x,r,method='TIPUP')
 \item{dim}{dimension of coefficient matrices}
 }
 \value{
-a list containing the following:\describe{
-\item{\code{Ft}}{estimated factor matrices of dimension \eqn{T*d_1*d_2 *\cdots *d_K}}
-\item{\code{Ft.all}}{Summation of factor matrices over time, dimension \eqn{d_1,d_2,\cdots,d_K} }
+return a list containing the following:\describe{
+\item{\code{Ft}}{estimated factor matrices of dimension \eqn{T*r_1*r_2 *\cdots *r_k}}
+\item{\code{Ft.all}}{Summation of factor matrices over time, dimension \eqn{r_1,r_2,\cdots,r_k} }
 \item{\code{Q}}{loading matrices}
-\item{\code{x.hat}}{fitted part}
+\item{\code{x.hat}}{fitted signal part}
 \item{\code{niter}}{number of iterations}
-\item{\code{fnorm.resid}}{Frobenius norm of residual}
+\item{\code{fnorm.resid}}{Frobenius norm of residual, divide the Frobenius norm of the original tensor}
 }
 }
 \description{
 Estimation function for tensor-valued time series factor model.
 }
 \examples{
-Q1 = gen.Q(5,2)
-Q2 = gen.Q(5,2)
-ar_coef = array(c(0.3,0.5,0.4,0.6),c(2,2))
-bF = gen.F(ar_coef,20,1)
-x = aperm(gen.X(Q1,Q1,bF),c(3,1,2))
-x = as.tensor(x) # Generate x and permute the axes
-result <- tenFM.est(x,c(2,2),method='TOPUP')  # Estimate the factor and loadings
+dims <- c(4,5,6) # dimensions of tensor time series
+t <- 50
+r <- c(2,2,2)  # dimensions of factor series
+x = generate.FM(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
+Et <- array(rnorm(t*prod(dims)),c(t,dims)) # add some iid noise to the tensor time series
+x = x + Et
+result <- tenFM.est(x,r,method='TOPUP')  # Estimation
 Ft <- result$Ft
 }
