@@ -225,21 +225,23 @@ fro.order <- function(A){
 ten.dis.A <- function(A, B){
   P = length(A)
   R <- length(A[[1]])
+  K <- length(A[[1]][[1]])
   dis <- 0
-  for (i in c(1:P)){
-    phi.A <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A[[i]][[j]]))}))
-    phi.B <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(B[[i]][[j]]))}))
-    dis <- dis + sum((phi.A - phi.B)^2)
+  for (p in c(1:P)){
+    for (r in c(1:R)){
+      for (k in c(1:K)){
+        dis <- dis + min(sum((A[[p]][[r]][[k]] - B[[p]][[r]][[k]])^2), sum((A[[p]][[r]][[k]] + B[[p]][[r]][[k]])^2))
+      }
+    }
   }
-  return(dis)
+  return(sqrt(dis))
 }
 
-
 ten.dis.phi <- function(phi.A, phi.B){
-  P = length(phi.A)
+  P <- length(phi.A)
   dis <- 0
   for (i in c(1:P)){
-    dis <- dis + sum((phi.A[[i]] - phi.B[[i]])^2)
+    dis <- dis + sqrt(sum((phi.A[[i]] - phi.B[[i]])^2))
   }
   return(dis)
 }

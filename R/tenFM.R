@@ -30,7 +30,7 @@
 #'dims <- c(4,5,6) # dimensions of tensor time series
 #'t <- 50
 #'r <- c(2,2,2)  # dimensions of factor series
-#'x = generate.FM(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
+#'x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
 #'Et <- array(rnorm(t*prod(dims)),c(t,dims)) # add some iid noise to the tensor time series
 #'x = x + Et
 #'result <- tenFM.est(x,r,method='TOPUP')  # Estimation
@@ -170,7 +170,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter
 #'dims <- c(4,5,6) # dimensions of tensor time series
 #'t <- 50
 #'r <- c(2,2,2)  # dimensions of factor series
-#'x = generate.FM(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
+#'x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
 #'Et <- array(rnorm(t*prod(dims)),c(t,dims))  # add some iid noise to the tensor time series
 #'x = x + Et
 #'rank <- tenFM.rank(x,r,rank='BIC',method='TIPUP')  # Estimate the rank
@@ -270,9 +270,9 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
 #' Generate tensor time series from given factor structure
 #'
 #' For simulation only, generate tensor time series \eqn{X_t} from given factor structure, each factor entry follows an univariate AR(1) process
-#'@name generate.FM
-#'@rdname generate.FM
-#'@aliases generate.FM
+#'@name tenFM.sim
+#'@rdname tenFM.sim
+#'@aliases tenFM.sim
 #'@export
 #'@param dims dimensions of the output tensor time series,  \eqn{d_1\times d_2\cdots\times d_K}
 #'@param ar1.coef ar coefficients of the factor process, same dimension with \eqn{F_t : r_1\times r_2\cdots\times r_K}
@@ -284,8 +284,8 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
 #'t <- 50
 #'r <- c(2,2,2)  # dimensions of factor series
 #'ar1.coef = array(c(runif(prod(r)),min=0.5,max=1)),r)
-#'x = generate.FM(dims,ar1.coef,t)  # generate t*dims tensor
-generate.FM <- function(dims,ar1.coef,t){
+#'x = tenFM.sim(dims,ar1.coef,t)  # generate t*dims tensor
+tenFM.sim <- function(dims,ar1.coef,t){
   F.dims = dim(ar1.coef)
   Ft = array(NA,dim=c(F.dims[1],F.dims[2],F.dims[3],t))
   for(ir1 in 1:F.dims[1]){

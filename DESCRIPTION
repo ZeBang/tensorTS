@@ -2,8 +2,8 @@ Package: tensorTS
 Type: Package
 Title: Factor Models and Autoregressive Models for Time Series
 Version: 0.1.0
-Author@R: person("First Name", "Last Name", email = "zl326@rutgers.edu",
-               role = c("aut", "cre"))
+Author: Zebang Li and Ruofan Yu and Yuefeng Han and Han Xiao and Rong Chen 
+Maintainer: Zebang Li <zl326@stat.rutgers.edu>
 Description: Factor and Autoregressive Models for Tensor Time Series
 License: GPL (>= 2)
 Encoding: UTF-8

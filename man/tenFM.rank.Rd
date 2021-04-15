@@ -58,7 +58,7 @@ Function for rank determination of the tensor factor model
 dims <- c(4,5,6) # dimensions of tensor time series
 t <- 50
 r <- c(2,2,2)  # dimensions of factor series
-x = generate.FM(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
+x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
 Et <- array(rnorm(t*prod(dims)),c(t,dims))  # add some iid noise to the tensor time series
 x = x + Et
 rank <- tenFM.rank(x,r,rank='BIC',method='TIPUP')  # Estimate the rank
