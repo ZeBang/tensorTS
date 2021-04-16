@@ -2,64 +2,84 @@
 % Please edit documentation in R/tenFM.R
 \name{tenFM.rank}
 \alias{tenFM.rank}
-\title{Tensor factor model rank determination}
+\title{Rank Determination for Tensor Factor Models with Tucker Structure}
 \usage{
-tenFM.rank(x,r,rank='BIC',method='TIPUP')
+tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-4,maxiter=100)
 }
 \arguments{
-\item{x}{\eqn{T \times d_1 \times \cdots \times d_K} dimensional tensor-valued time series}
+\item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}
 
-\item{r}{input rank of factor matrix}
+\item{r}{input rank of the factor tensor.}
 
-\item{h0}{lag number}
+\item{h0}{the number of lags used in auto-covariance tensor.}
 
 \item{rank}{character string, specifying the type of the rank determination method to be used. \describe{
- \item{\code{"BIC",}}{Bayesian information criterion}
- \item{\code{"ER",}}{Eigen ratio method}
+ \item{\code{"BIC",}}{information criterion.}
+ \item{\code{"ER",}}{eigen ratio criterion.}
 }}
 
 \item{method}{character string, specifying the type of the factor estimation method to be used. \describe{
- \item{\code{"TIPUP",}}{TIPUP method}
- \item{\code{"TOPUP",}}{TOPUP method}
+ \item{\code{"TIPUP",}}{TIPUP method.}
+ \item{\code{"TOPUP",}}{TOPUP method.}
 }}
 
-\item{inputr}{boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration}
+\item{inputr}{boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.}
 
-\item{iter}{boolean, specifying using an iterative approach or an non-iterative approach}
+\item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use. \describe{
+\item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. \describe{
  \item{}{When \code{rank}= 'BIC':}
- \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})}}
- \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})}}
- \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{d,T})}}
- \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{d,T})}}
- \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{d_k,T})}}
+ \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+ \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};,}
+ \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+ \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+ \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
  \item{}{When \code{rank}= 'ER':}
- \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0}}
- \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}}}
- \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}}}
- \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}}}
- \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}}
+ \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
+ \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
+ \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+ \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+ \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 }}
 
-\item{delta1}{weakest factor strength, a tuning parameter used for BIC method only}
+\item{delta1}{weakest factor strength, a tuning parameter used for BIC method only, default value is 0.}
 
-\item{tol}{tolerance for each iteration}
+\item{tol}{tolerance in terms of the Frobenius norm.}
 
-\item{maxiter}{integer, the max number of iterations allowed}
+\item{maxiter}{maximum number of iterations if error stays above \code{tol}.}
 }
 \value{
-estimated number of factors \eqn{n_1,n_2,\cdots,n_k}
+return a list containing the following:\describe{
+\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)th iteration}.}
+\item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
+}
 }
 \description{
-Function for rank determination of the tensor factor model
+Function for rank determination of tensor factor models with Tucker Structure,
+Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
+are included, as determined by the value of \code{method}.
+Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,
+which should be specified by the value of \code{rank} and \code{penalty}. The information criterion resembles BIC in the vector factor model literature.
+And the eigen ratio criterion is similar to the eigenvalue ratio based methods in the vector factor model literature.
 }
 \examples{
-dims <- c(4,5,6) # dimensions of tensor time series
-t <- 50
+dims <- c(16,18,20) # dimensions of tensor time series
+t <- 100
 r <- c(2,2,2)  # dimensions of factor series
-x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
-Et <- array(rnorm(t*prod(dims)),c(t,dims))  # add some iid noise to the tensor time series
-x = x + Et
+ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+F.dims <- dim(ar1.coef)
+Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+for(ir1 in 1:F.dims[1]){
+ for(ir2 in 1:F.dims[2]){
+   for(ir3 in 1:F.dims[3]){
+     Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+   }
+ }
+}
+lambda <- sqrt(prod(dims))
+x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 rank <- tenFM.rank(x,r,rank='BIC',method='TIPUP')  # Estimate the rank
+}
+\references{
+Han, Yuefeng, Cun-Hui Zhang, and Rong Chen. "Rank Determination in Tensor Factor Model." Available at SSRN 3730305 (2020).
 }

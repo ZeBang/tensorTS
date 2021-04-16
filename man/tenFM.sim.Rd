@@ -2,30 +2,72 @@
 % Please edit documentation in R/tenFM.R
 \name{tenFM.sim}
 \alias{tenFM.sim}
-\title{Generate tensor time series from given factor structure}
+\title{Generate tensor time series from given factor process and factor loading matrices}
 \usage{
-tenFM.sim(dims, ar1.coef, t)
+tenFM.sim(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2)
 }
 \arguments{
-\item{dims}{dimensions of the output tensor time series,  \eqn{d_1\times d_2\cdots\times d_K}}
+\item{Ft}{input of the factor process, of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}. It can be TenAR(p) tensor time series generated from the function \link{tenAR.sim}.}
 
-\item{ar1.coef}{ar coefficients of the factor process, same dimension with \eqn{F_t : r_1\times r_2\cdots\times r_K}}
+\item{dims}{dimensions of the output tensor at each time,  \eqn{d_1\times d_2\cdots\times d_K}.}
 
-\item{t}{length of time}
+\item{lambda}{signal strength parameter of the tensor factor models, see Details section for more information.}
+
+\item{A}{a list of the factor loading matrices \eqn{A_1, A_2, \cdots, A_K}. The default is random orthogonal matrices \eqn{A_k} of dimension \eqn{d_k \times r_k}.}
+
+\item{cov}{covariance matrix of the error tensor: identity ("iid"), separable Kronecker structure ("separable"), random ("random").}
+
+\item{rho}{a parameter only for "separable" covariance matrix of the error tensor. It is the off-diagonal element of the error matrices, with the diagonal being 1.}
 }
 \value{
-A tensor of size  \eqn{T\times d_1\times d_2\cdots\times d_K}
+A tensor-valued time series of dimension \eqn{T\times d_1\times d_2\cdots\times d_K}.
 }
 \description{
-For simulation only, generate tensor time series \eqn{X_t} from given factor structure, each factor entry follows an univariate AR(1) process
+Simulate tensor time series \eqn{X_t} from given factor process \eqn{F_t}. The factor process \eqn{F_t} can be generate from the function \code{\link{tenAR.sim}}.
+}
+\details{
+To simulate tensor time series \eqn{X_t}, We consider the following model,
+\deqn{X_t = \lambda F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
+where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
+the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
+\eqn{lambda} is an additional signal strength parameter,
+and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. In this function, the default \eqn{A_k} are orthogonal matrices.
 }
 \examples{
-dims <- c(4,5,6) # dimensions of tensor time series
-t <- 50
+dims <- c(16,18,20) # dimensions of tensor time series
+t <- 100
 r <- c(2,2,2)  # dimensions of factor series
-ar1.coef = array(c(runif(prod(r)),min=0.5,max=1)),r)
-x = tenFM.sim(dims,ar1.coef,t)  # generate t*dims tensor
+ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+F.dims <- dim(ar1.coef)
+Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+for(ir1 in 1:F.dims[1]){
+ for(ir2 in 1:F.dims[2]){
+   for(ir3 in 1:F.dims[3]){
+     Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+   }
+ }
+}
+lambda <- sqrt(prod(dims))
+# generate t*dims tensor time series with iid error covaraince structure
+x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid')
+# generate t*dims tensor time series with separable error covaraince structure
+x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='separable',rho=0.2)
+
+# generate t*dims tensor time series with random error covaraince structure
+dims <- c(30,20) # dimensions of tensor time series
+t <- 100
+r <- c(3,3)  # dimensions of factor series
+ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+F.dims <- dim(ar1.coef)
+Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2]))
+for(ir1 in 1:F.dims[1]){
+ for(ir2 in 1:F.dims[2]){
+   Ft[,ir1,ir2] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2]))
+ }
+}
+lambda <- sqrt(prod(dims))
+x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='random')
 }
 \seealso{
-\code{\link{generate.AR}}
+\code{\link{tenAR.sim}}
 }

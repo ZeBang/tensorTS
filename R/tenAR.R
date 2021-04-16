@@ -1,6 +1,6 @@
 ###Functions of Autoregressive Models
 
-#' Generate an TenAR(p) tensor time series
+#' Generate TenAR(p) tensor time series
 #'
 #' Simulate from the TenAR(p) model.
 #'@name tenAR.sim
@@ -54,20 +54,20 @@ tenAR.sim <- function(t, dim, R, P, rho, cov){
 #' Estimation for Autoregressive Model of Tensor-Valued Time Series
 #'
 #' Estimation function for tensor-valued time series.
-#' Projection method (PROJ), the Iterated least squares method (LSE), MLE under
+#' Projection method (PROJ), the Iterated Least Squares method (LSE), MLE under
 #' a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{method}.
 #'@details
 #' Tensor autoregressive model (order one) has the following form:
 #' \deqn{X_t = \sum_{r=1}^R X_{t-1} \times_{1}  A_1^{(r)} \times_{2}  \cdots \times_{K} A_K^{(r)} + E_t,}
 #' where \eqn{A_k^{(r)}} are \eqn{d_k \times d_k} coefficient matrices, \eqn{k=1,\cdots,K}, and \eqn{E_t} is a tensor white noise. \eqn{R} is the number of terms.
 #' Note that only the lag-1 term \eqn{X_{t-1}} appears on the right hand side, so we refer to it as an order-1 model. For order-p model we have the form:
-#' \deqn{X_t = \sum_{i=1}^{p} \sum_{r=1}^{R_i} X_{t-i} \times_{1} A_{1}^{(ir)} \times_{2}  \cdots \times_{K} A_{K}^{(ir)} + E_t.}
+#' \deqn{X_t = \sum_{i=1}^{P} \sum_{r=1}^{R_i} X_{t-i} \times_{1} A_{1}^{(ir)} \times_{2}  \cdots \times_{K} A_{K}^{(ir)} + E_t.}
 #' We also consider a special form of \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))},
 #'  \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))= \Sigma_K \otimes \Sigma_{K-1} \otimes \cdots \otimes \Sigma_1,}
-#'@name tenAR
-#'@rdname tenAR
-#'@aliases tenAR
-#'@usage tenAR(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
+#'@name tenAR.est
+#'@rdname tenAR.est
+#'@aliases tenAR.est
+#'@usage tenAR.est(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
 #'niter=500, tol=1e-6, print.true=FALSE)
 #'@export
 #'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.
@@ -79,31 +79,34 @@ tenAR.sim <- function(t, dim, R, P, rho, cov){
 #'}
 #'@param R Kronecker rank for each lag.
 #'@param P Autoregressive order.
-#'@param init.A a multi-layer list of initial values of the autoregressive coefficient matrices \eqn{A_1,\cdots,A_K}.
-#' the first level is order, second is terms, the third is mode. See our example code in the following. The default are identity matrices.
+#'@param init.A initial values of coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}} in estimation algorithms, which is a multi-layer list such that
+#' the first level denotes orders, the second denotes terms, the third denotes modes. See our example code in the following. By default, we use projection estimators as initial values.
 #'@param init.sig only if \code{method=MLE}, a list of initial values of \eqn{\Sigma_1,\ldots,\Sigma_K}. The default are identity matrices.
 #'@param niter maximum number of iterations if error stays above \code{tol}.
 #'@param tol error tolerance in terms of the Frobenius norm.
 #'@return return a list containing the following:\describe{
-#'\item{\code{A}}{a list of estimated coefficient matrices \eqn{A_1,A_2,\cdots,A_K}. It is a multi-layer list,
-#' the first level is order, second is terms, the third is mode. See our example code in the following.}
+#'\item{\code{A}}{a list of estimated coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}. It is a multi-layer list,
+#' the first level denotes orders, the second denotes terms, the third denotes modes. See our example code in the following.}
 #'\item{\code{sigma}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
 #'\item{\code{res}}{residuals}
 #'\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t})).}
-#'\item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_1,\ldots,A_k.}}
-#'\item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_1,\ldots,A_k}, returned as a list aligned with \code{A}.}
+#'\item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}}
+#'\item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}, returned as a list aligned with \code{A}.}
 #'\item{\code{niter}}{number of iterations.}
 #'\item{\code{BIC}}{value of extended Bayesian information criterion.}
 #'}
+#'@references
+#'Rong Chen, Han Xiao, and Dan Yang. "Autoregressive models for matrix-valued time series". Journal of Econometrics, 2020.
 #'@examples
 #' dim <- c(2,2,2)
 #' xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
-#' est <- tenAR(xx, R=1, P=1, method="LSE")
+#' est <- tenAR.est(xx, R=2, P=1, method="LSE")
 #' A <- est$A # A is a multi-layer list
-#' length(A) == 1 # since the order p = 1
-#' length(A[[1]]) == 2 # since the number of terms R = 2
-#' length(A[[1]][[1]]) == 3 # since the mode K = 3
-tenAR <- function(xx, method="LSE", R=1, P=1, init.A=NULL, init.sig=NULL, niter=500, tol=1e-6, print.true=FALSE){
+#'
+#' length(A) == 1 # TRUE, since the order P = 1
+#' length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
+#' length(A[[1]][[1]]) == 3 # TRUE, since the mode K = 3
+tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=500, tol=1e-6, print.true=FALSE){
   if (identical("PROJ", method)) {
     tenAR.PROJ(xx, R, P)
   } else if (identical("LSE", method)) {
@@ -118,24 +121,23 @@ tenAR <- function(xx, method="LSE", R=1, P=1, init.A=NULL, init.sig=NULL, niter=
 }
 
 
-#' Reduced Rank MAR(1) iterative estimation for matrix-valued time series
+#' Reduced Rank MAR(1) Iterative Estimation for Matrix-Valued Time Series
 #'
-#' Reduced Rank MAR(1) iterative estimation for matrix-valued time series,
-#' including the Reduced Rank MAR(1) iterative estimation (RRLSE), and Reduced Rank MAR(1) iterative estimation with Kronecker covariance structure (RRMLE),
-#' which should be specified by the value of \code{method}.
+#' Reduced rank one-term MAR(1) iterative estimation for matrix-valued time series, including the reduced
+#' rank one-term MAR(1) iterative estimation (RRLSE), and reduced rank one-term MAR(1) iterative estimation with
+#' Kronecker structured covariance (RRMLE), as determined by the value of \code{method}.
 #'@details
-#' Matrix autoregressive model (order one) has the following form:
-#' \deqn{X_t = \sum_{r=1}^R A_1^{(r)} X_{t-1} A_2^{(r) \prime} + E_t,}
-#' where \eqn{A_i^{(r)}} are \eqn{d_i \times d_i} coefficient matrices, \eqn{i=1,2}, and \eqn{E_t} is a matrix white noise. \eqn{R} is the number of terms.
-#' Note that only the lag-1 term \eqn{X_{t-1}} appears on the right hand side, so we refer to it as an order-1 model. For order-p model we have the form:
-#' \deqn{X_t = \sum_{i=1}^{p} \sum_{r=1}^{R_i} A_{1}^{(ir)} X_{t-i} A_{2}^{(ir)\prime} + E_t.}
+#' One-term matrix autoregressive model (order one) has the following form:
+#' \deqn{X_t =  A_1 X_{t-1} A_2^{\prime} + E_t,}
+#' where \eqn{A_i} are \eqn{d_i \times d_i} coefficient matrices, \eqn{i=1,2}, and \eqn{E_t} is a matrix white noise.
+#' Note that only the lag-1 term \eqn{X_{t-1}} appears on the right hand side, so we refer to it as an order-1 model.
 #' We also consider a special form of Cov(vec(\eqn{E_t})),
 #'  \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_r \otimes \Sigma_l}
 #' For matrix reduced-rank model, we assume that rank\eqn{(A_i) = k_i \le d_i} for \eqn{i=1,2}.
-#'@name MAR.RR
-#'@rdname MAR.RR
-#'@aliases MAR.RR
-#'@usage MAR.RR(xx, method=c("RRLSE","RRMLE"), LL.init=NULL, RR.init=NULL,Sigl.init=NULL,
+#'@name matAR.RR.est
+#'@rdname matAR.RR.est
+#'@aliases matAR.RR.est
+#'@usage matAR.RR.est(xx, method=c("RRLSE","RRMLE"), A1.init=NULL, A2.init=NULL,Sigl.init=NULL,
 #'Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
 #'@export
 #'@param xx \eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.
@@ -161,32 +163,34 @@ tenAR <- function(xx, method="LSE", R=1, P=1, init.A=NULL, init.sig=NULL, niter=
 #'\item{\code{res}}{residuals.}
 #'\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
 #'\item{\code{cov}}{covariance matrix \eqn{\hat A_1} and \eqn{\hat A_2}. If \code{method=RRLSE} or \code{method=RRMLE}, then it is a list containing \describe{
-#'  \item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
-#'  \item{\code{Theta1.LS.u}, \code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}), vec(\eqn{\hat V_1}).}
-#'  \item{\code{Theta2.LS.u}, \code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}), vec(\eqn{\hat V_2}).}
+#'  \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
+#'  \item{\code{Theta1.u}, \code{Theta1.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}), vec(\eqn{\hat V_1}).}
+#'  \item{\code{Theta2.u}, \code{Theta2.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}), vec(\eqn{\hat V_2}).}
 #'}}
 #'\item{\code{sd}}{standard errors of \eqn{\hat A_1} and \eqn{\hat A_2}, returned in a list aligned with \eqn{\hat A_1} and \eqn{\hat A_2}.}
 #'\item{\code{niter}}{number of iterations.}
 #'\item{\code{BIC}}{value of the extended Bayesian information criterion.}
 #'}
+#'@references
+#'Reduced Rank Autoregressive Models for Matrix Time Series, by Han Xiao, Yuefeng Han, Rong Chen and Chengcheng Liu.
 #'@examples
-#' dim <- c(3,3,3)
+#' dim <- c(3,3)
 #' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-#' est <- MAR.RR(xx, method="RRLSE", k1=1, k2=1)
-MAR.RR <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init=NULL, Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
+#' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
+matAR.RR.est <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init=NULL, Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
   if (identical("PROJ", method)) {
-    MAR1.PROJ(xx)
+    MAR1.PROJ(xx) # just keep it there
   }
   if (identical("LSE", method)) {
-    MAR1.LS(xx)
+    MAR1.LS(xx) # just keep it there
   }
   if (identical("MLE", method)) {
-    MAR1.MLE(xx)
+    MAR1.MLE(xx) # just keep it there
   }
   if (identical("VAR", method)) {
     tenAR.VAR(xx, P=1)
   } else if (identical("RRLSE", method)) {
-    MAR1.RR(xx, k1, k2, nite, tol, LL.init, RR.init)
+    MAR1.RR(xx, k1, k2, niter, tol, LL.init, RR.init)
   } else if (identical("RRMLE", method)) {
     MAR1.CC(xx, k1, k2, LL.init, RR.init, Sigl.init, Sigr.init, niter, tol)
   } else {
@@ -195,30 +199,47 @@ MAR.RR <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init=NULL,
 }
 
 
-#' Asymptotic Covariance Matrix of Reduced rank MAR(1)
+#' Asymptotic Covariance Matrix of One-Term Reduced rank MAR(1) Model
 #'
-#' Asymptotic covariance matrix of reduced rank MAR(1) for given a matrix-valued time series xx, see related Theorems in our paper.
-#'@name MAR1.RRLS.SE
-#'@rdname MAR1.RRLS.SE
-#'@aliases MAR1.RRLS.SE
-#'@usage MAR1.RRLS.SE(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),
-#'RV2=diag(k2),mpower=100)
+#' Asymptotic covariance matrix of one-term reduced rank MAR(1) model. If \code{Sigma1} and \code{Sigma2} is provided in input,
+#' we assume a separable covariance matrix, Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}.
+#'@name matAR1.RR.se
+#'@rdname matAR1.RR.se
+#'@aliases matAR1.RR.se
+#'@usage matAR1.RR.se(A1,A2,k1,k2,Sigma.e=NULL,Sigma1=NULL,Sigma2=NULL,RU1=diag(k1),
+#'RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
 #'@importFrom tensor tensor
 #'@export
 #'@param A1 left coefficient matrix
 #'@param A2 right coefficient matrix
 #'@param k1 rank of A1
 #'@param k2 rank of A2
-#'@param Sigma.e Sigma.e=Cov(vec(\eqn{E_t})): covariance matrix of dimension \eqn{(d_1 d_2) \times (d_1 d_2)}
+#'@param Sigma.e Sigma.e = Cov(vec(\eqn{E_t})): covariance matrix of dimension \eqn{(d_1 d_2) \times (d_1 d_2)}
+#'@param Sigma1,Sigma2 Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}. If these parameters provided, we assume a separable covariance matrix, Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}.
 #'@param RU1,RV1,RU2,RV2: orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1
 #'@param mpower truncate the VMA(\eqn{\infty}) representation of vec(\eqn{X_t}) at \code{mpower} for the purpose of calculating the autocovariances. The default is 100.
 #'@return a list containing the following:\describe{
-#'\item{\code{Sigma.LS}}{asymptotic covariance matrix of (vec(\eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
-#'\item{\code{Theta1.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}).}
-#'\item{\code{Theta1.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_1}).}
-#'\item{\code{Theta2.LS.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}).}
-#'\item{\code{Theta2.LS.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_2}).}
+#'\item{\code{Sigma}}{asymptotic covariance matrix of (vec(\eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
+#'\item{\code{Theta1.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}).}
+#'\item{\code{Theta1.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_1}).}
+#'\item{\code{Theta2.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}).}
+#'\item{\code{Theta2.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_2}).}
 #'}
+#'@references
+#'Han Xiao, Yuefeng Han, Rong Chen and Chengcheng Liu, Reduced Rank Autoregressive Models for Matrix Time Series.
+
+matAR1.RR.se <- function(A1,A2,k1,k2,Sigma.e=NULL,Sigma1=NULL,Sigma2=NULL,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100){
+  if ((is.null(Sigma.e) && is.null(Sigma1)) || (is.null(Sigma.e) && is.null(Sigma2))){
+   stop("No Sigma.e or Sigma1 and Sigma2 in input.")
+  }
+  if ((!is.null(Sigma1)) && (!is.null(Sigma2))){
+    return(MAR1.RRCC.SE(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100))
+  } else {
+    return(MAR1.RRLS.SE(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100))
+  }
+}
+
+
 MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100){
   # iterative least square
   # X_t = A1 X_{t-1} A2^T + E_t
@@ -381,34 +402,11 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
   Theta2.LS.v <- R2v%*% Sigma.LS.2v %*%t(R2v)
   Theta2.LS.u <- kronecker(t(RU2),diag(d2))%*%Theta2.LS.u
   Theta2.LS.v <- kronecker(t(RV2),diag(d2))%*%Theta2.LS.v
-  return(list("Sigma.LS"=Sigma.LS,"Theta1.LS.u"=Theta1.LS.u,"Theta1.LS.v"=Theta1.LS.v,
-              "Theta2.LS.u"=Theta2.LS.u,"Theta2.LS.v"=Theta2.LS.v))
+  return(list("Sigma"=Sigma.LS,"Theta1.u"=Theta1.LS.u,"Theta1.v"=Theta1.LS.v,
+              "Theta2.u"=Theta2.LS.u,"Theta2.v"=Theta2.LS.v))
 }
 
-#' Asymptotic Covariance Matrix of Reduced rank MAR(1) with Kronecker covariance structure
-#'
-#' Asymptotic covariance Matrix of Reduced rank MAR(1) Kronecker covariance structure for given a matrix-valued time series xx, see related Theorems in our paper.
-#'@name MAR1.RRCC.SE
-#'@rdname MAR1.RRCC.SE
-#'@aliases MAR1.RRCC.SE
-#'@usage MAR1.RRCC.SE((A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),
-#'RV2=diag(k2),mpower=100))
-#'@importFrom tensor tensor
-#'@export
-#'@param A1 left coefficient matrix
-#'@param A2 right coefficient matrix
-#'@param k1 rank of A1
-#'@param k2 rank of A2
-#'@param Sigma1,Sigma2 Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}
-#'@param RU1,RV1,RU2,RV2: orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1
-#'@param mpower truncate the VMA(\eqn{\infty}) representation of vec(\eqn{X_t}) at \code{mpower} for the purpose of calculating the autocovariances. The default is 100.
-#'@return a list containing the following:\describe{
-#'\item{\code{Sigma.CC}}{asymptotic covariance matrix of (vec(\eqn{\hat A_1}),vec(\eqn{\hat A_2^T}))}
-#'\item{\code{Theta1.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}).}
-#'\item{\code{Theta1.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_1}).}
-#'\item{\code{Theta2.CC.u}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}).}
-#'\item{\code{Theta2.CC.v}}{asymptotic covariance matrix of vec(\eqn{\hat V_2}).}
-#'}
+
 MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100){
   # canonical correlation analysis
   # X_t = A1 X_{t-1} A2^T + E_t
@@ -576,8 +574,8 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
   Theta2.CC.v <- R2v%*% Sigma.CC.2v %*%t(R2v)
   Theta2.CC.u <- kronecker(t(RU2),diag(d2))%*%Theta2.CC.u
   Theta2.CC.v <- kronecker(t(RV2),diag(d2))%*%Theta2.CC.v
-  return(list("Sigma.CC"=Sigma.CC,"Theta1.CC.u"=Theta1.CC.u,"Theta1.CC.v"=Theta1.CC.v,
-              "Theta2.CC.u"=Theta2.CC.u,"Theta2.CC.v"=Theta2.CC.v))
+  return(list("Sigma"=Sigma.CC,"Theta1.u"=Theta1.CC.u,"Theta1.v"=Theta1.CC.v,
+              "Theta2.u"=Theta2.CC.u,"Theta2.v"=Theta2.CC.v))
 }
 
 
@@ -803,7 +801,6 @@ tenAR.A <- function(dim,R,P,rho){
 }
 
 
-
 tenAR.PROJ <- function(xx,R,P){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   dim <- xx@modes[-1]
@@ -823,7 +820,7 @@ tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-6,print.true = FALSE
   dim <- xx@modes[-1]
   K <- length(dim)
   t <- xx@modes[[1]]
-  if (is.null(init.A)) {A.old <- TenAR.proj(xx,R,P)$A} else {A.old <- init.A}
+  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*P*R
   dis <- 1
@@ -886,7 +883,7 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, 
   if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
-  if (is.null(init.A)) {A.old <- TenAR.proj(xx, R, P)$A} else {A.old <- init.A}
+  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*P*R
   dis <- 1
@@ -1019,7 +1016,7 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
   res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,2),LL,2,2),c(1,3,2))
   Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
   bic <- T*p*q*log(sum(res^2/(T*p*q))) ##+log(T*p*q)*(bic.penalty(p,k1)+bic.penalty(q,k2))
-  cov <- MAR1.RRLS.SE(LL,RR,k1,k2,Sig,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
+  cov <- matAR1.RR.se(LL,RR,k1,k2,Sigma.e=Sig,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)$Sigma
   sd <- list(array(diag(cov)[1:p^2], c(p,p)), as.array(diag(cov)[(p^2+1):(p^2+q^2)], c(q,q)))
   return(list(LL=LL,RR=RR,res=res,Sig=Sig,BIC=bic,niter=iiter-1,cov=cov,sd=sd))
 }
@@ -1143,7 +1140,7 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=LL,Sigl.init=NULL,Sigr.init=NU
   LL <- LL / a
   RR <- RR * a
   Sig <- kronecker(Sigr,Sigl)
-  cov <- MAR1.RRCC.SE(LL,RR,k1,k2,Sigr,Sigl,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
+  cov <- matAR1.RR.se(LL,RR,k1,k2,Sigma1=Sigl,Sigma2=Sigr,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)$Sigma
   sd <- list(array(diag(cov)[1:p^2], c(p,p)), as.array(diag(cov)[(p^2+1):(p^2+q^2)], c(q,q)))
   return(list(LL=LL,RR=RR,res=res,Sigl=Sigl,Sigr=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd))
 }
@@ -1264,9 +1261,9 @@ tenAR.bic <- function(xx, rmax=5){
   which.min(ans)
 }
 
-#' Plot matrix-valued time series
+#' Plot Matrix-Valued Time Series
 #'
-#' Plot matrix-valued time series, can be also used to plot tensor-Valued time series by given mode.
+#' Plot matrix-valued time series, can be also used to plot tensor-valued time series by given mode.
 #'@name mplot
 #'@rdname mplot
 #'@aliases mplot
@@ -1301,20 +1298,20 @@ mplot <- function(x){
 }
 
 
-#' Predictions for tensor autoregressive models
+#' Predictions for Tensor Autoregressive Models
 #'
-#' `predict.tenAR` is a function for predictions from the results of model fitting functions.
+#' `tenAR.predict` is a function for predictions from the results of model fitting functions.
 #' The function invokes particular methods which depend on the class of the first argument.
 #' If \code{rolling=TRUE}, this would be a rolling forecast, specifically, using given model parameters object,
 #' start from the last time point \eqn{X_t} in data, we obtain the one step ahead prediction \eqn{X_{t+1}}.
 #' Then fit the corresponding model using all available data and \eqn{X_{t+1}}
 #' to obtain \eqn{X_{t+2}}. Repeat this process to \eqn{X_{t+n.head}}.
-#' Our function is similar to the usage of classical `predict.ar` in package "stats".
-#'@name predict.tenAR
-#'@rdname predict.tenAR
-#'@aliases predict.tenAR
+#' Our function is similar to the usage of classical `predict.ar' in package "stats".
+#'@name tenAR.predict
+#'@rdname tenAR.predict
+#'@aliases tenAR.predict
 #'@import rTensor abind
-#'@usage predict.tenAR(object, xx, n.head, method, rolling=FALSE)
+#'@usage tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 #'@export
 #'@param object a fit from TenAR(P) model
 #'@param data data to which to apply the prediction
@@ -1322,17 +1319,17 @@ mplot <- function(x){
 #'@param method method used by rolling forecast
 #'@param rolling TRUE or FALSE, rolling forcast, is FALSE by default
 #'@return predicted value
-#'@seealso `predict.ar` or `predict.arima`
+#'@seealso 'predict.ar' or 'predict.arima'
 #'@examples
 #' dim <- c(2,2,2)
-#' xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, setting='iid')
-#' est <- tenAR(xx, R=1, P=1, method="LSE")
-#' pred <- predict.tenAR(est, xx, n.head = 5)
+#' xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
+#' est <- tenAR.est(xx, R=1, P=1, method="LSE")
+#' pred <- tenAR.predict(est, xx, n.head = 5)
 #' # rolling forcast
-#' pred.rolling <- predict.tenAR(model, xx, n.head = 5, method="LSE", rolling=TRUE)
-predict.tenAR <- function(object, xx, n.head, method="LSE", rolling=FALSE){
+#' pred.rolling <- tenAR.predict(est, xx, n.head = 5, method="LSE", rolling=TRUE)
+tenAR.predict <- function(object, xx, n.head, method="LSE", rolling=FALSE){
   if (rolling == TRUE){
-    return(predict.rolling(object, xx, n.head, method="LSE"))
+    return(predict.rolling(object, xx, n.head, method))
   }
 
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
@@ -1370,7 +1367,7 @@ predict.rolling <- function(object, xx, n.head, method="LSE"){
     if (tti > 1){
       print(paste("==================complete",tti))
       xx <- .remove.mean(xx)
-      model = tenAR(xx, R, P, method)
+      model = tenAR.est(xx, R, P, method)
       A <- model$A
     }
     L1 = 0

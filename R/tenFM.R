@@ -1,41 +1,69 @@
-#' Tensor factor estimation method
+#' Estimation for Tucker structure Factor Models of Tensor-Valued Time Series
 #'
-#' Estimation function for tensor-valued time series factor model.
+#' Estimation function for Tucker structure factor models of tensor-valued time series.
+#' Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
+#' are included, as determined by the value of \code{method}.
+#'@details
+#' Tensor factor model with Tucker structure has the following form,
+#' \deqn{X_t = F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
+#' where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
+#' the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
+#' and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. Two estimation approaches, named TOPUP and TIPUP, are studied.
+#' Time series Outer-Product Unfolding Procedure (TOPUP) are based on
+#' \deqn{ {\rm{TOPUP}}_{k}(X_{1:T}) = \left(\sum_{t=h+1}^T \frac{{\rm{mat}}_{k}( X_{t-h}) \otimes {\rm{mat}}_k(X_t)} {T-h}, \ h=1,...,h_0 \right),}
+#' where \eqn{h_0} is a predetermined positive integer, \eqn{\otimes} is tensor product. Note that
+#' \eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to a order-5 tensor.
+#' Time series Inner-Product Unfolding Procedure (TIPUP) replaces the tensor product in TOPUP with the inner product:
+#' \deqn{ {\rm{TIPUP}}_k(X_{1:T})={\rm{mat}}_1\left(\sum_{t=h+1}^T \frac{{\rm{mat}}_k(X_{t-h}) {\rm{mat}}_k^\top(X_t)} {T-h}, \ h=1,...,h_0 \right).}
 #'@name tenFM.est
 #'@rdname tenFM.est
 #'@aliases tenFM.est
-#'@usage tenFM.est(x,r,method='TIPUP')
+#'@usage tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter=100)
 #'@export
-#'@param x \eqn{T \times d_1 \times \cdots \times d_K} dimensional tensor-valued time series
-#'@param r input rank of factor tensor
-#'@param h0 lag number
-#'@param dim dimension of coefficient matrices
+#'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
+#'@param r input rank of the factor tensor.
+#'@param h0 the number of lags used in auto-covariance tensor.
+#'@param dim dimension of the coefficient matrices.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
-#'  \item{\code{"TIPUP",}}{TIPUP method}
-#'  \item{\code{"TOPUP",}}{TOPUP method}
+#'  \item{\code{"TIPUP",}}{TIPUP method.}
+#'  \item{\code{"TOPUP",}}{TOPUP method.}
 #'}
-#'@param iter boolean, specifying using an iterative approach or an non-iterative approach
-#'@param vmax boolean, specifying using varimax rotation on the factor matrix or not
-#'@param tol tolerance for each iteration
-#'@param maxiter integer, the max number of iterations allowed
+#'@param iter boolean, specifying using an iterative approach or an non-iterative approach.
+#'@param vmax boolean, specifying using varimax rotation on the factor matrix or not.
+#'@param tol tolerance in terms of the Frobenius norm.
+#'@param maxiter maximum number of iterations if error stays above \code{tol}.
 #'@return return a list containing the following:\describe{
-#'\item{\code{Ft}}{estimated factor matrices of dimension \eqn{T*r_1*r_2 *\cdots *r_k}}
-#'\item{\code{Ft.all}}{Summation of factor matrices over time, dimension \eqn{r_1,r_2,\cdots,r_k} }
-#'\item{\code{Q}}{loading matrices}
-#'\item{\code{x.hat}}{fitted signal part}
-#'\item{\code{niter}}{number of iterations}
-#'\item{\code{fnorm.resid}}{Frobenius norm of residual, divide the Frobenius norm of the original tensor}
+#'\item{\code{Ft}}{estimated factor processes of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}.}
+#'\item{\code{Ft.all}}{Summation of factor processes over time, of dimension \eqn{r_1,r_2,\cdots,r_k}.}
+#'\item{\code{Q}}{a list of estimated factor loading matrices \eqn{Q_1,Q_2,\cdots,Q_K}. }
+#'\item{\code{x.hat}}{fitted signal tensor, of dimension \eqn{T \times d_1 \times d_2 \times \cdots \times d_k}.}
+#'\item{\code{niter}}{number of iterations.}
+#'\item{\code{fnorm.resid}}{Frobenius norm of residuals, divide the Frobenius norm of the original tensor.}
 #'}
+#'@references
+#'Chen, Rong, Dan Yang, and Cun-Hui Zhang. "Factor models for high-dimensional tensor time series." Journal of the American Statistical Association just-accepted (2021): 1-59.
+#'
+#'Han, Yuefeng, Rong Chen, Dan Yang, and Cun-Hui Zhang. "Tensor factor model estimation by iterative projection." arXiv preprint arXiv:2006.02611 (2020).
+#'
 #'@examples
-#'dims <- c(4,5,6) # dimensions of tensor time series
-#'t <- 50
+#'dims <- c(16,18,20) # dimensions of tensor time series
+#'t <- 100
 #'r <- c(2,2,2)  # dimensions of factor series
-#'x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
-#'Et <- array(rnorm(t*prod(dims)),c(t,dims)) # add some iid noise to the tensor time series
-#'x = x + Et
+#'ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+#'F.dims <- dim(ar1.coef)
+#'Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+#'for(ir1 in 1:F.dims[1]){
+#'  for(ir2 in 1:F.dims[2]){
+#'    for(ir3 in 1:F.dims[3]){
+#'      Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+#'    }
+#'  }
+#'}
+#'lambda <- sqrt(prod(dims))
+#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 #'result <- tenFM.est(x,r,method='TOPUP')  # Estimation
 #'Ft <- result$Ft
-tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter=100){
+tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100){
   x <- aperm(x@data,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
@@ -127,54 +155,73 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter
 }
 
 
-#' Tensor factor model rank determination
+#' Rank Determination for Tensor Factor Models with Tucker Structure
 #'
-#' Function for rank determination of the tensor factor model
+#' Function for rank determination of tensor factor models with Tucker Structure,
+#' Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
+#' are included, as determined by the value of \code{method}.
+#' Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,
+#' which should be specified by the value of \code{rank} and \code{penalty}. The information criterion resembles BIC in the vector factor model literature.
+#' And the eigen ratio criterion is similar to the eigenvalue ratio based methods in the vector factor model literature.
 #'@name tenFM.rank
 #'@rdname tenFM.rank
 #'@aliases tenFM.rank
-#'@usage tenFM.rank(x,r,rank='BIC',method='TIPUP')
+#'@usage tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-4,maxiter=100)
 #'@export
-#'@param x \eqn{T \times d_1 \times \cdots \times d_K} dimensional tensor-valued time series
-#'@param r input rank of factor matrix
-#'@param h0 lag number
+#'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
+#'@param r input rank of the factor tensor.
+#'@param h0 the number of lags used in auto-covariance tensor.
 #'@param rank character string, specifying the type of the rank determination method to be used. \describe{
-#'  \item{\code{"BIC",}}{Bayesian information criterion}
-#'  \item{\code{"ER",}}{Eigen ratio method}
+#'  \item{\code{"BIC",}}{information criterion.}
+#'  \item{\code{"ER",}}{eigen ratio criterion.}
 #'}
 #'@param method character string, specifying the type of the factor estimation method to be used. \describe{
-#'  \item{\code{"TIPUP",}}{TIPUP method}
-#'  \item{\code{"TOPUP",}}{TOPUP method}
+#'  \item{\code{"TIPUP",}}{TIPUP method.}
+#'  \item{\code{"TOPUP",}}{TOPUP method.}
 #'}
-#'@param inputr boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration
-#'@param iter boolean, specifying using an iterative approach or an non-iterative approach
-#'@param penalty takes value in {1,2,3,4,5}, decide which penalty function to use. \describe{
+#'@param inputr boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.
+#'@param iter boolean, specifying using an iterative approach or an non-iterative approach.
+#'@param penalty takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. \describe{
 #'  \item{}{When \code{rank}= 'BIC':}
-#'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})}}
-#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})}}
-#'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{d,T})}}
-#'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{d,T})}}
-#'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{d_k,T})}}
+#'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};,}
+#'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
 #'  \item{}{When \code{rank}= 'ER':}
-#'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0}}
-#'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}}}
-#'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}}}
-#'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}}}
-#'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}}
+#'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
+#'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
+#'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+#'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+#'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 #'}
-#'@param delta1 weakest factor strength, a tuning parameter used for BIC method only
-#'@param tol tolerance for each iteration
-#'@param maxiter integer, the max number of iterations allowed
-#'@return estimated number of factors \eqn{n_1,n_2,\cdots,n_k}
+#'@param delta1 weakest factor strength, a tuning parameter used for BIC method only, default value is 0.
+#'@param tol tolerance in terms of the Frobenius norm.
+#'@param maxiter maximum number of iterations if error stays above \code{tol}.
+#'@return return a list containing the following:\describe{
+#'\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)th iteration}.}
+#'\item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
+#'}
+#'@references
+#'Han, Yuefeng, Cun-Hui Zhang, and Rong Chen. "Rank Determination in Tensor Factor Model." Available at SSRN 3730305 (2020).
 #'@examples
-#'dims <- c(4,5,6) # dimensions of tensor time series
-#'t <- 50
+#'dims <- c(16,18,20) # dimensions of tensor time series
+#'t <- 100
 #'r <- c(2,2,2)  # dimensions of factor series
-#'x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
-#'Et <- array(rnorm(t*prod(dims)),c(t,dims))  # add some iid noise to the tensor time series
-#'x = x + Et
+#'ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+#'F.dims <- dim(ar1.coef)
+#'Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+#'for(ir1 in 1:F.dims[1]){
+#'  for(ir2 in 1:F.dims[2]){
+#'    for(ir3 in 1:F.dims[3]){
+#'      Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+#'    }
+#'  }
+#'}
+#'lambda <- sqrt(prod(dims))
+#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 #'rank <- tenFM.rank(x,r,rank='BIC',method='TIPUP')  # Estimate the rank
-tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-4,maxiter=100){
+tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-5,maxiter=100){
   x <- aperm(x@data,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
@@ -259,50 +306,113 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
     iiter <- iiter + 1
   }
 
-  factor.num[,,maxiter]=factor.num[,,iiter-1]
-  eigen.gap[,,maxiter]=eigen.gap[,,iiter-1]
+  factor.num[,,maxiter]=factor.num[,,iiter]
+  eigen.gap[,,maxiter]=eigen.gap[,,iiter]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
   norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
-  return(factor.num[,penalty,maxiter])
+  return(list("path"=factor.num[,penalty,1:(iiter)],"factor.num"=factor.num[,penalty,maxiter]))
 }
 
 
-#' Generate tensor time series from given factor structure
+#' Generate tensor time series from given factor process and factor loading matrices
 #'
-#' For simulation only, generate tensor time series \eqn{X_t} from given factor structure, each factor entry follows an univariate AR(1) process
+#' Simulate tensor time series \eqn{X_t} from given factor process \eqn{F_t}. The factor process \eqn{F_t} can be generate from the function \code{\link{tenAR.sim}}.
+#'@details
+#' To simulate tensor time series \eqn{X_t}, We consider the following model,
+#' \deqn{X_t = \lambda F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
+#' where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
+#' the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
+#' \eqn{lambda} is an additional signal strength parameter,
+#' and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. In this function, the default \eqn{A_k} are orthogonal matrices.
 #'@name tenFM.sim
 #'@rdname tenFM.sim
 #'@aliases tenFM.sim
+#'@usage tenFM.sim(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2)
 #'@export
-#'@param dims dimensions of the output tensor time series,  \eqn{d_1\times d_2\cdots\times d_K}
-#'@param ar1.coef ar coefficients of the factor process, same dimension with \eqn{F_t : r_1\times r_2\cdots\times r_K}
-#'@param t length of time
-#'@return A tensor of size  \eqn{T\times d_1\times d_2\cdots\times d_K}
-#'@seealso \code{\link{generate.AR}}
+#'@param Ft input of the factor process, of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}. It can be TenAR(p) tensor time series generated from the function \link{tenAR.sim}.
+#'@param dims dimensions of the output tensor at each time,  \eqn{d_1\times d_2\cdots\times d_K}.
+#'@param A a list of the factor loading matrices \eqn{A_1, A_2, \cdots, A_K}. The default is random orthogonal matrices \eqn{A_k} of dimension \eqn{d_k \times r_k}.
+#'@param lambda signal strength parameter of the tensor factor models, see Details section for more information.
+#'@param cov covariance matrix of the error tensor: identity ("iid"), separable Kronecker structure ("separable"), random ("random").
+#'@param rho a parameter only for "separable" covariance matrix of the error tensor. It is the off-diagonal element of the error matrices, with the diagonal being 1.
+#'@return A tensor-valued time series of dimension \eqn{T\times d_1\times d_2\cdots\times d_K}.
+#'@seealso \code{\link{tenAR.sim}}
 #'@examples
-#'dims <- c(4,5,6) # dimensions of tensor time series
-#'t <- 50
+#'dims <- c(16,18,20) # dimensions of tensor time series
+#'t <- 100
 #'r <- c(2,2,2)  # dimensions of factor series
-#'ar1.coef = array(c(runif(prod(r)),min=0.5,max=1)),r)
-#'x = tenFM.sim(dims,ar1.coef,t)  # generate t*dims tensor
-tenFM.sim <- function(dims,ar1.coef,t){
-  F.dims = dim(ar1.coef)
-  Ft = array(NA,dim=c(F.dims[1],F.dims[2],F.dims[3],t))
-  for(ir1 in 1:F.dims[1]){
-    for(ir2 in 1:F.dims[2]){
-      for(ir3 in 1:F.dims[3]){
-        Ft[ir1,ir2,ir3,] = arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
-      }
+#'ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+#'F.dims <- dim(ar1.coef)
+#'Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+#'for(ir1 in 1:F.dims[1]){
+#'  for(ir2 in 1:F.dims[2]){
+#'    for(ir3 in 1:F.dims[3]){
+#'      Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+#'    }
+#'  }
+#'}
+#'lambda <- sqrt(prod(dims))
+#'# generate t*dims tensor time series with iid error covaraince structure
+#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid')
+#'# generate t*dims tensor time series with separable error covaraince structure
+#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='separable',rho=0.2)
+#'
+#'# generate t*dims tensor time series with random error covaraince structure
+#'dims <- c(30,20) # dimensions of tensor time series
+#'t <- 100
+#'r <- c(3,3)  # dimensions of factor series
+#'ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+#'F.dims <- dim(ar1.coef)
+#'Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2]))
+#'for(ir1 in 1:F.dims[1]){
+#'  for(ir2 in 1:F.dims[2]){
+#'    Ft[,ir1,ir2] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2]))
+#'  }
+#'}
+#'lambda <- sqrt(prod(dims))
+#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='random')
+tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
+  r <- dim(Ft)[-1] #dimensions of the factor process
+  t <- dim(Ft)[1] #length of output series
+  dd <- length(dims)
+  if(length(r)!=dd & is.null(A)){
+    stop("Incorrect length K of input dims or A, for order K tensor time series.")
+  }
+  if(is.null(A)){
+    X <- aperm(Ft,c(2:(dd+1),1))
+    for(i in 1:dd){
+      Ai = matrix(rnorm(dims[i]*r[i]),dims[i],r[i])
+      Q = qr.Q(qr(Ai))
+      X <- tensor(X,Q,1,2)
+    }
+  } else{
+    X <- Ft
+    for(i in 1:dd){
+      Ai = A[[i]]
+      Q = qr.Q(qr(Ai))
+      X <- tensor(X,Q,1,2)
     }
   }
-
-  dd = length(dims)
-  X <- Ft
-  for(i in 1:dd){
-    A = matrix(rnorm(dims[i]*r[i]),dims[i],r[i])
-    Q = qr.Q(qr(A))
-    X <- tensor(X,Q,1,2)
+  if (cov == "iid"){
+    E <- array(rnorm(prod(dims)*t),c(t,dims))
+  } else if (cov == "separable"){
+    E <- array(rnorm(prod(dims)*t),c(dims,t)) # d_1 * ... * d_K * t
+    for(i in 1:dd){
+      cov.matrix <- matrix(rho,dims[i],dims[i]) + diag(rep(1-rho,dims[i]))
+      x.eig <- eigen(cov.matrix)
+      values <- x.eig$values
+      values.sqrt <- rep(0,nrow(cov.matrix))
+      values.sqrt[values > 0] <- sqrt(values[values > 0])
+      cov.half <- x.eig$vectors %*% diag(values.sqrt) %*% t(x.eig$vectors)
+      E <- tensor(E,cov.half,1,1) # d_{i+1} * ... * d_K * t * d_1 *... *d_i
+    }
+  } else if (cov == "random"){
+    E <- matrix(rnorm(prod(dims)*t),t,prod(dims)) %*% qr.Q(qr(matrix(rnorm(prod(dims)^2),prod(dims))))
+    E <- array(E,c(t,dims))
+  } else {
+    stop("Please specify cov")
   }
+  X <- lambda * X + E
   return(as.tensor(X))
 }
 

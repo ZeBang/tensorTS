@@ -2,52 +2,81 @@
 % Please edit documentation in R/tenFM.R
 \name{tenFM.est}
 \alias{tenFM.est}
-\title{Tensor factor estimation method}
+\title{Estimation for Tucker structure Factor Models of Tensor-Valued Time Series}
 \usage{
-tenFM.est(x,r,method='TIPUP')
+tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-4,maxiter=100)
 }
 \arguments{
-\item{x}{\eqn{T \times d_1 \times \cdots \times d_K} dimensional tensor-valued time series}
+\item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}
 
-\item{r}{input rank of factor tensor}
+\item{r}{input rank of the factor tensor.}
 
-\item{h0}{lag number}
+\item{h0}{the number of lags used in auto-covariance tensor.}
 
 \item{method}{character string, specifying the type of the estimation method to be used. \describe{
- \item{\code{"TIPUP",}}{TIPUP method}
- \item{\code{"TOPUP",}}{TOPUP method}
+ \item{\code{"TIPUP",}}{TIPUP method.}
+ \item{\code{"TOPUP",}}{TOPUP method.}
 }}
 
-\item{iter}{boolean, specifying using an iterative approach or an non-iterative approach}
+\item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
 
-\item{vmax}{boolean, specifying using varimax rotation on the factor matrix or not}
+\item{vmax}{boolean, specifying using varimax rotation on the factor matrix or not.}
 
-\item{tol}{tolerance for each iteration}
+\item{tol}{tolerance in terms of the Frobenius norm.}
 
-\item{maxiter}{integer, the max number of iterations allowed}
+\item{maxiter}{maximum number of iterations if error stays above \code{tol}.}
 
-\item{dim}{dimension of coefficient matrices}
+\item{dim}{dimension of the coefficient matrices.}
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{Ft}}{estimated factor matrices of dimension \eqn{T*r_1*r_2 *\cdots *r_k}}
-\item{\code{Ft.all}}{Summation of factor matrices over time, dimension \eqn{r_1,r_2,\cdots,r_k} }
-\item{\code{Q}}{loading matrices}
-\item{\code{x.hat}}{fitted signal part}
-\item{\code{niter}}{number of iterations}
-\item{\code{fnorm.resid}}{Frobenius norm of residual, divide the Frobenius norm of the original tensor}
+\item{\code{Ft}}{estimated factor processes of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}.}
+\item{\code{Ft.all}}{Summation of factor processes over time, of dimension \eqn{r_1,r_2,\cdots,r_k}.}
+\item{\code{Q}}{a list of estimated factor loading matrices \eqn{Q_1,Q_2,\cdots,Q_K}. }
+\item{\code{x.hat}}{fitted signal tensor, of dimension \eqn{T \times d_1 \times d_2 \times \cdots \times d_k}.}
+\item{\code{niter}}{number of iterations.}
+\item{\code{fnorm.resid}}{Frobenius norm of residuals, divide the Frobenius norm of the original tensor.}
 }
 }
 \description{
-Estimation function for tensor-valued time series factor model.
+Estimation function for Tucker structure factor models of tensor-valued time series.
+Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
+are included, as determined by the value of \code{method}.
+}
+\details{
+Tensor factor model with Tucker structure has the following form,
+\deqn{X_t = F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
+where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
+the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
+and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. Two estimation approaches, named TOPUP and TIPUP, are studied.
+Time series Outer-Product Unfolding Procedure (TOPUP) are based on
+\deqn{ {\rm{TOPUP}}_{k}(X_{1:T}) = \left(\sum_{t=h+1}^T \frac{{\rm{mat}}_{k}( X_{t-h}) \otimes {\rm{mat}}_k(X_t)} {T-h}, \ h=1,...,h_0 \right),}
+where \eqn{h_0} is a predetermined positive integer, \eqn{\otimes} is tensor product. Note that
+\eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to a order-5 tensor.
+Time series Inner-Product Unfolding Procedure (TIPUP) replaces the tensor product in TOPUP with the inner product:
+\deqn{ {\rm{TIPUP}}_k(X_{1:T})={\rm{mat}}_1\left(\sum_{t=h+1}^T \frac{{\rm{mat}}_k(X_{t-h}) {\rm{mat}}_k^\top(X_t)} {T-h}, \ h=1,...,h_0 \right).}
 }
 \examples{
-dims <- c(4,5,6) # dimensions of tensor time series
-t <- 50
+dims <- c(16,18,20) # dimensions of tensor time series
+t <- 100
 r <- c(2,2,2)  # dimensions of factor series
-x = tenFM.sim(dims,array(c(runif(prod(r)),min=0.5,max=1),r),t)  # generate t*dims tensor
-Et <- array(rnorm(t*prod(dims)),c(t,dims)) # add some iid noise to the tensor time series
-x = x + Et
+ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
+F.dims <- dim(ar1.coef)
+Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
+for(ir1 in 1:F.dims[1]){
+ for(ir2 in 1:F.dims[2]){
+   for(ir3 in 1:F.dims[3]){
+     Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
+   }
+ }
+}
+lambda <- sqrt(prod(dims))
+x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 result <- tenFM.est(x,r,method='TOPUP')  # Estimation
 Ft <- result$Ft
+}
+\references{
+Chen, Rong, Dan Yang, and Cun-Hui Zhang. "Factor models for high-dimensional tensor time series." Journal of the American Statistical Association just-accepted (2021): 1-59.
+
+Han, Yuefeng, Rong Chen, Dan Yang, and Cun-Hui Zhang. "Tensor factor model estimation by iterative projection." arXiv preprint arXiv:2006.02611 (2020).
 }
