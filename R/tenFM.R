@@ -12,7 +12,7 @@
 #' Time series Outer-Product Unfolding Procedure (TOPUP) are based on
 #' \deqn{ {\rm{TOPUP}}_{k}(X_{1:T}) = \left(\sum_{t=h+1}^T \frac{{\rm{mat}}_{k}( X_{t-h}) \otimes {\rm{mat}}_k(X_t)} {T-h}, \ h=1,...,h_0 \right),}
 #' where \eqn{h_0} is a predetermined positive integer, \eqn{\otimes} is tensor product. Note that
-#' \eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to a order-5 tensor.
+#' \eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to an order-5 tensor.
 #' Time series Inner-Product Unfolding Procedure (TIPUP) replaces the tensor product in TOPUP with the inner product:
 #' \deqn{ {\rm{TIPUP}}_k(X_{1:T})={\rm{mat}}_1\left(\sum_{t=h+1}^T \frac{{\rm{mat}}_k(X_{t-h}) {\rm{mat}}_k^\top(X_t)} {T-h}, \ h=1,...,h_0 \right).}
 #'@name tenFM.est
@@ -23,7 +23,6 @@
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
 #'@param r input rank of the factor tensor.
 #'@param h0 the number of lags used in auto-covariance tensor.
-#'@param dim dimension of the coefficient matrices.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"TIPUP",}}{TIPUP method.}
 #'  \item{\code{"TOPUP",}}{TOPUP method.}
@@ -157,7 +156,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 
 #' Rank Determination for Tensor Factor Models with Tucker Structure
 #'
-#' Function for rank determination of tensor factor models with Tucker Structure,
+#' Function for rank determination of tensor factor models with Tucker Structure.
 #' Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
 #' are included, as determined by the value of \code{method}.
 #' Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,
@@ -183,13 +182,13 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'@param inputr boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.
 #'@param iter boolean, specifying using an iterative approach or an non-iterative approach.
 #'@param penalty takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. \describe{
-#'  \item{}{When \code{rank}= 'BIC':}
+#'  \item{}{When \code{rank}= '\code{BIC}', \eqn{\nu}='\code{delta1}':}
 #'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
-#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};,}
+#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
 #'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
 #'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
 #'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
-#'  \item{}{When \code{rank}= 'ER':}
+#'  \item{}{When \code{rank}= '\code{ER}':}
 #'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
 #'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
 #'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
@@ -200,7 +199,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
 #'@return return a list containing the following:\describe{
-#'\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)th iteration}.}
+#'\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}th iteration.}
 #'\item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
 #'}
 #'@references
@@ -315,15 +314,15 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
 }
 
 
-#' Generate tensor time series from given factor process and factor loading matrices
+#' Generate Tensor Time series from given Factor Process and Factor Loading Matrices
 #'
 #' Simulate tensor time series \eqn{X_t} from given factor process \eqn{F_t}. The factor process \eqn{F_t} can be generate from the function \code{\link{tenAR.sim}}.
 #'@details
-#' To simulate tensor time series \eqn{X_t}, We consider the following model,
+#' To simulate tensor time series \eqn{X_t}, we consider the following model,
 #' \deqn{X_t = \lambda F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
 #' where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
 #' the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
-#' \eqn{lambda} is an additional signal strength parameter,
+#' \eqn{\lambda} is an additional signal strength parameter,
 #' and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. In this function, the default \eqn{A_k} are orthogonal matrices.
 #'@name tenFM.sim
 #'@rdname tenFM.sim

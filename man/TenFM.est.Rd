@@ -25,8 +25,6 @@ tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
 \item{tol}{tolerance in terms of the Frobenius norm.}
 
 \item{maxiter}{maximum number of iterations if error stays above \code{tol}.}
-
-\item{dim}{dimension of the coefficient matrices.}
 }
 \value{
 return a list containing the following:\describe{
@@ -52,7 +50,7 @@ and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time
 Time series Outer-Product Unfolding Procedure (TOPUP) are based on
 \deqn{ {\rm{TOPUP}}_{k}(X_{1:T}) = \left(\sum_{t=h+1}^T \frac{{\rm{mat}}_{k}( X_{t-h}) \otimes {\rm{mat}}_k(X_t)} {T-h}, \ h=1,...,h_0 \right),}
 where \eqn{h_0} is a predetermined positive integer, \eqn{\otimes} is tensor product. Note that
-\eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to a order-5 tensor.
+\eqn{ {\rm{TOPUP}}_k(\cdot)} is a function mapping a tensor time series to an order-5 tensor.
 Time series Inner-Product Unfolding Procedure (TIPUP) replaces the tensor product in TOPUP with the inner product:
 \deqn{ {\rm{TIPUP}}_k(X_{1:T})={\rm{mat}}_1\left(\sum_{t=h+1}^T \frac{{\rm{mat}}_k(X_{t-h}) {\rm{mat}}_k^\top(X_t)} {T-h}, \ h=1,...,h_0 \right).}
 }

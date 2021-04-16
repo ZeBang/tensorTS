@@ -29,13 +29,13 @@ delta1=0,tol=1e-5,maxiter=100)
 \item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
 
 \item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. \describe{
- \item{}{When \code{rank}= 'BIC':}
+ \item{}{When \code{rank}= '\code{BIC}', \eqn{\nu}='\code{delta1}':}
  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
- \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};,}
+ \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
- \item{}{When \code{rank}= 'ER':}
+ \item{}{When \code{rank}= '\code{ER}':}
  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
@@ -51,12 +51,12 @@ delta1=0,tol=1e-5,maxiter=100)
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)th iteration}.}
+\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}th iteration.}
 \item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
 }
 }
 \description{
-Function for rank determination of tensor factor models with Tucker Structure,
+Function for rank determination of tensor factor models with Tucker Structure.
 Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
 are included, as determined by the value of \code{method}.
 Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,

@@ -2,7 +2,7 @@
 % Please edit documentation in R/tenFM.R
 \name{tenFM.sim}
 \alias{tenFM.sim}
-\title{Generate tensor time series from given factor process and factor loading matrices}
+\title{Generate Tensor Time series from given Factor Process and Factor Loading Matrices}
 \usage{
 tenFM.sim(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2)
 }
@@ -26,11 +26,11 @@ A tensor-valued time series of dimension \eqn{T\times d_1\times d_2\cdots\times 
 Simulate tensor time series \eqn{X_t} from given factor process \eqn{F_t}. The factor process \eqn{F_t} can be generate from the function \code{\link{tenAR.sim}}.
 }
 \details{
-To simulate tensor time series \eqn{X_t}, We consider the following model,
+To simulate tensor time series \eqn{X_t}, we consider the following model,
 \deqn{X_t = \lambda F_t \times_{1} A_1 \times_{2} \cdots \times_{K} A_k + E_t,}
 where \eqn{A_k} is the deterministic loading matrix of size \eqn{d_k \times r_k} and \eqn{r_k \ll d_k},
 the core tensor \eqn{F_t} itself is a latent tensor factor process of dimension \eqn{r_1 \times \cdots \times r_K},
-\eqn{lambda} is an additional signal strength parameter,
+\eqn{\lambda} is an additional signal strength parameter,
 and the idiosyncratic noise tensor \eqn{E_t} is uncorrelated (white) across time. In this function, the default \eqn{A_k} are orthogonal matrices.
 }
 \examples{
