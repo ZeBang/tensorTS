@@ -815,7 +815,7 @@ tenAR.PROJ <- function(xx,R,P){
 }
 
 
-tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-6,print.true = FALSE){
+tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE){
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   dim <- xx@modes[-1]
   K <- length(dim)

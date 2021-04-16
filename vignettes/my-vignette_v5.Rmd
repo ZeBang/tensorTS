@@ -48,10 +48,10 @@ To use estimation function `TenAR.est`, you need specify the estimation method y
 * "PROJ" (Projection method),
 * "AR" (stacked VAR(1) model).
 
-Specify you want to use multiple term model or one term model by parameter `r`, and the order in TenAR($p$) by parameter `p`, For example, if we want to estimate by `LSE` method under multiple term model with number of terms $r=2$ in TenAR(1) with $p=1$, run as follows,
+Specify you want to use multiple term model or one term model by parameter `R`, and the order in TenAR($p$) by parameter `P`, For example, if we want to estimate by `LSE` method under multiple term model with number of terms $R=1$ in TenAR(1) with $P=1$, run as follows,
 
 ```{r, eval=FALSE}
-model = tenAR.est(xx, R=2, P=1, method="LSE")
+model = tenAR.est(xx, R=1, P=1, method="LSE")
 ```
 
 The return of this function includes,

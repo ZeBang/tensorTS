@@ -13,6 +13,7 @@ Depends:
     rTensor,
     MASS,
     expm,
+    Matrix,
     abind
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
