@@ -8,7 +8,7 @@ Description: Factor and Autoregressive Models for Tensor Time Series
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
-Imports:
+Depends:
     tensor,
     rTensor,
     MASS,

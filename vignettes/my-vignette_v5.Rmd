@@ -37,7 +37,6 @@ For demonstration, we first randomly generate some coefficient matrices and tens
 library(tensorTS)
 dim <- c(4,5,6) # dimension of tensor at time t is 4 * 5 * 6
 xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid') # generate tensor time series with AR(1) structure
-xx <- as.tensor(xx) # input of our function should be tensor class
 ```
 
 To use estimation function `TenAR.est`, you need specify the estimation method you want to use by parameter `method`, which can be
@@ -52,7 +51,7 @@ To use estimation function `TenAR.est`, you need specify the estimation method y
 Specify you want to use multiple term model or one term model by parameter `r`, and the order in TenAR($p$) by parameter `p`, For example, if we want to estimate by `LSE` method under multiple term model with number of terms $r=2$ in TenAR(1) with $p=1$, run as follows,
 
 ```{r, eval=FALSE}
-model = TenAR.est(xx, R=2, P=1, method="LSE")
+model = tenAR.est(xx, R=2, P=1, method="LSE")
 ```
 
 The return of this function includes,
