@@ -4,7 +4,7 @@
 \alias{tenAR.est}
 \title{Estimation for Autoregressive Model of Tensor-Valued Time Series}
 \usage{
-tenAR.est(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
+tenAR.est(xx, R=1, P=1, method="LSE", init.A=NULL,init.sig=NULL,
 niter=500, tol=1e-6, print.true=FALSE)
 }
 \arguments{

@@ -4,7 +4,7 @@
 \alias{mplot}
 \title{Plot Matrix-Valued Time Series}
 \usage{
-mplot(x)
+mplot(xx)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.}
@@ -15,5 +15,5 @@ Plot matrix-valued time series, can be also used to plot tensor-valued time seri
 \examples{
 dim <- c(3,3,3)
 xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-mplot(xx[,,1])
+mplot(xx[1:50,,,1])
 }

@@ -7,7 +7,7 @@
 #'@rdname tenAR.sim
 #'@aliases tenAR.sim
 #'@export
-#'@import tensor rTensor expm abind MASS
+#'@import tensor rTensor expm abind MASS stats
 #'@param t length of output series. A strictly positive integer.
 #'@param dim dimension of the tensor at each time.
 #'@param R Kronecker rank for each lag.
@@ -68,10 +68,10 @@ tenAR.sim <- function(t, dim, R, P, rho, cov){
 #'@name tenAR.est
 #'@rdname tenAR.est
 #'@aliases tenAR.est
-#'@usage tenAR.est(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
+#'@usage tenAR.est(xx, R=1, P=1, method="LSE", init.A=NULL,init.sig=NULL,
 #'niter=500, tol=1e-6, print.true=FALSE)
 #'@export
-#'@import tensor rTensor expm abind MASS
+#'@import tensor rTensor expm abind MASS methods
 #'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"PROJ",}}{Projection method.}
@@ -139,8 +139,8 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #'@name matAR.RR.est
 #'@rdname matAR.RR.est
 #'@aliases matAR.RR.est
-#'@usage matAR.RR.est(xx, method=c("RRLSE","RRMLE"), A1.init=NULL, A2.init=NULL,Sigl.init=NULL,
-#'Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
+#'@usage matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sigl.init=NULL,Sigr.init=NULL,
+#'k1=NULL, k2=NULL, niter=100,tol=1e-6)
 #'@export
 #'@import tensor rTensor expm abind MASS
 #'@param xx \eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.
@@ -180,7 +180,7 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #' dim <- c(3,3)
 #' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-matAR.RR.est <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init=NULL, Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
+matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sigl.init=NULL, Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
   if (identical("PROJ", method)) {
     MAR1.PROJ(xx) # just keep it there
   }
@@ -193,9 +193,9 @@ matAR.RR.est <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init
   if (identical("VAR", method)) {
     tenAR.VAR(xx, P=1)
   } else if (identical("RRLSE", method)) {
-    MAR1.RR(xx, k1, k2, niter, tol, LL.init, RR.init)
+    MAR1.RR(xx, k1, k2, niter, tol, A1.init, A2.init)
   } else if (identical("RRMLE", method)) {
-    MAR1.CC(xx, k1, k2, LL.init, RR.init, Sigl.init, Sigr.init, niter, tol)
+    MAR1.CC(xx, k1, k2, A1.init, A2.init, Sigl.init, Sigr.init, niter, tol)
   } else {
     stop("Please specify the method in MAR.")
   }
@@ -1275,25 +1275,25 @@ tenAR.bic <- function(xx, rmax=5){
 #'@examples
 #' dim <- c(3,3,3)
 #' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-#' mplot(xx[,,1])
-mplot <- function(x){
-  if (mode(x) == "S4"){x = x@data}
-  dim = dim(x)
+#' mplot(xx[1:50,,,1])
+mplot <- function(xx){
+  if (mode(xx) == "S4"){xx = xx@data}
+  dim = dim(xx)
   time = array(c(1:dim[1]),dim[1])
   par(mfrow=c(dim[2],dim[3]),mai=0.05*c(1,1,1,1),oma=c(2,2,0,0))
   for(i in 1:dim[2]){
     for(j in 1:dim[3]){
       if(i!=dim[2] & j!=1){
-        plot(time,x[,i,j],type='l',xaxt='n',yaxt='n',ylim=range(x[,i,]))
+        plot(time,xx[,i,j],type='l',xaxt='n',yaxt='n',ylim=range(xx[,i,]))
       }
       if(i!=dim[2] & j==1){
-        plot(time,x[,i,j],type='l',xaxt='n',ylim=range(x[,i,]))
+        plot(time,xx[,i,j],type='l',xaxt='n',ylim=range(xx[,i,]))
       }
       if(i==dim[2] & j!=1){
-        plot(time,x[,i,j],type='l',yaxt='n',ylim=range(x[,i,]))
+        plot(time,xx[,i,j],type='l',yaxt='n',ylim=range(xx[,i,]))
       }
       if(i==dim[2] & j==1){
-        plot(time,x[,i,j],type='l',ylim=range(x[,i,]))
+        plot(time,xx[,i,j],type='l',ylim=range(xx[,i,]))
       }
     }
   }
@@ -1316,7 +1316,7 @@ mplot <- function(x){
 #'@usage tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 #'@export
 #'@param object a fit from TenAR(P) model
-#'@param data data to which to apply the prediction
+#'@param xx data to which to apply the prediction
 #'@param n.head number of steps ahead at which to predict
 #'@param method method used by rolling forecast
 #'@param rolling TRUE or FALSE, rolling forecast, is FALSE by default

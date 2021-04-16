@@ -292,45 +292,6 @@ likelihood <- function(xx, A, Sigma){
   return(l2 - l1)
 }
 
-sim.I <- function(dim, A, t, setting, R, P, nsim){
-  phi = list()
-  for (p in c(1:P)){
-    phi[[p]] = Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A[[p]][[j]]))}))
-  }
-
-  err <- array(0, c(5, nsim))
-  for (i in c(1:nsim)){
-
-    xx <- rTensor::as.tensor(TenAR.xx(t, A, setting))
-
-
-    A.lse <- TenAR.LS(xx, R=1, P, print.true = FALSE)$A
-    phi.lse <- list(kronecker_list(rev(A.lse[[1]][[1]])))
-    err[1,i] <- log(ten.dis.phi(phi, phi.lse))
-
-    # A.mle <- TenAR.MLE(xx, R=1, P, print.true = FALSE)$A
-    # phi.mle <- list(kronecker_list(rev(A.mle[[1]][[1]])))
-    # err[2,i] <- log(ten.dis.phi(phi, phi.mle))
-
-    A.pro <- TenAR.proj(xx,R=2,P)$A
-    err[2,i] <- log(ten.dis.A(A, A.pro))
-
-    A.lse2 <- TenAR.LS(xx, R=2, P, print.true = FALSE)$A
-    err[3,i] <- log(ten.dis.A(A, A.lse2))
-
-    A.mle2 <- TenAR.MLE(xx, R=2, P, print.true = FALSE)$A
-    err[4,i] <- log(ten.dis.A(A, A.mle2))
-
-    phi.var <- TenAR.VAR(xx, P)$coef
-    err[5,i] <- log(ten.dis.phi(phi, phi.var))
-
-    print(paste("----------dim=",dim))
-    print(paste("----------T=",t))
-    print(paste("-----------------------------------complete=",i))
-  }
-  return(err)
-}
-
 
 IC <- function(xx,res,r,t,dim){
   N <- prod(dim)

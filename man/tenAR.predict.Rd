@@ -9,13 +9,13 @@ tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 \arguments{
 \item{object}{a fit from TenAR(P) model}
 
+\item{xx}{data to which to apply the prediction}
+
 \item{n.head}{number of steps ahead at which to predict}
 
 \item{method}{method used by rolling forecast}
 
 \item{rolling}{TRUE or FALSE, rolling forecast, is FALSE by default}
-
-\item{data}{data to which to apply the prediction}
 }
 \value{
 predicted value

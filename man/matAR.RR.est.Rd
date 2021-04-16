@@ -4,8 +4,8 @@
 \alias{matAR.RR.est}
 \title{Reduced Rank MAR(1) Iterative Estimation for Matrix-Valued Time Series}
 \usage{
-matAR.RR.est(xx, method=c("RRLSE","RRMLE"), A1.init=NULL, A2.init=NULL,Sigl.init=NULL,
-Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
+matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sigl.init=NULL,Sigr.init=NULL,
+k1=NULL, k2=NULL, niter=100,tol=1e-6)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.}
@@ -14,6 +14,10 @@ Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
  \item{\code{"RRLSE",}}{Least squares.}
  \item{\code{"RRMLE",}}{MLE under a separable cov(vec(\eqn{E_t})).}
 }}
+
+\item{A1.init}{initial value of \eqn{A_1}. The default is the identity matrix.}
+
+\item{A2.init}{initial value of \eqn{A_2}. The default is the identity matrix.}
 
 \item{Sigl.init}{only if \code{method=RRMLE}, initial value of Sigl. The default is the identity matrix.}
 
@@ -26,10 +30,6 @@ Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
 \item{niter}{maximum number of iterations if error stays above \code{tol}.}
 
 \item{tol}{relative Frobenius norm error tolerance.}
-
-\item{A1.init}{initial value of \eqn{A_1}. The default is the identity matrix.}
-
-\item{A2.init}{initial value of \eqn{A_2}. The default is the identity matrix.}
 }
 \value{
 return a list containing the following:\describe{
