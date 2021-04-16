@@ -208,7 +208,7 @@ matAR.RR.est <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init
 #'@aliases matAR1.RR.se
 #'@usage matAR1.RR.se(A1,A2,k1,k2,Sigma.e=NULL,Sigma1=NULL,Sigma2=NULL,RU1=diag(k1),
 #'RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
-#'@importFrom tensor tensor
+#'@importFrom MASS ginv
 #'@export
 #'@param A1 left coefficient matrix
 #'@param A2 right coefficient matrix

@@ -11,9 +11,9 @@ LazyData: true
 Depends:
     tensor,
     rTensor,
-    MASS,
     expm,
-    Matrix,
     abind
+Imports:
+    MASS
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr
