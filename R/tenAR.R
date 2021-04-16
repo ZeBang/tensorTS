@@ -1317,7 +1317,7 @@ mplot <- function(x){
 #'@param data data to which to apply the prediction
 #'@param n.head number of steps ahead at which to predict
 #'@param method method used by rolling forecast
-#'@param rolling TRUE or FALSE, rolling forcast, is FALSE by default
+#'@param rolling TRUE or FALSE, rolling forecast, is FALSE by default
 #'@return predicted value
 #'@seealso 'predict.ar' or 'predict.arima'
 #'@examples

@@ -13,7 +13,7 @@ tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 
 \item{method}{method used by rolling forecast}
 
-\item{rolling}{TRUE or FALSE, rolling forcast, is FALSE by default}
+\item{rolling}{TRUE or FALSE, rolling forecast, is FALSE by default}
 
 \item{data}{data to which to apply the prediction}
 }
