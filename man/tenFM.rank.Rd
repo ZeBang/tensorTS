@@ -4,7 +4,8 @@
 \alias{tenFM.rank}
 \title{Rank Determination for Tensor Factor Models with Tucker Structure}
 \usage{
-tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-4,maxiter=100)
+tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
+delta1=0,tol=1e-4,maxiter=100)
 }
 \arguments{
 \item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}

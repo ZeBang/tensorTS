@@ -4,7 +4,7 @@ Title: Factor Models and Autoregressive Models for Time Series
 Version: 0.1.0
 Author: Zebang Li and Ruofan Yu and Yuefeng Han and Han Xiao and Rong Chen and Dan Yang 
 Maintainer: Zebang Li <zl326@stat.rutgers.edu>
-Description: Factor and Autoregressive Models for Tensor Time Series
+Description: Factor and Autoregressive Models for Tensor Time Series.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
@@ -12,8 +12,7 @@ Depends:
     tensor,
     rTensor,
     expm,
-    abind
-Imports:
+    abind,
     MASS
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr

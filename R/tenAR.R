@@ -7,6 +7,7 @@
 #'@rdname tenAR.sim
 #'@aliases tenAR.sim
 #'@export
+#'@import tensor rTensor expm abind MASS
 #'@param t length of output series. A strictly positive integer.
 #'@param dim dimension of the tensor at each time.
 #'@param R Kronecker rank for each lag.
@@ -70,6 +71,7 @@ tenAR.sim <- function(t, dim, R, P, rho, cov){
 #'@usage tenAR.est(xx, method=c("PROJ","LSE","MLE","VAR"), R=1, P=1, init.A=NULL,init.sig=NULL,
 #'niter=500, tol=1e-6, print.true=FALSE)
 #'@export
+#'@import tensor rTensor expm abind MASS
 #'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"PROJ",}}{Projection method.}
@@ -140,6 +142,7 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #'@usage matAR.RR.est(xx, method=c("RRLSE","RRMLE"), A1.init=NULL, A2.init=NULL,Sigl.init=NULL,
 #'Sigr.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
 #'@export
+#'@import tensor rTensor expm abind MASS
 #'@param xx \eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.
 #'@param A1.init initial value of \eqn{A_1}. The default is the identity matrix.
 #'@param A2.init  initial value of \eqn{A_2}. The default is the identity matrix.
@@ -208,7 +211,7 @@ matAR.RR.est <- function(xx, method="LSE", LL.init=NULL, RR.init=NULL, Sigl.init
 #'@aliases matAR1.RR.se
 #'@usage matAR1.RR.se(A1,A2,k1,k2,Sigma.e=NULL,Sigma1=NULL,Sigma2=NULL,RU1=diag(k1),
 #'RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
-#'@importFrom MASS ginv
+#'@import tensor rTensor expm abind MASS
 #'@export
 #'@param A1 left coefficient matrix
 #'@param A2 right coefficient matrix
@@ -1310,7 +1313,6 @@ mplot <- function(x){
 #'@name tenAR.predict
 #'@rdname tenAR.predict
 #'@aliases tenAR.predict
-#'@import rTensor abind
 #'@usage tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 #'@export
 #'@param object a fit from TenAR(P) model
