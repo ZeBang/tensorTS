@@ -30,6 +30,25 @@ tenAR.sim <- function(t, dim, R, P, rho, cov){
   for (l in c(1:P)){
     x[l,] <- rnorm(prod(dim))
   }
+
+  if (cov == "mle"){
+    Sig.true <- lapply(1:K, function(i){
+      Q <- randortho(dim[i])
+      D <- abs(diag(rnorm(dim[i])))
+      Q %*% D %*% t(Q)
+    })
+    Sig.true <- fro.rescale(list(Sig.true))[[1]]
+    Sig.true.sqrt <- lapply(1:K, function(i){
+      sqrtm(Sig.true[[i]])$B
+    })
+  }
+
+  if (cov == "svd"){
+    Q <- randortho(prod(dim))
+    D <- sqrt(abs(diag(rnorm(prod(dim)))))
+    E <- Q %*% D
+  }
+
   for (i in c((P+1):(500 + t))){ # burning number = 500
     if (cov == "iid"){
       e <- rnorm(prod(dim))
