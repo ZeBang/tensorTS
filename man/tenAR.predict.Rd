@@ -20,10 +20,10 @@ tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 \value{
 a tensor time series of length \code{n.head} if \code{rolling = FALSE};
 
-a tensor time series of length \eqn{T^{\prime} - n_0 -} \code{n.head} if \code{rolling = TRUE}.
+a tensor time series of length \eqn{T^{\prime} - n_0 - n.head + 1} if \code{rolling = TRUE}.
 }
 \description{
-Prediction based on the tensor autoregressive model. If \code{rolling = TRUE}, returns the rolling forecasts.
+Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
 }
 \examples{
 set.seed(333)
@@ -32,7 +32,15 @@ xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=1, P=1, method="LSE")
 pred <- tenAR.predict(est, xx, n.head = 5)
 # rolling forcast
-pred.rolling <- tenAR.predict(est, xx, n.head = 5, method="LSE", rolling=TRUE)
+pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
+
+# prediction for reduced rank MAR(1) model
+dim <- c(2,2)
+xx <- tenAR.sim(t=500, dim,R=1,P=1,rho=0.5, cov='iid')
+est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
+pred <- tenAR.predict(est, xx, n.head = 5)
+# rolling forcast
+pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
 }
 \seealso{
 'predict.ar' or 'predict.arima'

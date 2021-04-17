@@ -33,11 +33,11 @@ See "Details". By default, we use PROJ estimators as initial values.}
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{A}}{a list of estimated coefficient matrices  \eqn{A_k^{(ir)}}. It is a multi-layer list,
+\item{\code{A}}{a list of estimated coefficient matrices \eqn{A_k^{(ir)}}. It is a multi-layer list,
 the first layer for the lag \eqn{1 \le i \le P}, the second the term \eqn{1 \le r \le R}, and the third the mode \eqn{1 \le k \le K}. See "Details".}
 \item{\code{SIGMA}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
 \item{\code{res}}{residuals}
-\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t})).}
+\item{\code{Sig}}{covariance matrix \eqn{\mathrm{cov}(\mathrm{vec}({E_t}))}.}
 \item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_k^{(ir)}}}
 \item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_k^{(ir)}}, returned as a list aligned with \code{A}.}
 \item{\code{niter}}{number of iterations.}

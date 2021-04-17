@@ -16,4 +16,5 @@ Depends:
     stats,
     methods,
     MASS
+URL: https://zebang.github.io/tensorTS
 RoxygenNote: 7.1.1
