@@ -2,9 +2,9 @@
 % Please edit documentation in R/tenAR.r
 \name{matAR.RR.est}
 \alias{matAR.RR.est}
-\title{Reduced Rank MAR(1) Iterative Estimation for Matrix-Valued Time Series}
+\title{Estimation for Reduced Rank MAR(1) Model}
 \usage{
-matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sigl.init=NULL,Sigr.init=NULL,
+matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sig1.init=NULL,Sig2.init=NULL,
 k1=NULL, k2=NULL, niter=100,tol=1e-6)
 }
 \arguments{
@@ -19,9 +19,9 @@ k1=NULL, k2=NULL, niter=100,tol=1e-6)
 
 \item{A2.init}{initial value of \eqn{A_2}. The default is the identity matrix.}
 
-\item{Sigl.init}{only if \code{method=RRMLE}, initial value of Sigl. The default is the identity matrix.}
+\item{Sig1.init}{only if \code{method=RRMLE}, initial value of \eqn{\Sigma_1}. The default is the identity matrix.}
 
-\item{Sigr.init}{only if \code{method=RRMLE}, initial value of Sigr. The default is the identity matrix.}
+\item{Sig2.init}{only if \code{method=RRMLE}, initial value of \eqn{\Sigma_2}. The default is the identity matrix.}
 
 \item{k1}{rank of \eqn{A_1}, a positive integer.}
 
@@ -35,8 +35,8 @@ k1=NULL, k2=NULL, niter=100,tol=1e-6)
 return a list containing the following:\describe{
 \item{\code{A1}}{estimator of \eqn{A_1}, a \eqn{d_1} by \eqn{d_1} matrix}
 \item{\code{A2}}{estimator of \eqn{A_2}, a \eqn{d_2} by \eqn{d_2} matrix}
-\item{\code{Sigl}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_r \otimes \Sigma_l}.}
-\item{\code{Sigr}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_r \otimes \Sigma_l}.}
+\item{\code{Sig1}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
+\item{\code{Sig2}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 \item{\code{res}}{residuals.}
 \item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
 \item{\code{cov}}{covariance matrix \eqn{\hat A_1} and \eqn{\hat A_2}. If \code{method=RRLSE} or \code{method=RRMLE}, then it is a list containing \describe{
@@ -50,20 +50,16 @@ return a list containing the following:\describe{
 }
 }
 \description{
-Reduced rank one-term MAR(1) iterative estimation for matrix-valued time series, including the reduced
-rank one-term MAR(1) iterative estimation (RRLSE), and reduced rank one-term MAR(1) iterative estimation with
-Kronecker structured covariance (RRMLE), as determined by the value of \code{method}.
+Estimation of the reduced rank MAR(1) model, using least squares (RRLSE) or MLE (RRMLE), as determined by the value of \code{method}.
 }
 \details{
-One-term matrix autoregressive model (order one) has the following form:
+The reduced rank MAR(1) model takes the form:
 \deqn{X_t =  A_1 X_{t-1} A_2^{\prime} + E_t,}
-where \eqn{A_i} are \eqn{d_i \times d_i} coefficient matrices, \eqn{i=1,2}, and \eqn{E_t} is a matrix white noise.
-Note that only the lag-1 term \eqn{X_{t-1}} appears on the right hand side, so we refer to it as an order-1 model.
-We also consider a special form of Cov(vec(\eqn{E_t})),
- \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_r \otimes \Sigma_l}
-For matrix reduced-rank model, we assume that rank\eqn{(A_i) = k_i \le d_i} for \eqn{i=1,2}.
+where \eqn{A_i} are \eqn{d_i \times d_i} coefficient matrices of ranks \eqn{\mathrm{rank}(A_i) = k_i \le d_i}, \eqn{i=1,2}. For the MLE method we also assume
+ \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}
 }
 \examples{
+set.seed(333)
 dim <- c(3,3)
 xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
 est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)

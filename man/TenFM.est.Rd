@@ -55,26 +55,17 @@ Time series Inner-Product Unfolding Procedure (TIPUP) replaces the tensor produc
 \deqn{ {\rm{TIPUP}}_k(X_{1:T})={\rm{mat}}_1\left(\sum_{t=h+1}^T \frac{{\rm{mat}}_k(X_{t-h}) {\rm{mat}}_k^\top(X_t)} {T-h}, \ h=1,...,h_0 \right).}
 }
 \examples{
+set.seed(333)
 dims <- c(16,18,20) # dimensions of tensor time series
-t <- 100
-r <- c(2,2,2)  # dimensions of factor series
-ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
-F.dims <- dim(ar1.coef)
-Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
-for(ir1 in 1:F.dims[1]){
- for(ir2 in 1:F.dims[2]){
-   for(ir3 in 1:F.dims[3]){
-     Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
-   }
- }
-}
+r <- c(3,3,3)  # dimensions of factor series
+Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 lambda <- sqrt(prod(dims))
 x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-result <- tenFM.est(x,r,method='TOPUP')  # Estimation
+result <- tenFM.est(x,r,method='TIPUP')  # Estimation
 Ft <- result$Ft
 }
 \references{
-Chen, Rong, Dan Yang, and Cun-Hui Zhang. "Factor models for high-dimensional tensor time series." Journal of the American Statistical Association just-accepted (2021): 1-59.
+Chen, Rong, Dan Yang, and Cun-Hui Zhang. "Factor models for high-dimensional tensor time series." Journal of the American Statistical Association (2021): 1-59.
 
 Han, Yuefeng, Rong Chen, Dan Yang, and Cun-Hui Zhang. "Tensor factor model estimation by iterative projection." arXiv preprint arXiv:2006.02611 (2020).
 }

@@ -28,8 +28,9 @@ delta1=0,tol=1e-5,maxiter=100)
 
 \item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. \describe{
- \item{}{When \code{rank}= '\code{BIC}', \eqn{\nu}='\code{delta1}':}
+\item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+ \describe{
+ \item{}{When \code{rank}= '\code{BIC}':}
  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
@@ -51,7 +52,7 @@ delta1=0,tol=1e-5,maxiter=100)
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}th iteration.}
+\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}-th iteration.}
 \item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
 }
 }
@@ -63,23 +64,28 @@ Different penalty functions for the information criterion (BIC) and the eigen ra
 which should be specified by the value of \code{rank} and \code{penalty}. The information criterion resembles BIC in the vector factor model literature.
 And the eigen ratio criterion is similar to the eigenvalue ratio based methods in the vector factor model literature.
 }
-\examples{
-dims <- c(16,18,20) # dimensions of tensor time series
-t <- 100
-r <- c(2,2,2)  # dimensions of factor series
-ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
-F.dims <- dim(ar1.coef)
-Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2],F.dims[3]))
-for(ir1 in 1:F.dims[1]){
- for(ir2 in 1:F.dims[2]){
-   for(ir3 in 1:F.dims[3]){
-     Ft[,ir1,ir2,ir3] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2,ir3]))
-   }
- }
+\details{
+Let \eqn{W} be a \eqn{p\times p} symmetric and non-negative definite matrix and \eqn{\widehat{W}} be its sample version, \eqn{{\hat\lambda}_j} be the eigenvalues of \eqn{\widehat{W}}
+such that \eqn{{\hat\lambda}_1\geq {\hat\lambda}_2 \geq \cdots \hat{\lambda}_p}.
+The rank determination methods using the information criterion ("IC") and the eigen ratio criterion ("ER") are defined as follows:
+\deqn{IC(\widehat{W}) = \mathrm{argmin}_{0\leq m \leq m^{*}} \left\{ \sum_{j=m+1}^{p} {\hat\lambda}_j + mg(\widehat{W}) \right\},}
+\deqn{ER(\widehat{W}) = \mathrm{argmin}_{0\leq m \leq m^{*}} \left\{ \frac{{\hat\lambda}_{m+1}+h(\widehat{W})}{ {\hat\lambda}_m +h(\widehat{W})} \right\},}
+where \eqn{m^{*}} is a predefined upper bound, \eqn{g} and \eqn{h} are some appropriate positive penalty functions. We have provided 5 choices for \eqn{g} and \eqn{h};
+see more details in the argument "\code{penalty}".
+For non-iterative TOPUP and TIPUP methods, \eqn{\widehat{W}} is
+\eqn{ {\rm mat}_1({\rm{TOPUP}}_{k}(X_{1:T})) {\rm mat}_1({\rm{TOPUP}}_{k}(X_{1:T}))^\top } or
+\eqn{ ({\rm{TIPUP}}_{k}(X_{1:T})) ({\rm{TIPUP}}_{k}(X_{1:T}))^\top }, for each tensor mode \eqn{k}, \eqn{1\leq k \leq K},
+where \eqn{{\rm{TOPUP}}_{k}(X_{1:T})} and \eqn{{\rm{TIPUP}}_{k}(X_{1:T})} are defined in the Details section of the function \code{\link{tenFM.est}}.
+For iterative TOPUP and TIPUP methods, we refer to the literature in the References section for more information.
 }
+\examples{
+set.seed(333)
+dims <- c(16,18,20) # dimensions of tensor time series
+r <- c(3,3,3)  # dimensions of factor series
+Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 lambda <- sqrt(prod(dims))
 x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-rank <- tenFM.rank(x,r,rank='BIC',method='TIPUP')  # Estimate the rank
+rank <- tenFM.rank(x,c(4,4,4),h0=1,rank='ER',method='TIPUP')  # Estimate the rank
 }
 \references{
 Han, Yuefeng, Cun-Hui Zhang, and Rong Chen. "Rank Determination in Tensor Factor Model." Available at SSRN 3730305 (2020).

@@ -18,11 +18,12 @@ niter=500, tol=1e-6, print.true=FALSE)
  \item{\code{"PROJ",}}{Projection method.}
  \item{\code{"LSE",}}{Least squares.}
  \item{\code{"MLE",}}{MLE under a separable cov(vec(\eqn{E_t})).}
- \item{\code{"VAR",}}{VAR(1) model for the vectorized tensor series.}
+ \item{\code{"VAR",}}{VAR(\eqn{P}) model for the \eqn{\mathrm{vec}(E_t)}.}
 }}
 
-\item{init.A}{initial values of coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}} in estimation algorithms, which is a multi-layer list such that
-the first level denotes orders, the second denotes terms, the third denotes modes. See our example code in the following. By default, we use projection estimators as initial values.}
+\item{init.A}{initial values of coefficient matrices \eqn{A_k^{(ir)}} in estimation algorithms, which is a multi-layer list such that
+the first layer for the lag \eqn{1 \le i \le P}, the second the term \eqn{1 \le r \le R}, and the third the mode \eqn{1 \le k \le K}.
+See "Details". By default, we use PROJ estimators as initial values.}
 
 \item{init.sig}{only if \code{method=MLE}, a list of initial values of \eqn{\Sigma_1,\ldots,\Sigma_K}. The default are identity matrices.}
 
@@ -32,32 +33,33 @@ the first level denotes orders, the second denotes terms, the third denotes mode
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{A}}{a list of estimated coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}. It is a multi-layer list,
-the first level denotes orders, the second denotes terms, the third denotes modes. See our example code in the following.}
-\item{\code{sigma}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
+\item{\code{A}}{a list of estimated coefficient matrices  \eqn{A_k^{(ir)}}. It is a multi-layer list,
+the first layer for the lag \eqn{1 \le i \le P}, the second the term \eqn{1 \le r \le R}, and the third the mode \eqn{1 \le k \le K}. See "Details".}
+\item{\code{SIGMA}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
 \item{\code{res}}{residuals}
 \item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t})).}
-\item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}}
-\item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_1^{(ir)},\cdots,A_K^{(PR)}}, returned as a list aligned with \code{A}.}
+\item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_k^{(ir)}}}
+\item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_k^{(ir)}}, returned as a list aligned with \code{A}.}
 \item{\code{niter}}{number of iterations.}
 \item{\code{BIC}}{value of extended Bayesian information criterion.}
 }
 }
 \description{
-Estimation function for tensor-valued time series.
-Projection method (PROJ), the Iterated Least Squares method (LSE), MLE under
-a Kronecker structured covariance matrix (MLE) and stacked vector AR(1) model (VAR), as determined by the value of \code{method}.
+Estimation function for tensor autoregressive models. Methods include
+projection (PROJ), Least Squares (LSE), maximum likelihood estimation (MLE)
+and vector autoregressive model (VAR), as determined by the value of \code{method}.
 }
 \details{
-Tensor autoregressive model (order one) has the following form:
+Tensor autoregressive model (of autoregressive order one) has the form:
 \deqn{X_t = \sum_{r=1}^R X_{t-1} \times_{1}  A_1^{(r)} \times_{2}  \cdots \times_{K} A_K^{(r)} + E_t,}
-where \eqn{A_k^{(r)}} are \eqn{d_k \times d_k} coefficient matrices, \eqn{k=1,\cdots,K}, and \eqn{E_t} is a tensor white noise. \eqn{R} is the number of terms.
-Note that only the lag-1 term \eqn{X_{t-1}} appears on the right hand side, so we refer to it as an order-1 model. For order-p model we have the form:
+where \eqn{A_k^{(r)}} are \eqn{d_k \times d_k} coefficient matrices, \eqn{k=1,\cdots,K}, and \eqn{E_t} is a tensor white noise. \eqn{R} is the Kronecker rank.
+The model of autoregressive order \eqn{P} takes the form
 \deqn{X_t = \sum_{i=1}^{P} \sum_{r=1}^{R_i} X_{t-i} \times_{1} A_{1}^{(ir)} \times_{2}  \cdots \times_{K} A_{K}^{(ir)} + E_t.}
-We also consider a special form of \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))},
+For the "MLE" method, we also assume,
  \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))= \Sigma_K \otimes \Sigma_{K-1} \otimes \cdots \otimes \Sigma_1,}
 }
 \examples{
+set.seed(333)
 dim <- c(2,2,2)
 xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=2, P=1, method="LSE")

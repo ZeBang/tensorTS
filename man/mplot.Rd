@@ -10,7 +10,7 @@ mplot(xx)
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.}
 }
 \description{
-Plot matrix-valued time series, can be also used to plot tensor-valued time series by given mode.
+Plot matrix-valued time series, can be also used to plot a given slice of a tensor-valued time series.
 }
 \examples{
 dim <- c(3,3,3)

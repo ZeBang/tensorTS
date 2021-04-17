@@ -7,29 +7,26 @@
 tenAR.predict(object, xx, n.head, method, rolling=FALSE)
 }
 \arguments{
-\item{object}{a fit from TenAR(P) model}
+\item{object}{a model object returned by \code{tenAR.est()}.}
 
-\item{xx}{data to which to apply the prediction}
+\item{xx}{\eqn{T^{\prime} \times d_1 \times \cdots \times d_K} tensor time series.}
 
-\item{n.head}{number of steps ahead at which to predict}
+\item{n.head}{prediction horizon.}
 
-\item{method}{method used by rolling forecast}
+\item{rolling}{TRUE or FALSE, rolling forecast, is FALSE by default.}
 
-\item{rolling}{TRUE or FALSE, rolling forecast, is FALSE by default}
+\item{n0}{only if \code{rolling = TRUE}, the starting point of rolling forecast.}
 }
 \value{
-predicted value
+a tensor time series of length \code{n.head} if \code{rolling = FALSE};
+
+a tensor time series of length \eqn{T^{\prime} - n_0 -} \code{n.head} if \code{rolling = TRUE}.
 }
 \description{
-`tenAR.predict` is a function for predictions from the results of model fitting functions.
-The function invokes particular methods which depend on the class of the first argument.
-If \code{rolling=TRUE}, this would be a rolling forecast, specifically, using given model parameters object,
-start from the last time point \eqn{X_t} in data, we obtain the one step ahead prediction \eqn{X_{t+1}}.
-Then fit the corresponding model using all available data and \eqn{X_{t+1}}
-to obtain \eqn{X_{t+2}}. Repeat this process to \eqn{X_{t+n.head}}.
-Our function is similar to the usage of classical `predict.ar' in package "stats".
+Prediction based on the tensor autoregressive model. If \code{rolling = TRUE}, returns the rolling forecasts.
 }
 \examples{
+set.seed(333)
 dim <- c(2,2,2)
 xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=1, P=1, method="LSE")
