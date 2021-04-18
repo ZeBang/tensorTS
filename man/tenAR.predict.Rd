@@ -4,7 +4,7 @@
 \alias{tenAR.predict}
 \title{Predictions for Tensor Autoregressive Models}
 \usage{
-tenAR.predict(object, xx, n.head, method, rolling=FALSE)
+tenAR.predict(object, xx, n.head, rolling=TRUE, n0 = 450)
 }
 \arguments{
 \item{object}{a model object returned by \code{tenAR.est()}.}

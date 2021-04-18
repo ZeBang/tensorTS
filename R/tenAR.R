@@ -1331,7 +1331,7 @@ mplot <- function(xx){
 #'@name tenAR.predict
 #'@rdname tenAR.predict
 #'@aliases tenAR.predict
-#'@usage tenAR.predict(object, xx, n.head, method, rolling=FALSE)
+#'@usage tenAR.predict(object, xx, n.head, rolling=TRUE, n0 = 450)
 #'@export
 #'@param object a model object returned by \code{tenAR.est()}.
 #'@param xx \eqn{T^{\prime} \times d_1 \times \cdots \times d_K} tensor time series.

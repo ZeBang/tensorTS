@@ -343,21 +343,6 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid')
 #'# generate t*dims tensor time series with separable error covaraince structure
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='separable',rho=0.2)
-#'
-#'# generate t*dims tensor time series with random error covaraince structure
-#'dims <- c(30,20) # dimensions of tensor time series
-#'t <- 100
-#'r <- c(3,3)  # dimensions of factor series
-#'ar1.coef <- array(seq(0.5,0.8,length.out=prod(r)),r)
-#'F.dims <- dim(ar1.coef)
-#'Ft <- array(NA,dim=c(t,F.dims[1],F.dims[2]))
-#'for(ir1 in 1:F.dims[1]){
-#'  for(ir2 in 1:F.dims[2]){
-#'    Ft[,ir1,ir2] <- arima.sim(n=t, model=list(ar=ar1.coef[ir1,ir2]))
-#'  }
-#'}
-#'lambda <- sqrt(prod(dims))
-#'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='random')
 tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
   r <- dim(Ft)[-1] #dimensions of the factor process
   t <- dim(Ft)[1] #length of output series
