@@ -4,7 +4,7 @@
 \alias{tenAR.predict}
 \title{Predictions for Tensor Autoregressive Models}
 \usage{
-tenAR.predict(object, xx, n.head, rolling=TRUE, n0 = 450)
+tenAR.predict(object, xx, n.head, rolling = FALSE, n0 = NULL)
 }
 \arguments{
 \item{object}{a model object returned by \code{tenAR.est()}.}
@@ -28,19 +28,23 @@ Prediction based on the tensor autoregressive model or reduced rank MAR(1) model
 \examples{
 set.seed(333)
 dim <- c(2,2,2)
-xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
+t = 20
+xx <- tenAR.sim(t, dim, R=2, P=1, rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=1, P=1, method="LSE")
-pred <- tenAR.predict(est, xx, n.head = 5)
+pred <- tenAR.predict(est, xx, n.head = 1)
 # rolling forcast
-pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
+n0 = t - min(50,t/2)
+pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0)
 
 # prediction for reduced rank MAR(1) model
 dim <- c(2,2)
-xx <- tenAR.sim(t=500, dim,R=1,P=1,rho=0.5, cov='iid')
+t = 20
+xx <- tenAR.sim(t, dim, R=1, P=1, rho=0.5, cov='iid')
 est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-pred <- tenAR.predict(est, xx, n.head = 5)
+pred <- tenAR.predict(est, xx, n.head = 1)
 # rolling forcast
-pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
+n0 = t - min(50,t/2)
+pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0)
 }
 \seealso{
 'predict.ar' or 'predict.arima'

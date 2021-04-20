@@ -4,8 +4,7 @@
 \alias{tenAR.est}
 \title{Estimation for Autoregressive Model of Tensor-Valued Time Series}
 \usage{
-tenAR.est(xx, R=1, P=1, method="LSE", init.A=NULL,init.sig=NULL,
-niter=500, tol=1e-6, print.true=FALSE)
+tenAR.est(xx,R=1,P=1,method="LSE",init.A=NULL,init.sig=NULL,niter=500,tol=1e-6)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.}
@@ -61,7 +60,7 @@ For the "MLE" method, we also assume,
 \examples{
 set.seed(333)
 dim <- c(2,2,2)
-xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
+xx <- tenAR.sim(t=100, dim,R=2,P=1,rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=2, P=1, method="LSE")
 A <- est$A # A is a multi-layer list
 

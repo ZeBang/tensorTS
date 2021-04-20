@@ -9,11 +9,14 @@ mplot(xx)
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.}
 }
+\value{
+a figure.
+}
 \description{
 Plot matrix-valued time series, can be also used to plot a given slice of a tensor-valued time series.
 }
 \examples{
 dim <- c(3,3,3)
-xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-mplot(xx[1:50,,,1])
+xx <- tenAR.sim(t=50, dim, R=2, P=1, rho=0.5, cov='iid')
+mplot(xx[1:30,,,1])
 }

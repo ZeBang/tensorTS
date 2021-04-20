@@ -25,7 +25,7 @@ RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
 
 \item{Sigma1, Sigma2}{only if \code{method} = "RRMLE". Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}. \eqn{\Sigma_i} is \eqn{d_i \times d_i}, \eqn{i=1,2}.}
 
-\item{RU1, RV1, RU2, RV2:}{orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1}
+\item{RU1, RV1, RU2, RV2}{orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1}
 
 \item{mpower}{truncate the VMA(\eqn{\infty}) representation of vec(\eqn{X_t}) at \code{mpower} for the purpose of calculating the autocovariances. The default is 100.}
 }

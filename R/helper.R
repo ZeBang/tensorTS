@@ -81,8 +81,7 @@ mrearrange <- function(A,m1,m2,n1,n2){
   m <- nrow(A)
   n <- ncol(A)
   if(n!=n1*n2 | m!=m1*m2){
-    print("error m")
-    return
+    stop("error m")
   }
   ans <- matrix(NA, m1*n1, m2*n2)
   for(i in 1:m1){
@@ -90,7 +89,7 @@ mrearrange <- function(A,m1,m2,n1,n2){
       ans[(j-1)*m1+i,] <- t(as.vector(A[(i-1)*m2+1:m2,(j-1)*n2+1:n2]))
     }
   }
-  ans
+  return(ans)
 }
 
 projection <- function(M,r,m1,m2,n1,n2){
@@ -119,7 +118,7 @@ projection <- function(M,r,m1,m2,n1,n2){
       }
     }
   }
-  A
+  return(A)
 }
 
 ten.proj <- function(tt, dim, R){

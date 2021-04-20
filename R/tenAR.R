@@ -7,7 +7,11 @@
 #'@rdname tenAR.sim
 #'@aliases tenAR.sim
 #'@export
-#'@import tensor rTensor expm abind MASS stats
+#'@import tensor rTensor
+#'@importFrom MASS ginv
+#'@importFrom stats rnorm
+#'@importFrom pracma randortho
+#'@importFrom Matrix rankMatrix
 #'@param t length of output series, a strictly positive integer.
 #'@param dim dimension of the tensor at each time.
 #'@param R Kronecker rank for each lag.
@@ -91,10 +95,10 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL){
 #'@name tenAR.est
 #'@rdname tenAR.est
 #'@aliases tenAR.est
-#'@usage tenAR.est(xx, R=1, P=1, method="LSE", init.A=NULL,init.sig=NULL,
-#'niter=500, tol=1e-6, print.true=FALSE)
+#'@usage tenAR.est(xx,R=1,P=1,method="LSE",init.A=NULL,init.sig=NULL,niter=500,tol=1e-6)
 #'@export
-#'@import tensor rTensor expm abind MASS methods
+#'@import tensor rTensor
+#'@importFrom methods new
 #'@param xx \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"PROJ",}}{Projection method.}
@@ -126,20 +130,20 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL){
 #'@examples
 #' set.seed(333)
 #' dim <- c(2,2,2)
-#' xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
+#' xx <- tenAR.sim(t=100, dim,R=2,P=1,rho=0.5, cov='iid')
 #' est <- tenAR.est(xx, R=2, P=1, method="LSE")
 #' A <- est$A # A is a multi-layer list
 #'
 #' length(A) == 1 # TRUE, since the order P = 1
 #' length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
 #' length(A[[1]][[1]]) == 3 # TRUE, since the mode K = 3
-tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=500, tol=1e-6, print.true=FALSE){
+tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=500, tol=1e-6){
   if (identical("PROJ", method)) {
     tenAR.PROJ(xx, R, P)
   } else if (identical("LSE", method)) {
-    tenAR.LS(xx, R, P, init.A, niter, tol, print.true)
+    tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
   } else if (identical("MLE", method)) {
-    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true)
+    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
   } else if (identical("VAR", method)) {
     tenAR.VAR(xx, P)
   } else {
@@ -163,7 +167,8 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #'@usage matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sig1.init=NULL,Sig2.init=NULL,
 #'k1=NULL, k2=NULL, niter=100,tol=1e-6)
 #'@export
-#'@import tensor rTensor expm abind MASS
+#'@import tensor rTensor expm
+#'@importFrom MASS ginv
 #'@param xx \eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.
 #'@param method character string, specifying the method of the estimation to be used. \describe{
 #'  \item{\code{"RRLSE",}}{Least squares.}
@@ -233,7 +238,8 @@ matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL,
 #'@aliases matAR.RR.se
 #'@usage matAR.RR.se(A1,A2,k1,k2,method,Sigma.e=NULL,Sigma1=NULL,Sigma2=NULL,RU1=diag(k1),
 #'RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
-#'@import tensor rTensor expm abind MASS
+#'@import tensor rTensor expm
+#'@importFrom MASS ginv
 #'@export
 #'@param A1 left coefficient matrix.
 #'@param A2 right coefficient matrix.
@@ -245,7 +251,7 @@ matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL,
 #'}
 #'@param Sigma.e only if \code{method} = "RRLSE". Cov(vec(\eqn{E_t})) = Sigma.e: covariance matrix of dimension \eqn{(d_1 d_2) \times (d_1 d_2)}
 #'@param Sigma1,Sigma2 only if \code{method} = "RRMLE". Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}. \eqn{\Sigma_i} is \eqn{d_i \times d_i}, \eqn{i=1,2}.
-#'@param RU1,RV1,RU2,RV2: orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1
+#'@param RU1,RV1,RU2,RV2 orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1
 #'@param mpower truncate the VMA(\eqn{\infty}) representation of vec(\eqn{X_t}) at \code{mpower} for the purpose of calculating the autocovariances. The default is 100.
 #'@return a list containing the following:\describe{
 #'\item{\code{Sigma}}{asymptotic covariance matrix of (vec(\eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
@@ -1295,16 +1301,20 @@ tenAR.bic <- function(xx, rmax=5){
 #'@rdname mplot
 #'@aliases mplot
 #'@export
+#'@importFrom graphics par
+#'@importFrom graphics plot
 #'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
+#'@return a figure.
 #'@examples
 #' dim <- c(3,3,3)
-#' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-#' mplot(xx[1:50,,,1])
+#' xx <- tenAR.sim(t=50, dim, R=2, P=1, rho=0.5, cov='iid')
+#' mplot(xx[1:30,,,1])
 mplot <- function(xx){
   if (mode(xx) == "S4"){xx = xx@data}
   dim = dim(xx)
   time = array(c(1:dim[1]),dim[1])
-  par(mfrow=c(dim[2],dim[3]),mai=0.05*c(1,1,1,1),oma=c(2,2,0,0))
+  opar <- par(mfrow=c(dim[2],dim[3]),mai=0.05*c(1,1,1,1),oma=c(2,2,0,0))
+  on.exit(par(opar))
   for(i in 1:dim[2]){
     for(j in 1:dim[3]){
       if(i!=dim[2] & j!=1){
@@ -1331,8 +1341,8 @@ mplot <- function(xx){
 #'@name tenAR.predict
 #'@rdname tenAR.predict
 #'@aliases tenAR.predict
-#'@usage tenAR.predict(object, xx, n.head, rolling=TRUE, n0 = 450)
 #'@export
+#'@importFrom abind abind
 #'@param object a model object returned by \code{tenAR.est()}.
 #'@param xx \eqn{T^{\prime} \times d_1 \times \cdots \times d_K} tensor time series.
 #'@param n.head prediction horizon.
@@ -1346,19 +1356,23 @@ mplot <- function(xx){
 #'@examples
 #' set.seed(333)
 #' dim <- c(2,2,2)
-#' xx <- tenAR.sim(t=500, dim,R=2,P=1,rho=0.5, cov='iid')
+#' t = 20
+#' xx <- tenAR.sim(t, dim, R=2, P=1, rho=0.5, cov='iid')
 #' est <- tenAR.est(xx, R=1, P=1, method="LSE")
-#' pred <- tenAR.predict(est, xx, n.head = 5)
+#' pred <- tenAR.predict(est, xx, n.head = 1)
 #' # rolling forcast
-#' pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
+#' n0 = t - min(50,t/2)
+#' pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0)
 #'
 #' # prediction for reduced rank MAR(1) model
 #' dim <- c(2,2)
-#' xx <- tenAR.sim(t=500, dim,R=1,P=1,rho=0.5, cov='iid')
+#' t = 20
+#' xx <- tenAR.sim(t, dim, R=1, P=1, rho=0.5, cov='iid')
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-#' pred <- tenAR.predict(est, xx, n.head = 5)
+#' pred <- tenAR.predict(est, xx, n.head = 1)
 #' # rolling forcast
-#' pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0 = 450)
+#' n0 = t - min(50,t/2)
+#' pred.rolling <- tenAR.predict(est, xx, n.head = 5, rolling=TRUE, n0)
 tenAR.predict <- function(object, xx, n.head, rolling=FALSE, n0=NULL){
   if (is.null(object$SIGMA)){method = "LSE"} else {method = "MLE"}
 
@@ -1400,7 +1414,6 @@ tenAR.predict <- function(object, xx, n.head, rolling=FALSE, n0=NULL){
 
 
 predict.rolling <- function(A, xx, n.head, method, n0){
-
   if ((method == "RRLSE") || (method == "RRMLE")){
     k1 <- rankMatrix(A[[1]][[1]][[1]])
     k2 <- rankMatrix(A[[1]][[1]][[2]])
@@ -1411,12 +1424,12 @@ predict.rolling <- function(A, xx, n.head, method, n0){
   K <- xx@num_modes - 1
   dim <- xx@modes
   t <- dim[1]
-  xt <- as.tensor(array((k_unfold(xx, m=1))@data[1:(n0-1),], c(n0-1,dim[-1])))
-
+  if(is.null(n0)){n0 = t - min(50,t/2)}
   ttt <- n0:(t - n.head)
   xx.pred <- array(0, c(t-n.head-n0+1, prod(dim[-1])))
   for(tt in ttt){
     tti <- tt - ttt[1] + 1
+    xt <- as.tensor(array((k_unfold(xx, m=1))@data[1:(tt-1),], c(tt-1,dim[-1])))
     if (tti > 1){
       if (method == "RRLSE"){
         model <- MAR1.RR(xt@data, k1, k2)
@@ -1435,7 +1448,7 @@ predict.rolling <- function(A, xx, n.head, method, n0){
       L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(x0, A[[l]][[n]], (c(1:K) + 1)))}))
     }
     xx.pred[tti, ] <- k_unfold(L1, m=1)@data
-    xt <- as.tensor(abind(xt@data, L1@data, along=1))
+    #xt <- as.tensor(abind(xt@data, L1@data, along=1))
   }
   return(array(xx.pred, c(t-n.head-n0+1, dim[-1])))
 }
