@@ -1,5 +1,21 @@
 ### Helper functions
 
+# Tensor Times List
+tl <- function(x, list_mat, k = NULL){
+  if (is.null(k)){
+    tensor(tensor(tensor(x, list_mat[[1]], 2, 2), list_mat[[2]], 2, 2), list_mat[[3]], 2, 2)
+  } else if (k == 1){
+    tensor(tensor(x, list_mat[[1]], 3, 2), list_mat[[2]], 3, 2)
+  } else if (k == 2){
+    aperm(tensor(tensor(x, list_mat[[1]], 2, 2), list_mat[[2]], 3, 2),c(1,3,2,4))
+  } else if (k == 3){
+    aperm(tensor(tensor(x, list_mat[[1]], 2, 2), list_mat[[2]], 2, 2),c(1,3,4,2))
+  } else {
+    stop("not support tensor mode K > 3")
+  }
+
+}
+
 # standard error extraction
 covtosd <- function(cov, dim, R){
   K <- length(dim)
@@ -48,10 +64,10 @@ trearrange <- function(A,dim){
   }
   ans <- divide(A,m1,n1)
   dim <- c(m1*n1,m2*n2,m3*n3)
-  t <- new("Tensor", as.integer(3), as.integer(dim), array(0, dim))
+  t <- array(0, dim)
   for (i in c(1:m1)){
     for (j in c(1:n1)){
-      t@data[(j-1)*m1+i,,] <- mrearrange(ans[[i]][[j]],m2,m3,n2,n3)
+      t[(j-1)*m1+i,,] <- mrearrange(ans[[i]][[j]],m2,m3,n2,n3)
     }
   }
   return(t)
@@ -123,7 +139,7 @@ projection <- function(M,r,m1,m2,n1,n2){
 
 ten.proj <- function(tt, dim, R){
   ## inner func of "TenAR.proj"
-  cpd <- rTensor::cp(tt, num_components = R)
+  cpd <- rTensor::cp(rTensor::as.tensor(tt), num_components = R)
   lam <- cpd$lambdas
   A.proj <- list()
   for (j in c(1:R)){
@@ -246,54 +262,68 @@ ten.dis.phi <- function(phi.A, phi.B){
 }
 
 
-ten.res <- function(xx,A,P,R,K){
-  t <- xx@modes[[1]]
+ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
-    L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A[[l]][[n]], (c(1:K) + 1)))}))
+    if (R[l] == 0) next
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,], A[[l]][[n]])}))
   }
-  res <- (xx[(1+P):t,,,,drop=FALSE] - L1)@data
+  res <- xx[(1+P):t,,,,drop=FALSE] - L1
   return(res)
 }
 
 
-M.eigen <- function(A){
-  P <- length(A)
-  R <- length(A[[1]])
+M.eigen <- function(A, R, P, dim){
   phi <- list()
+  PP = P
   for (i in c(1:P)){
-    phi[[i]] <- Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A[[i]][[j]]))}))
+    if (sum(R[i:length(R)]) == 0){
+      PP = i-1
+      break
+    }
+    if (R[i] == 0){
+      phi[[i]] = zeroes(prod(dim))
+    } else {
+      phi[[i]] <- Reduce("+", lapply(1:R[i], function(j) {rTensor::kronecker_list(rev(A[[i]][[j]]))}))
+    }
     if (i == 1){M <- phi[[1]]} else {M <- cbind(M, phi[[i]])}
   }
   K <- dim(phi[[1]])[[1]]
 
-  M <- rbind(M, cbind(diag(K*(P-1)), array(0,c(K*(P-1),K))))
+  M <- rbind(M, cbind(diag(K*(PP-1)), array(0,c(K*(PP-1),K))))
   return(max(Mod(eigen(M, only.values = TRUE)$values)))
 }
 
 
 likelihood <- function(xx, A, Sigma){
-  r <- length(A)
-  dd <- xx@modes
+  r <- length(A[[1]])
+  dd <- dim(xx)
   t <- dd[1]
   dim <- dd[-1]
   k <- length(dd[-1])
   i = 1
-  res <- xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,,], A[[j]], (c(1:k) + 1)))}))
+  res <- ten.res(xx,A,P=1,R=r,K=k,t=t)
   Sigma.inv <- lapply(1:k, function (i) {solve(Sigma[[i]])})
-  ll <- rTensor::ttl(res, Sigma.inv[i], c(2:(k+1))[i])
-  rr <- rTensor::ttl(res, Sigma.inv[-i], c(2:(k+1))[-i])
-  l1 <- sum(diag(tensor(ll@data, rr@data, c(1:4)[-(i+1)],c(1:4)[-(i+1)])))
+  ll <- tl(res, Sigma.inv)
+  l1 <- sum(diag(tensor(ll, res, c(1:4)[-(i+1)],c(1:4)[-(i+1)])))
   l2 <- 0
   for (i in c(1:k)){
     l2 = l2 - prod(dim[-i]) * (t-1) * (log(det(Sigma[[i]])))
   }
+  return((l2 - l1)/2)
+}
+
+likelihood.lse <- function(fres, s, d, t){
+
+  l1 <- fres/2/s^2
+  l2 <- -(t - 1)*d*log(2*pi*s^2)/2
+
   return(l2 - l1)
 }
 
 
 IC <- function(xx,res,r,t,dim){
   N <- prod(dim)
-  ic <- log(sum((res)^2)/(N*t)) + r*log(t)/t
+  ic <- log(sum((res)^2)/(N*t))/2 + sum(r)*log(t)/t
   return(ic)
 }

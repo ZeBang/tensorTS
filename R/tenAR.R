@@ -27,7 +27,7 @@
 #' set.seed(123)
 #' dim <- c(3,3,3)
 #' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
-tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL){
+tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL, Sig=NULL){
   if (is.null(A)){A <- tenAR.A(dim, R, P, rho)}
   K <- length(A[[1]][[1]])
   dim <- c()
@@ -40,26 +40,33 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL){
   }
 
   if (cov == "mle"){
-    Sig.true <- lapply(1:K, function(i){
-      Q <- randortho(dim[i])
-      D <- abs(diag(rnorm(dim[i])))
-      Q %*% D %*% t(Q)
-    })
-    Sig.true <- fro.rescale(list(Sig.true))[[1]]
-    Sig.true.sqrt <- lapply(1:K, function(i){
-      sqrtm(Sig.true[[i]])$B
-    })
+    if (is.null(Sig)){
+      Sig.true <- lapply(1:K, function(i){
+        Q <- pracma::randortho(dim[i])
+        D <- abs(diag(rnorm(dim[i])))
+        Q %*% D %*% t(Q)
+      })
+      Sig.true <- fro.rescale(list(Sig.true))[[1]]
+      Sig.true.sqrt <- lapply(1:K, function(i){
+        sqrtm(Sig.true[[i]])$B
+      })
+    } else {
+      Sig.true = Sig
+      Sig.true.sqrt <- lapply(1:K, function(i){
+        sqrtm(Sig.true[[i]])$B
+      })
+    }
   }
 
   if (cov == "svd"){
-    Q <- randortho(prod(dim))
+    Q <- pracma::randortho(prod(dim))
     D <- sqrt(abs(diag(rnorm(prod(dim)))))
     E <- Q %*% D
   }
 
   for (i in c((P+1):(500 + t))){ # burning number = 500
     if (cov == "iid"){
-      e <- rnorm(prod(dim))
+      e <- rnorm(prod(dim), mean=0, sd=1)
     } else if (cov == "mle"){
       e <- kronecker_list(rev(Sig.true.sqrt)) %*% rnorm(prod(dim))
     } else if (cov == "svd"){
@@ -69,14 +76,14 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL){
     }
     temp = 0
     for (l in c(1:P)){
-      phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A[[l]][[j]]))}))
+      if (R[l] == 0) next
+      phi <-  Reduce("+", lapply(1:R[l], function(j) {rTensor::kronecker_list(rev(A[[l]][[j]]))}))
       temp = temp + phi %*% x[i-l, ]
     }
     x[i,] <-  temp + e
   }
   return(array(x[501:(500+t),], c(t, dim)))
 }
-
 
 
 #' Estimation for Autoregressive Model of Tensor-Valued Time Series
@@ -834,12 +841,11 @@ MAR.SE <- function(xx, B, A, Sigma){
 
 
 tenAR.VAR <- function(xx, P){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dd=xx@modes
+  dd=dim(xx)
   t <- dd[1]
   n <- prod(dd[-1])
   if (prod(dd[-1]) > t){stop("sample size T too small")}
-  yy=apply(xx@data,MARGIN=1,as.vector)
+  yy=apply(xx, MARGIN=1, as.vector)
 
   x = 0
   for (l in c(1:P)){
@@ -858,84 +864,102 @@ tenAR.VAR <- function(xx, P){
 
 tenAR.A <- function(dim,R,P,rho){
   K <- length(dim)
-  A <- lapply(1:P, function(p) {lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})})
+  A <- lapply(1:P, function(p) {lapply(1:max(1,R[p]), function(j) {lapply(1:K, function(i) {diag(dim[i])})})})
   for (p in c(1:P)){
-    for (j in c(1:R)){
+    if (R[p] == 0) next
+    for (j in c(1:R[p])){
       for (i in c(1:K)){
         A[[p]][[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
       }
     }
   }
-
-  eigen = M.eigen(A)
-
+  eigen = M.eigen(A, R, P, dim)
   for (l in c(1:P)){
-    for (j in c(1:R)){
+    if (R[l] == 0) next
+    for (j in c(1:R[l])){
       A[[l]][[j]][[K]] <- rho * A[[l]][[j]][[K]]/ eigen
     }
     A[[l]] <- fro.order(fro.rescale(A[[l]]))
   }
-  eigen = M.eigen(A)
-
-  stopifnot(M.eigen(A) < 1)
+  eigen = M.eigen(A, R, P, dim)
   return(A)
 }
 
 
 tenAR.PROJ <- function(xx,R,P){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
+  dim <- dim(xx)[-1]
   mm <- tenAR.VAR(xx, P)$coef
   A = list()
   for (p in c(1:P)){
-    tt <- trearrange(mm[[p]], rev(dim))
-    tt <- as.tensor(aperm(tt@data))
-    A[[p]] <- fro.order(fro.rescale(ten.proj(tt, dim, R)))
+    if (is.na(R[p])) stop("p != length(R)")
+    if (R[p] == 0) next
+    tt <- aperm(trearrange(mm[[p]], rev(dim)))
+    A[[p]] <- fro.order(fro.rescale(ten.proj(tt, dim, R[p])))
   }
   return(list(A=A))
 }
 
 
-tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
+tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FALSE){
+  dim <- dim(xx)[-1]
   K <- length(dim)
-  t <- xx@modes[[1]]
+  t <- dim(xx)[1]
+  # if (is.null(init.A)) {
+  #
+  #   A.old = list()
+  #   for (p in c(1:P)){
+  #     if (is.na(R[p])) stop("p != length(R)")
+  #     if (R[p] == 0) next
+  #     A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
+  #   }
+  #
+  # } else {A.old <- init.A}
   if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}
   A.new <- A.old
-  Tol <- tol*sqrt(sum(dim^2))*P*R
+  Tol <- tol*sqrt(sum(dim^2))*sum(R)
   dis <- 1
   iiter <- 1
   while(iiter <= niter & dis >= tol){
-    stopifnot(dis <= 1e3)
     dis3 <- 0
     for (p in c(1:P)){
-      for (r in c(1:R)){
+      if (R[p] == 0) next
+      # print(p)
+      for (r in c(1:R[p])){
+        # print(r)
         for (k in c(K:1)){ # update last matrix first
-          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE]
+          # print(k)
+          # tic("step 1")
+          temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE]
           L1 <- 0
+          # toc()
+          # tic("step 2")
           for (l in c(1:P)){
-            if (l == p){
-              if (R > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]], (c(1:K) + 1)))}))
-              }
-            } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]], (c(1:K) + 1)))}))
-            }
+            if (R[l] == 0) next
+            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {tl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]])}))}
+            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]])}))}
           }
-          L2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
-          temp2 <- L2@data
+          temp2 <- xx[(1+P):t,,,,drop=FALSE] - L1
+          # toc()
+          # tic("step 3")
           RR <- tensor(temp,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          # toc()
+          # tic("step 4")
           LL <- tensor(temp2,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+          # toc()
+          # tic("step 5")
+          A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
+          # toc()
           dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
         }
       }
     }
+    # print("done once")
+    # tic("svd")
     for (p in c(1:P)){
+      if (R[p] == 0) next
       A.new[[p]] <- svd.rescale(A.new[[p]])
     }
+    # toc()
     dis <- sqrt(dis3)
     A.old <- A.new
     iiter <- iiter + 1
@@ -945,9 +969,10 @@ tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE
     }
   }
   for (p in c(1:P)){
+    if (R[p] == 0) next
     A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
   }
-  res <- ten.res(xx,A.new,P,R,K)
+  res <- ten.res(xx,A.new,P,R,K,t)
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
   cov <- tenAR.SE.LSE(xx, A.new[[1]], Sig) # temporarily for P=1 only
   sd <- covtosd(cov, dim, R)
@@ -956,50 +981,51 @@ tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE
 }
 
 
-tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
-  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
-  dim <- xx@modes[-1]
+tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, print.true = FALSE){
+  if (mode(xx) == "S4") {xx <- xx@data}
+  dim <- dim(xx)[-1]
   K <- length(dim)
-  t <- xx@modes[[1]]
+  t <- dim(xx)[1]
   if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
+
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
   if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
+  # if (is.null(init.A)) {A.old <- list(lapply(1:R, function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})}))} else {A.old <- init.A}
+
   A.new <- A.old
-  Tol <- tol*sqrt(sum(dim^2))*P*R
+  Tol <- tol*sqrt(sum(dim^2))*P*sum(R)
   dis <- 1
   iiter <- 1
   while(iiter <= niter & dis >= Tol){
     stopifnot(dis <= 1e3)
     dis3 <- 0
     for (p in c(1:P)){
-      for (r in c(1:R)){
+      for (r in c(1:R[p])){
         for (k in c(K:1)){
-          res.old <- rTensor::as.tensor(ten.res(xx,A.new,P,R,K))
-          rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])
-          Sig.new[[k]] <- tensor(res.old@data, rs@data, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
-          Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
+          res.old <- ten.res(xx,A.new,P,R,K,t)
+          rs <- tl(res.old, Sig.new.inv[-k], k)
+          Sig.new[[k]] <- tensor(res.old, rs, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
+          Sig.new.inv <- lapply(1:K, function (k) {ginv(Sig.new[[k]])})
         }
         for (k in c(K:1)){
           sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
-          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
-          s1 <- rTensor::ttl(xx, sphi[-k],c(2:(K+1))[-k])
-          temp1 <- s1@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+          temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+          temp1 <- tl(xx, sphi[-k],k)[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
           L1 <- 0
           for (l in c(1:P)){
             if (l == p){
-              if (R > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              if (R[l] > 1){
+                L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {tl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]])}))
               }
             } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]])}))
             }
           }
-          temp2 <-  (xx[(1+P):t,,,,drop=FALSE] - L1)@data
+          temp2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
           RR <- tensor(temp,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
           LL <- tensor(temp2,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+          A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
           dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
         }
       }
@@ -1018,13 +1044,14 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, 
   for (p in c(1:P)){
     A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
   }
-  res <- ten.res(xx,A.new,P,R,K)
+  res <- ten.res(xx,A.new,P,R,K,t)
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
   cov <- tenAR.SE.MLE(xx, A.new[[1]], Sig) # temporarily for P=1 only
   sd <- covtosd(cov, dim, R)
   bic <- IC(xx, res, R, t, dim)
   return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, cov=cov, sd=sd, BIC=bic))
 }
+
 
 
 MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL, print.true=FALSE){
@@ -1381,6 +1408,44 @@ mplot <- function(xx){
 
 }
 
+
+#' Plot ACF of Matrix-Valued Time Series
+#'
+#' Plot ACF of matrix-valued time series, can be also used to plot ACF of a given slice of a tensor-valued time series.
+#'@name mplot.acf
+#'@rdname mplot.acf
+#'@aliases mplot.acf
+#'@export
+#'@importFrom graphics par
+#'@importFrom graphics plot
+#'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
+#'@return a figure.
+#'@examples
+#' dim <- c(3,3,3)
+#' xx <- tenAR.sim(t=50, dim, R=2, P=1, rho=0.5, cov='iid')
+#' mplot.acf(xx[1:30,,,1])
+mplot.acf <- function(xx){
+  if (mode(xx) == "S4"){xx = xx@data}
+  dim = dim(xx)
+  opar <- par(mfrow=c(dim[2],dim[3]),mai=0.05*c(1,1,1,1),oma=c(2,2,0,0))
+  on.exit(par(opar))
+  for(i in 1:dim[2]){
+    for(j in 1:dim[3]){
+      if(i!=dim[2] & j!=1){
+        acf(xx[,i,j])
+      }
+      if(i!=dim[2] & j==1){
+        acf(xx[,i,j])
+      }
+      if(i==dim[2] & j!=1){
+        acf(xx[,i,j])
+      }
+      if(i==dim[2] & j==1){
+        acf(xx[,i,j])
+      }
+    }
+  }
+}
 
 #' Predictions for Tensor Autoregressive Models
 #'
