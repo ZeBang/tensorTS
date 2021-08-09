@@ -1,7 +1,7 @@
 What's New?
 
 Version 0.1.1:
-Fixed some typos in DESCRIPTION.
+1. Fixed some typos in DESCRIPTION.
 
 Version 0.1.2:
 1. Fixed some bugs in matAR.RR.est. Now this func can be used for MatAR and full rank reduced-rank MatAR.
