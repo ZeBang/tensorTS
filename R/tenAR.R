@@ -145,17 +145,26 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL, Sig=NULL){
 #' length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
 #' length(A[[1]][[1]]) == 3 # TRUE, since the mode K = 3
 tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=500, tol=1e-6){
-  if (identical("PROJ", method)) {
-    tenAR.PROJ(xx, R, P)
-  } else if (identical("LSE", method)) {
-    tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
-  } else if (identical("MLE", method)) {
-    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
-  } else if (identical("VAR", method)) {
-    tenAR.VAR(xx, P)
+  dim <- dim(xx)[-1]
+  K <- length(dim)
+  if (K >= 3){
+    if (identical("PROJ", method)) {
+      tenAR.PROJ(xx, R, P)
+    } else if (identical("LSE", method)) {
+      tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
+    } else if (identical("MLE", method)) {
+      tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
+    } else if (identical("VAR", method)) {
+      tenAR.VAR(xx, P)
+    } else {
+      stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
+    }
+  } else if (K == 2) {
+    matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL, Sig2.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6)
   } else {
-    stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
+    stop("detect dimension is smaller than 2 (may use vector AR)")
   }
+
 }
 
 
@@ -217,14 +226,11 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL, Sig2.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
   if (identical("PROJ", method)) {
     MAR1.PROJ(xx) # just keep it there
-  }
-  if (identical("LSE", method)) {
+  } else if (identical("LSE", method)) {
     MAR1.LS(xx) # just keep it there
-  }
-  if (identical("MLE", method)) {
+  } else if (identical("MLE", method)) {
     MAR1.MLE(xx) # just keep it there
-  }
-  if (identical("VAR", method)) {
+  } else if (identical("VAR", method)) {
     tenAR.VAR(xx, P=1)
   } else if (identical("RRLSE", method)) {
     MAR1.RR(xx, k1, k2, niter, tol, A1.init, A2.init)
