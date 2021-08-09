@@ -377,9 +377,16 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
   #k1 <- length(svd.A1$d[svd.A1$d>1e-10])
   D1 <- diag(c(svd.A1$d[1:k1],1))[1:k1,1:k1]
   U1 <- svd.A1$u[,1:k1]
-  U1c <- svd.A1$u[,(k1+1):d1]
   V1 <- svd.A1$v[,1:k1]
-  V1c <- svd.A1$v[,(k1+1):d1]
+  if(k1<d1){
+    U1c <- svd.A1$u[,(k1+1):d1]
+    V1c <- svd.A1$v[,(k1+1):d1]
+  }else if(k1==d1){
+    U1c <- 0
+    V1c <- 0
+  }
+  #U1c <- svd.A1$u[,(k1+1):d1]  # original version : didn't consider if k1=d1
+  #V1c <- svd.A1$v[,(k1+1):d1]
   e1 <- diag(d1)
   J1 <- matrix(0,d1^2,d1^2)
   for(i in 1:d1){
@@ -394,12 +401,28 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
   for(i in 1:k1){
     L1[,i] <- kronecker(e1[,i],e1[,i])
   }
-  R1u <- cbind(kronecker(diag(k1),U1), kronecker(diag(k1),U1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
-                                                                                  kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1)),
-                                                                          kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(U1), t(U1c))  )
-  R1v <- cbind(kronecker(diag(k1),V1), kronecker(diag(k1),V1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
-                                                                                  kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1)),
-                                                                          kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(V1), t(V1c))  )
+
+  if(k1<d1){
+    R1u <- cbind(kronecker(diag(k1),U1), kronecker(diag(k1),U1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+                                                                                    kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1)),
+                                                                            kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(U1), t(U1c))  )
+    R1v <- cbind(kronecker(diag(k1),V1), kronecker(diag(k1),V1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+                                                                                    kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1)),
+                                                                            kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(V1), t(V1c))  )
+  }else if(k1==d1){
+    R1u <- kronecker(diag(k1),U1) %*% solve(kronecker(D1^2,diag(k1)) -
+                                              kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1))
+    R1v <- kronecker(diag(k1),V1) %*% solve(kronecker(D1^2,diag(k1)) -
+                                              kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1))
+
+  }
+
+  # R1u <- cbind(kronecker(diag(k1),U1), kronecker(diag(k1),U1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+  #                                                                                 kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1)),
+  #                                                                         kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(U1), t(U1c))  )
+  # R1v <- cbind(kronecker(diag(k1),V1), kronecker(diag(k1),V1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+  #                                                                                 kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1)),
+  #                                                                         kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(V1), t(V1c))  )
   Theta1.LS.u <- R1u%*% Sigma.LS.1u %*%t(R1u)
   Theta1.LS.v <- R1v%*% Sigma.LS.1v %*%t(R1v)
   Theta1.LS.u <- kronecker(t(RU1),diag(d1))%*%Theta1.LS.u
@@ -408,9 +431,16 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
   #k2 <- length(svd.A2$d[svd.A2$d>1e-10])
   D2 <- diag(c(svd.A2$d[1:k2],1))[1:k2,1:k2]
   U2 <- svd.A2$u[,1:k2]
-  U2c <- svd.A2$u[,(k2+1):d2]
   V2 <- svd.A2$v[,1:k2]
-  V2c <- svd.A2$v[,(k2+1):d2]
+  if(k2<d2){
+    U2c <- svd.A2$u[,(k2+1):d2]
+    V2c <- svd.A2$v[,(k2+1):d2]
+  }else if(k2==d2){
+    U2c <- 0
+    V2c <- 0
+  }
+  #U2c <- svd.A2$u[,(k2+1):d2]
+  #V2c <- svd.A2$v[,(k2+1):d2]
   e2 <- diag(d2)
   J2 <- matrix(0,d2^2,d2^2)
   for(i in 1:d2){
@@ -425,12 +455,30 @@ MAR1.RRLS.SE <- function(A1,A2,k1,k2,Sigma.e,RU1=diag(k1),RV1=diag(k1),RU2=diag(
   for(i in 1:k2){
     L2[,i] <- kronecker(e2[,i],e2[,i])
   }
-  R2u <- cbind(kronecker(diag(k2),U2), kronecker(diag(k2),U2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
-                                                                                  kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2)),
-                                                                          kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(U2), t(U2c))  )
-  R2v <- cbind(kronecker(diag(k2),V2), kronecker(diag(k2),V2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
-                                                                                  kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2)),
-                                                                          kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(V2), t(V2c))  )
+
+
+  if(k2<d2){
+    R2u <- cbind(kronecker(diag(k2),U2), kronecker(diag(k2),U2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+                                                                                    kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2)),
+                                                                            kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(U2), t(U2c))  )
+    R2v <- cbind(kronecker(diag(k2),V2), kronecker(diag(k2),V2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+                                                                                    kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2)),
+                                                                            kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(V2), t(V2c))  )
+  }else if(k2==d2){
+    R2u <- kronecker(diag(k2),U2) %*% solve(kronecker(D2^2,diag(k2)) -
+                                              kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2))
+    R2v <- kronecker(diag(k2),V2) %*% solve(kronecker(D2^2,diag(k2)) -
+                                              kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2))
+
+  }
+
+
+  # R2u <- cbind(kronecker(diag(k2),U2), kronecker(diag(k2),U2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+  #                                                                                 kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2)),
+  #                                                                         kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(U2), t(U2c))  )
+  # R2v <- cbind(kronecker(diag(k2),V2), kronecker(diag(k2),V2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+  #                                                                                 kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2)),
+  #                                                                         kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(V2), t(V2c))  )
   Theta2.LS.u <- R2u%*% Sigma.LS.2u %*%t(R2u)
   Theta2.LS.v <- R2v%*% Sigma.LS.2v %*%t(R2v)
   Theta2.LS.u <- kronecker(t(RU2),diag(d2))%*%Theta2.LS.u
@@ -870,10 +918,10 @@ tenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE
           for (l in c(1:P)){
             if (l == p){
               if (R > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]], (c(1:K) + 1)))}))
               }
             } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]], (c(1:K) + 1)))}))
             }
           }
           L2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
@@ -1302,7 +1350,6 @@ tenAR.bic <- function(xx, rmax=5){
 #'@aliases mplot
 #'@export
 #'@importFrom graphics par
-#'@importFrom graphics plot
 #'@param xx  \eqn{T \times d_1 \times d_2} matrix-valued time series. Note that the number of mode is 3, where the first mode is time.
 #'@return a figure.
 #'@examples
