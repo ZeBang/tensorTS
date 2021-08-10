@@ -1,5 +1,22 @@
 ### Helper functions
 
+myslice <- function(xx, K, start, end){
+  if (K==2){
+    return(xx[start:end,,,drop=FALSE])
+  } else if (K==3){
+    return(xx[start:end,,,,drop=FALSE])
+  } else {
+    stop("not support tensor mode K > 3")
+  }
+}
+
+# mat projection
+matAR.PROJ <- function(xx, dim, r, t){
+  xx.mat <- matrix(xx,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  return(projection(kroneck, r, dim[1],dim[2],dim[1],dim[2]))
+}
+
 # Tensor Times List
 tl <- function(x, list_mat, k = NULL){
   if (is.null(k)){
@@ -266,9 +283,9 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A[[l]][[n]])}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))
   }
-  res <- xx[(1+P):t,,,,drop=FALSE] - L1
+  res <- myslice(xx, K, 1+P, t) - L1
   return(res)
 }
 

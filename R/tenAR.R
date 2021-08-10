@@ -223,7 +223,7 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #' dim <- c(3,3)
 #' xx <- tenAR.sim(t=500, dim, R=2, P=1, rho=0.5, cov='iid')
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL, Sig2.init=NULL,k1=1, k2=1, niter=100,tol=1e-6){
+matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL, Sig2.init=NULL,k1=NULL, k2=NULL, niter=100,tol=1e-6){
   if (identical("PROJ", method)) {
     MAR1.PROJ(xx) # just keep it there
   } else if (identical("LSE", method)) {
@@ -610,14 +610,9 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
   #k1 <- length(svd.A1$d[svd.A1$d>1e-10])
   D1 <- diag(c(svd.A1$d[1:k1],1))[1:k1,1:k1]
   U1 <- svd.A1$u[,1:k1]
+  U1c <- svd.A1$u[,(k1+1):d1]
   V1 <- svd.A1$v[,1:k1]
-  if(k1<d1){
-    U1c <- svd.A1$u[,(k1+1):d1]
-    V1c <- svd.A1$v[,(k1+1):d1]
-  }else if(k1==d1){
-    U1c <- 0
-    V1c <- 0
-  }
+  V1c <- svd.A1$v[,(k1+1):d1]
   e1 <- diag(d1)
   J1 <- matrix(0,d1^2,d1^2)
   for(i in 1:d1){
@@ -632,23 +627,12 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
   for(i in 1:k1){
     L1[,i] <- kronecker(e1[,i],e1[,i])
   }
-  
-  if(k1<d1){
-    R1u <- cbind(kronecker(diag(k1),U1), kronecker(diag(k1),U1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
-                                                                                    kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1)),
-                                                                            kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(U1), t(U1c))  )
-    R1v <- cbind(kronecker(diag(k1),V1), kronecker(diag(k1),V1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
-                                                                                    kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1)),
-                                                                            kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(V1), t(V1c))  )
-  }else if(k1==d1){
-    R1u <- kronecker(diag(k1),U1) %*% solve(kronecker(D1^2,diag(k1)) -
-                                              kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1))
-    R1v <- kronecker(diag(k1),V1) %*% solve(kronecker(D1^2,diag(k1)) -
-                                              kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1))
-    
-  }
-  
-  
+  R1u <- cbind(kronecker(diag(k1),U1), kronecker(diag(k1),U1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+                                                                                  kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(U1),t(U1)),
+                                                                          kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(U1), t(U1c))  )
+  R1v <- cbind(kronecker(diag(k1),V1), kronecker(diag(k1),V1c)) %*% rbind(solve(kronecker(D1^2,diag(k1)) -
+                                                                                  kronecker(diag(k1),D1^2)+L1%*%t(L1)) %*% (diag(k1^2)-L1%*%t(L1)) %*% kronecker(t(V1),t(V1)),
+                                                                          kronecker(diag(1/c(svd.A1$d[1:k1],1))[1:k1,1:k1]^2%*%t(V1), t(V1c))  )
   Theta1.CC.u <- R1u%*% Sigma.CC.1u %*%t(R1u)
   Theta1.CC.v <- R1v%*% Sigma.CC.1v %*%t(R1v)
   Theta1.CC.u <- kronecker(t(RU1),diag(d1))%*%Theta1.CC.u
@@ -657,14 +641,9 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
   #k2 <- length(svd.A2$d[svd.A2$d>1e-10])
   D2 <- diag(c(svd.A2$d[1:k2],1))[1:k2,1:k2]
   U2 <- svd.A2$u[,1:k2]
+  U2c <- svd.A2$u[,(k2+1):d2]
   V2 <- svd.A2$v[,1:k2]
-  if(k1<d1){
-    U2c <- svd.A2$u[,(k2+1):d2]
-    V2c <- svd.A2$v[,(k2+1):d2]
-  }else if(k2==d2){
-    U2c <- 0
-    V2c <- 0
-  }
+  V2c <- svd.A2$v[,(k2+1):d2]
   e2 <- diag(d2)
   J2 <- matrix(0,d2^2,d2^2)
   for(i in 1:d2){
@@ -679,19 +658,12 @@ MAR1.RRCC.SE <- function(A1,A2,k1,k2,Sigma1,Sigma2,RU1=diag(k1),RV1=diag(k1),RU2
   for(i in 1:k2){
     L2[,i] <- kronecker(e2[,i],e2[,i])
   }
-  if(k2<d2){
-    R2u <- cbind(kronecker(diag(k2),U2), kronecker(diag(k2),U2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
-                                                                                    kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2)),
-                                                                            kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(U2), t(U2c))  )
-    R2v <- cbind(kronecker(diag(k2),V2), kronecker(diag(k2),V2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
-                                                                                    kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2)),
-                                                                            kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(V2), t(V2c))  )
-  }else if(k2==d2){
-    R2u <- kronecker(diag(k2),U2) %*% solve(kronecker(D2^2,diag(k2)) -
-                                              kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2))
-    R2v <- kronecker(diag(k2),V2) %*% solve(kronecker(D2^2,diag(k2)) -
-                                              kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2))
-  }
+  R2u <- cbind(kronecker(diag(k2),U2), kronecker(diag(k2),U2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+                                                                                  kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(U2),t(U2)),
+                                                                          kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(U2), t(U2c))  )
+  R2v <- cbind(kronecker(diag(k2),V2), kronecker(diag(k2),V2c)) %*% rbind(solve(kronecker(D2^2,diag(k2)) -
+                                                                                  kronecker(diag(k2),D2^2)+L2%*%t(L2)) %*% (diag(k2^2)-L2%*%t(L2)) %*% kronecker(t(V2),t(V2)),
+                                                                          kronecker(diag(1/c(svd.A2$d[1:k2],1))[1:k2,1:k2]^2%*%t(V2), t(V2c))  )
   Theta2.CC.u <- R2u%*% Sigma.CC.2u %*%t(R2u)
   Theta2.CC.v <- R2v%*% Sigma.CC.2v %*%t(R2v)
   Theta2.CC.u <- kronecker(t(RU2),diag(d2))%*%Theta2.CC.u
@@ -948,7 +920,8 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
   #   }
   #
   # } else {A.old <- init.A}
-  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}
+  if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
+  if (K == 2){if (is.null(init.A)) {A.old <- matAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*sum(R)
   dis <- 1
@@ -963,22 +936,25 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
         for (k in c(K:1)){ # update last matrix first
           # print(k)
           # tic("step 1")
-          temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE]
+          # temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE]
+          temp <- rTensor::ttl(as.tensor(xx), A.new[[p]][[r]][-k], c(2:(K+1))[-k])@data
+          temp <- myslice(temp,K,1+P-p,t-p)
+
           L1 <- 0
           # toc()
           # tic("step 2")
           for (l in c(1:P)){
             if (R[l] == 0) next
-            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]])}))}
-            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]])}))}
+            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))}
+            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))}
           }
-          temp2 <- xx[(1+P):t,,,,drop=FALSE] - L1
+          temp2 <- myslice(xx, K, 1+P, t) - L1
           # toc()
           # tic("step 3")
-          RR <- tensor(temp,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          RR <- tensor(temp,temp,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           # toc()
           # tic("step 4")
-          LL <- tensor(temp2,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          LL <- tensor(temp2,temp,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           # toc()
           # tic("step 5")
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
@@ -1008,8 +984,9 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
   }
   res <- ten.res(xx,A.new,P,R,K,t)
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  cov <- tenAR.SE.LSE(xx, A.new[[1]], Sig) # temporarily for P=1 only
-  sd <- covtosd(cov, dim, R)
+  if (K==3){
+    cov = tenAR.SE.LSE(xx, A.new[[1]], Sig)
+    sd <- covtosd(cov, dim, R)} # temporarily for P=1 only}
   bic <- IC(xx, res, R, t, dim)
   return(list(A=A.new,niter=iiter,Sig=Sig,res=res,cov=cov,sd=sd,BIC=bic))
 }
@@ -1024,7 +1001,8 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
 
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
-  if (is.null(init.A)) {A.old <- tenAR.PROJ(xx, R, P)$A} else {A.old <- init.A}
+  if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
+  if (K == 2){if (is.null(init.A)) {A.old <- matAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
   # if (is.null(init.A)) {A.old <- list(lapply(1:R, function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})}))} else {A.old <- init.A}
 
   A.new <- A.old
@@ -1038,27 +1016,29 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
       for (r in c(1:R[p])){
         for (k in c(K:1)){
           res.old <- ten.res(xx,A.new,P,R,K,t)
-          rs <- tl(res.old, Sig.new.inv[-k], k)
-          Sig.new[[k]] <- tensor(res.old, rs, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
+          rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])@data
+          Sig.new[[k]] <- tensor(res.old, rs, c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])/(t-1)/prod(dim[-k])
           Sig.new.inv <- lapply(1:K, function (k) {ginv(Sig.new[[k]])})
         }
         for (k in c(K:1)){
           sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
-          temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
-          temp1 <- tl(xx, sphi[-k],k)[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+          temp <- ttl(as.tensor(xx), A.new[[p]][[r]][-k], c(2:(K+1))[-k])@data
+          temp = myslice(temp, K, 1+P-p, t-p)
+          temp1 <- ttl(xx, sphi[-k],c(2:(K+1))[-k])
+          temp1 = myslice(temp1, K, 1+P-p, t-p)
           L1 <- 0
           for (l in c(1:P)){
             if (l == p){
               if (R[l] > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]])}))
+                L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))
               }
             } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A.new[[l]][[n]])}))
+              L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))
             }
           }
-          temp2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
-          RR <- tensor(temp,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
-          LL <- tensor(temp2,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          temp2 <-  myslice(xx,K,1+P,t) - L1
+          RR <- tensor(temp,temp1,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
+          LL <- tensor(temp2,temp1,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
           dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
         }
@@ -1080,11 +1060,14 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
   }
   res <- ten.res(xx,A.new,P,R,K,t)
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  cov <- tenAR.SE.MLE(xx, A.new[[1]], Sig) # temporarily for P=1 only
-  sd <- covtosd(cov, dim, R)
+  if (K==3){
+    cov <- tenAR.SE.MLE(xx, A.new[[1]], Sig) # temporarily for P=1 only
+    sd <- covtosd(cov, dim, R)
+  }
   bic <- IC(xx, res, R, t, dim)
   return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, cov=cov, sd=sd, BIC=bic))
 }
+
 
 
 MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL, print.true=FALSE){
@@ -1111,12 +1094,12 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
   Tol=tol*sqrt(p^2+q^2)
   dis <- 1
   iiter <- 1
-  
+
   while(iiter <= niter & dis >= Tol){
     ## Save old
     LL.oold=LL.old
     RR.oold=RR.old
-    
+
     # estimate LL0
     temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
     AA <- tensor(temp1,temp1,c(1,3),c(1,3))
@@ -1129,7 +1112,7 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
     LL=LL/a
     dis3=sum((LL-LL.old)^2)
     LL.old <- LL
-    
+
     # estimate RR0
     temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
     AA <- tensor(temp1,temp1,c(1,3),c(1,3))
@@ -1140,16 +1123,12 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
     # update for next iteration
     dis3=dis3+sum((RR-RR.old)^2)
     RR.old <- RR
-    
+
     # update for the next iteration
     dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
     dis3 = sqrt(dis3)
     dis <- dis3
     iiter <- iiter + 1
-    
-    #print(max(abs(eigen(LL)$values)))
-    #print(max(abs(eigen(RR)$values)))
-    
     if(print.true==TRUE){
       print(dis)
       print(paste('iiter num=',iiter))
@@ -1167,7 +1146,7 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
 }
 
 
-MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=200,tol=1e-4,print.true = FALSE){
+MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=LL,Sigl.init=NULL,Sigr.init=NULL,niter=200,tol=1e-4,print.true = FALSE){
   # xx: T * p * q
   # X_t = LL X_{t-1} RR' + E_t ### NOTE! This function is written with RR'.
   # Sig = cov(vec(E_t)) = Sigr \otimes Sigl
@@ -1201,15 +1180,15 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
   Tol=tol*sqrt(p^2+q^2)
   dis <- 1
   iiter <- 1
-  
+
   while(iiter <= niter & dis >= Tol){
-    
+
     ## Save old
     LL.oold=LL.old
     RR.oold=RR.old
     Sigl.oold=Sigl.old
     Sigr.oold=Sigr.old
-    
+
     # estimate LL0 and Sigl
     Sigr.inv.old <- ginv(Sigr.old)
     temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
@@ -1234,8 +1213,8 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
     dis3=sum((LL-LL.old)^2)
     LL.old <- LL
     Sigl.old <- Sigl
-    
-    
+
+
     # estimate RR0 and Sigr
     Sigl.inv.old <- ginv(Sigl.old)
     temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],LL.old,2,2)  # (T-1) * q * p
@@ -1258,13 +1237,13 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
     dis3=dis3+sum((RR-RR.old)^2)
     RR.old <- RR
     Sigr.old <- Sigr
-    
-    
+
+
     a <- eigen(Sigl)$values[1]
     Sigl <- Sigl / a
     Sigr <- Sigr * a
     ### cat(eigen(Sigl)$values[1]," ",eigen(Sigr)$values[1], " ")
-    
+
     # update for the next iteration
     dis1 <- sqrt(sum((kronecker(t(RR),LL)-kronecker(t(RR.oold),LL.oold))^2))
     ### cat(dis1," ")
@@ -1289,7 +1268,6 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
   sd <- list(array(diag(cov)[1:p^2], c(p,p)), as.array(diag(cov)[(p^2+1):(p^2+q^2)], c(q,q)))
   return(list(A1=LL,A2=RR,res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd))
 }
-
 
 
 tenAR.SE.LSE <- function(xx, A.true, Sigma){
@@ -1327,9 +1305,9 @@ tenAR.SE.LSE <- function(xx, A.true, Sigma){
     B <- A.true[[i]][[2]]
     A <- A.true[[i]][[1]]
     for (t in c(1:T)){
-      w1 <- k_unfold(xx[t,,,,drop=FALSE], m = 1)@data %*% t(kronecker(C,B))
-      w2 <- k_unfold(xx[t,,,,drop=FALSE], m = 2)@data %*% t(kronecker(C,A))
-      w3 <- k_unfold(xx[t,,,,drop=FALSE], m = 3)@data %*% t(kronecker(B,A))
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
       w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),pm(m2,m1)), kronecker(w3,diag(m3)) %*% pm(m3,m2*m1))
       WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
     }
