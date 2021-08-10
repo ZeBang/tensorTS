@@ -266,7 +266,7 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,], A[[l]][[n]])}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {tl(xx[(1+P-l):(t-l),,,,drop=FALSE], A[[l]][[n]])}))
   }
   res <- xx[(1+P):t,,,,drop=FALSE] - L1
   return(res)

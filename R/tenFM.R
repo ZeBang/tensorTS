@@ -55,7 +55,8 @@
 #'result <- tenFM.est(x,r,method='TIPUP')  # Estimation
 #'Ft <- result$Ft
 tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100){
-  x <- aperm(x@data,c(2:length(dim(x)),1))
+  #x <- aperm(x@data,c(2:length(dim(x)),1))
+  x <- aperm(x,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
   d.seq <- 1:(d-1)
@@ -219,7 +220,8 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 #'rank <- tenFM.rank(x,c(4,4,4),h0=1,rank='ER',method='TIPUP')  # Estimate the rank
 tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-5,maxiter=100){
-  x <- aperm(x@data,c(2:length(dim(x)),1))
+  #x <- aperm(x@data,c(2:length(dim(x)),1))
+  x <- aperm(x,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
   d.seq <- 1:(d-1)
@@ -360,7 +362,7 @@ tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
       X <- tensor(X,Q,1,2)
     }
   } else{
-    X <- Ft
+    X <- aperm(Ft,c(2:(dd+1),1))
     for(i in 1:dd){
       Ai = A[[i]]
       Q = qr.Q(qr(Ai))
@@ -387,7 +389,8 @@ tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
     stop("Please specify cov")
   }
   X <- lambda * X + E
-  return(as.tensor(X))
+  #return(as.tensor(X))
+  return(X)
 }
 
 tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
