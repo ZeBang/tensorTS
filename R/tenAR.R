@@ -925,24 +925,25 @@ tenAR.PROJ <- function(xx,R,P){
 }
 
 
-tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FALSE){
+tenAR.LS <- function(xx, R, P, init.A=NULL, niter=150, tol=1e-5,print.true = FALSE){
+  if (!(mode(xx) == "S4")) {xx <- as.tensor(xx)}
   dim <- dim(xx)[-1]
   K <- length(dim)
   t <- dim(xx)[1]
   if (K==2){
-
+    
     if (is.null(init.A)) {
-
+      
       A.old = list()
       for (p in c(1:P)){
         if (is.na(R[p])) stop("p != length(R)")
         if (R[p] == 0) next
         A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
       }
-
+      
     } else {A.old <- init.A}
   }
-  if (K==3) {if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
+  if (K==3) {if (is.null(init.A)) {A.old <- tenAR.PROJ(xx@data,R,P)$A} else {A.old <- init.A}}
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*sum(R)
   dis <- 1
@@ -958,24 +959,24 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
           # print(k)
           # tic("step 1")
           # temp <- tl(xx, A.new[[p]][[r]][-k], k)[(1+P-p):(t-p),,,,drop=FALSE]
-          temp <- rTensor::ttl(as.tensor(xx), A.new[[p]][[r]][-k], c(2:(K+1))[-k])@data
+          temp <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
           temp <- myslice(temp,K,1+P-p,t-p)
-
+          
           L1 <- 0
           # toc()
           # tic("step 2")
           for (l in c(1:P)){
             if (R[l] == 0) next
-            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))}
-            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))}
+            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A.new[[l]][[n]], (c(1:K) + 1))}))}
+            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A.new[[l]][[n]], (c(1:K) + 1))}))}
           }
           temp2 <- myslice(xx, K, 1+P, t) - L1
           # toc()
           # tic("step 3")
-          RR <- tensor(temp,temp,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
+          RR <- tensor(temp@data,temp@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           # toc()
           # tic("step 4")
-          LL <- tensor(temp2,temp,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
+          LL <- tensor(temp2@data,temp@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           # toc()
           # tic("step 5")
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
@@ -1003,9 +1004,9 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
     if (R[p] == 0) next
     A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
   }
-  res <- ten.res(xx,A.new,P,R,K,t)
+  res <- ten.res(xx,A.new,P,R,K,t)@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  if (K==3){
+  if (K==3 & P==1){
     cov = tenAR.SE.LSE(xx, A.new[[1]], Sig)
     sd <- covtosd(cov, dim, R)} # temporarily for P=1 only}
   bic <- IC(xx, res, R, t, dim)
@@ -1013,27 +1014,27 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
 }
 
 
-tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, print.true = FALSE){
-  if (mode(xx) == "S4") {xx <- xx@data}
+tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=150,tol=1e-5, print.true = FALSE){
+  if (!(mode(xx) == "S4")) {xx <- as.tensor(xx)}
   dim <- dim(xx)[-1]
   K <- length(dim)
   t <- dim(xx)[1]
   if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
-
+  
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
-  if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
+  if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx@data,R,P)$A} else {A.old <- init.A}}
   if (K==2){
-
+    
     if (is.null(init.A)) {
-
+      
       A.old = list()
       for (p in c(1:P)){
         if (is.na(R[p])) stop("p != length(R)")
         if (R[p] == 0) next
         A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
       }
-
+      
     } else {A.old <- init.A}
   }
   A.new <- A.old
@@ -1047,29 +1048,29 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
       for (r in c(1:R[p])){
         for (k in c(K:1)){
           res.old <- ten.res(xx,A.new,P,R,K,t)
-          rs <- rTensor::ttl(as.tensor(res.old), Sig.new.inv[-k], c(2:(K+1))[-k])@data
-          Sig.new[[k]] <- tensor(res.old, rs, c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])/(t-1)/prod(dim[-k])
+          rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])
+          Sig.new[[k]] <- tensor(res.old@data, rs@data, c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])/(t-1)/prod(dim[-k])
           Sig.new.inv <- lapply(1:K, function (k) {ginv(Sig.new[[k]])})
         }
         for (k in c(K:1)){
           sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
-          temp <- ttl(as.tensor(xx), A.new[[p]][[r]][-k], c(2:(K+1))[-k])@data
+          temp <- ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
           temp = myslice(temp, K, 1+P-p, t-p)
-          temp1 <- ttl(as.tensor(xx), sphi[-k],c(2:(K+1))[-k])@data
+          temp1 <- ttl(xx, sphi[-k],c(2:(K+1))[-k])
           temp1 = myslice(temp1, K, 1+P-p, t-p)
           L1 <- 0
           for (l in c(1:P)){
             if (l == p){
               if (R[l] > 1){
-                L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))
+                L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A.new[[l]][[n]], (c(1:K) + 1))}))
               }
             } else {
-              L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A.new[[l]][[n]], (c(1:K) + 1))@data}))
+              L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A.new[[l]][[n]], (c(1:K) + 1))}))
             }
           }
           temp2 <-  myslice(xx,K,1+P,t) - L1
-          RR <- tensor(temp,temp1,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
-          LL <- tensor(temp2,temp1,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
+          RR <- tensor(temp@data,temp1@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
+          LL <- tensor(temp2@data,temp1@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
           dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
         }
@@ -1089,10 +1090,10 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
   for (p in c(1:P)){
     A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
   }
-  res <- ten.res(xx,A.new,P,R,K,t)
+  res <- ten.res(xx,A.new,P,R,K,t)@data
   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
-  if (K==3){
-    cov <- tenAR.SE.MLE(xx, A.new[[1]], Sig) # temporarily for P=1 only
+  if (K==3 & P==1){
+    cov <- tenAR.SE.MLE(xx@data, A.new[[1]], Sig) # temporarily for P=1 only
     sd <- covtosd(cov, dim, R)
   }
   bic <- IC(xx, res, R, t, dim)
