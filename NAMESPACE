@@ -3,6 +3,7 @@
 export(matAR.RR.est)
 export(matAR.RR.se)
 export(mplot)
+export(mplot.acf)
 export(tenAR.est)
 export(tenAR.predict)
 export(tenAR.sim)
