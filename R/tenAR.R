@@ -910,18 +910,20 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=300, tol=1e-5,print.true = FAL
   dim <- dim(xx)[-1]
   K <- length(dim)
   t <- dim(xx)[1]
-  # if (is.null(init.A)) {
-  #
-  #   A.old = list()
-  #   for (p in c(1:P)){
-  #     if (is.na(R[p])) stop("p != length(R)")
-  #     if (R[p] == 0) next
-  #     A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
-  #   }
-  #
-  # } else {A.old <- init.A}
-  if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
-  if (K == 2){if (is.null(init.A)) {A.old <- matAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
+  if (K==2){
+
+    if (is.null(init.A)) {
+
+      A.old = list()
+      for (p in c(1:P)){
+        if (is.na(R[p])) stop("p != length(R)")
+        if (R[p] == 0) next
+        A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
+      }
+
+    } else {A.old <- init.A}
+  }
+  if (K==3) {if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*sum(R)
   dis <- 1
@@ -1002,9 +1004,19 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
   Sig.new <- Sig.old
   Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
   if (K >= 3){if (is.null(init.A)) {A.old <- tenAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
-  if (K == 2){if (is.null(init.A)) {A.old <- matAR.PROJ(xx,R,P)$A} else {A.old <- init.A}}
-  # if (is.null(init.A)) {A.old <- list(lapply(1:R, function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})}))} else {A.old <- init.A}
+  if (K==2){
 
+    if (is.null(init.A)) {
+
+      A.old = list()
+      for (p in c(1:P)){
+        if (is.na(R[p])) stop("p != length(R)")
+        if (R[p] == 0) next
+        A.old[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {0.5*diag(dim[i])})})
+      }
+
+    } else {A.old <- init.A}
+  }
   A.new <- A.old
   Tol <- tol*sqrt(sum(dim^2))*P*sum(R)
   dis <- 1
@@ -1016,7 +1028,7 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
       for (r in c(1:R[p])){
         for (k in c(K:1)){
           res.old <- ten.res(xx,A.new,P,R,K,t)
-          rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])@data
+          rs <- rTensor::ttl(as.tensor(res.old), Sig.new.inv[-k], c(2:(K+1))[-k])@data
           Sig.new[[k]] <- tensor(res.old, rs, c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])/(t-1)/prod(dim[-k])
           Sig.new.inv <- lapply(1:K, function (k) {ginv(Sig.new[[k]])})
         }
@@ -1024,7 +1036,7 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=300,tol=1e-5, 
           sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
           temp <- ttl(as.tensor(xx), A.new[[p]][[r]][-k], c(2:(K+1))[-k])@data
           temp = myslice(temp, K, 1+P-p, t-p)
-          temp1 <- ttl(xx, sphi[-k],c(2:(K+1))[-k])
+          temp1 <- ttl(as.tensor(xx), sphi[-k],c(2:(K+1))[-k])@data
           temp1 = myslice(temp1, K, 1+P-p, t-p)
           L1 <- 0
           for (l in c(1:P)){
