@@ -283,7 +283,7 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(as.tensor(myslice(xx, K, 1+P-l, t-l)), A[[l]][[n]], (c(1:K) + 1))@data}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A[[l]][[n]], (c(1:K) + 1))}))
   }
   res <- myslice(xx, K, 1+P, t) - L1
   return(res)
@@ -299,7 +299,7 @@ M.eigen <- function(A, R, P, dim){
       break
     }
     if (R[i] == 0){
-      phi[[i]] = zeroes(prod(dim))
+      phi[[i]] = pracma::zeros(prod(dim))
     } else {
       phi[[i]] <- Reduce("+", lapply(1:R[i], function(j) {rTensor::kronecker_list(rev(A[[i]][[j]]))}))
     }

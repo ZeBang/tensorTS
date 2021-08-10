@@ -4,7 +4,7 @@
 \alias{tenAR.est}
 \title{Estimation for Autoregressive Model of Tensor-Valued Time Series}
 \usage{
-tenAR.est(xx,R=1,P=1,method="LSE",init.A=NULL,init.sig=NULL,niter=500,tol=1e-6)
+tenAR.est(xx,R=1,P=1,method="LSE",init.A=NULL,init.sig=NULL,niter=150,tol=1e-6)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.}
@@ -59,14 +59,29 @@ For the "MLE" method, we also assume,
 }
 \examples{
 set.seed(333)
+
+# case 1: tensor-valued time series
+
 dim <- c(2,2,2)
-xx <- tenAR.sim(t=100, dim,R=2,P=1,rho=0.5, cov='iid')
+xx <- tenAR.sim(t=100, dim, R=2, P=1, rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=2, P=1, method="LSE")
 A <- est$A # A is a multi-layer list
 
 length(A) == 1 # TRUE, since the order P = 1
 length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
 length(A[[1]][[1]]) == 3 # TRUE, since the mode K = 3
+
+
+# case 2: matrix-valued time series
+
+dim <- c(2,2)
+xx <- tenAR.sim(t=100, dim, R=2, P=1, rho=0.5, cov='iid')
+est <- tenAR.est(xx, R=2, P=1, method="LSE")
+A <- est$A # A is a multi-layer list
+
+length(A) == 1 # TRUE, since the order P = 1
+length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
+length(A[[1]][[1]]) == 2 # TRUE, since the mode K = 2
 }
 \references{
 Rong Chen, Han Xiao, and Dan Yang. "Autoregressive models for matrix-valued time series". Journal of Econometrics, 2020.
