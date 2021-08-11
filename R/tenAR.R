@@ -721,13 +721,16 @@ MAR1.PROJ <- function(xx){
   xx.mat <- matrix(xx,T,p*q)
   kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
   ans.projection <- projection(kroneck,r=1,q,p,q,p)
-  a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
-  LL <- ans.projection$C / a
-  RR <- t(ans.projection$B) * a
+  #a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
+  #LL <- ans.projection$C / a
+  #RR <- t(ans.projection$B) * a
+  a <- svd(ans.projection[[1]][[2]],nu=0,nv=0)$d[1]
+  LL <- ans.projection[[1]][[2]] / a
+  RR <- t(ans.projection[[1]][[1]]) * a
   res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
   Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
   sd <- MAR.SE(xx, t(RR), LL, Sig)
-  return(list(LL=LL,RR=RR,res=res,Sig=Sig, sd=sd))
+  return(list(A1=LL,A2=t(RR),res=res,Sig=Sig, sd=sd))
 }
 
 
