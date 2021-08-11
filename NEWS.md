@@ -8,7 +8,7 @@ Version 0.1.2:
 2. Now tenAR.est can support MatAR.
 3. Now the input of tenAR.est should be numeric array instead of using "as.tensor()".
 
-
-
+Version 0.1.3:
+1. Fixed some bugs in MAR1.PROJ.
 
 
