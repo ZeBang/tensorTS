@@ -1,7 +1,7 @@
 Package: tensorTS
 Type: Package
 Title: Factor and Autoregressive Models for Tensor Time Series
-Version: 0.1.3
+Version: 0.1.4
 Authors@R: c(
     person("Zebang", "Li", email = "zl326@stat.rutgers.edu", role=c("aut","cre")),
     person("Ruofan", "Yu", role = "aut"),
