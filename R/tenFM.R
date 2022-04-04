@@ -143,6 +143,10 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
   eigen.gap[,,maxiter]=eigen.gap[,,iiter-1]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
   norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
+  x0 <- matrix(x,prod(dd[-d]))
+  x0 <- t(scale(t(x0),scale=FALSE) )
+  x0 <- array(x0,dd)
+  rsquare <- 1- fnorm(x.tnsr-x.hat)^2/fnorm(as.tensor(x0))^2
   return(list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter]))
 }
 
@@ -152,7 +156,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #' Function for rank determination of tensor factor models with Tucker Structure.
 #' Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
 #' are included, as determined by the value of \code{method}.
-#' Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,
+#' Different penalty functions for the information criterion (IC) and the eigen ratio criterion (ER) can be used,
 #' which should be specified by the value of \code{rank} and \code{penalty}. The information criterion resembles BIC in the vector factor model literature.
 #' And the eigen ratio criterion is similar to the eigenvalue ratio based methods in the vector factor model literature.
 #'@details
@@ -171,14 +175,14 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'@name tenFM.rank
 #'@rdname tenFM.rank
 #'@aliases tenFM.rank
-#'@usage tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
+#'@usage tenFM.rank(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
 #'delta1=0,tol=1e-5,maxiter=100)
 #'@export
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
 #'@param r input rank of the factor tensor.
 #'@param h0 the number of lags used in auto-covariance tensor.
 #'@param rank character string, specifying the type of the rank determination method to be used. \describe{
-#'  \item{\code{"BIC",}}{information criterion.}
+#'  \item{\code{"IC",}}{information criterion.}
 #'  \item{\code{"ER",}}{eigen ratio criterion.}
 #'}
 #'@param method character string, specifying the type of the factor estimation method to be used. \describe{
@@ -186,10 +190,10 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'  \item{\code{"TOPUP",}}{TOPUP method.}
 #'}
 #'@param inputr boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.
-#'@param iter boolean, specifying using an iterative approach or an non-iterative approach.
-#'@param penalty takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+#'@param iter boolean, specifying using an iterative approach or a non-iterative approach.
+#'@param penalty takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
 #'  \describe{
-#'  \item{}{When \code{rank}= '\code{BIC}':}
+#'  \item{}{When \code{rank}= '\code{IC}':}
 #'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
 #'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
 #'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
@@ -202,7 +206,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
 #'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 #'}
-#'@param delta1 weakest factor strength, a tuning parameter used for BIC method only, default value is 0.
+  #'@param delta1 weakest factor strength, a tuning parameter used for IC method only, default value is 0.
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
 #'@return return a list containing the following:\describe{
@@ -219,7 +223,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'lambda <- sqrt(prod(dims))
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
 #'rank <- tenFM.rank(x,c(4,4,4),h0=1,rank='ER',method='TIPUP')  # Estimate the rank
-tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-5,maxiter=100){
+tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-5,maxiter=100){
   #x <- aperm(x@data,c(2:length(dim(x)),1))
   x <- aperm(x,c(2:length(dim(x)),1))
   dd <- dim(x)
@@ -229,7 +233,7 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
   x.tnsr <- as.tensor(x)
   tnsr.norm <- fnorm(x.tnsr)
   factor.num <- array(NA, c(d-1,5,maxiter))
-  eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter ))
+  eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter+1))
 
   if(method=="TIPUP"){
     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
@@ -241,13 +245,13 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
   }
   ddd=dd[-d]
   for(i in 1:(d-1)){
-    if(rank=='BIC'){
+    if(rank=='BIC'|rank=='IC'){
       sigmas.hat=1
       factor.num[i,,1]=tensor.bic(ans.init$lambda[[i]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
     }else if(rank=='ER'){
       factor.num[i,,1]=tensor.ratio(ans.init$lambda[[i]],ddd[i],ddd[-i],n)
     }else{
-      stop('Wrong rank method !')  # should catch exception
+      stop('Wrong rank method !')
     }
     eigen.gap[i,1:dd[i],1]=ans.init$lambda[[i]]
   }
@@ -272,16 +276,16 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
           ans.iter <- topup.init.tensor(x.new,c(r[i],r[-i]),h0,oneside.true=TRUE,norm.true=FALSE)
           ans.Q[[i]] <- ans.iter$Q[[1]]
         }else{
-          stop('Wrong estimation method input !')  # should catch exception
+          stop('Wrong estimation method input !')
         }
         ddd=dd[-d]
 
-        if(rank=='BIC'){
+        if(rank=='BIC'|rank=='IC'){
           factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
         }else if(rank=='ER'){
           factor.num[i,,1+iiter]=tensor.ratio(ans.iter$lambda[[1]],ddd[i],ddd[-i],n)
         }else{
-          stop('Wrong rank method !')  # should be error
+          stop('Wrong rank method !')
         }
         if(inputr==FALSE){
           r[i]=factor.num[i,penalty,1+iiter]
@@ -309,7 +313,7 @@ tenFM.rank = function(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,
   eigen.gap[,,maxiter]=eigen.gap[,,iiter]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
   norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
-  return(list("path"=factor.num[,penalty,1:(iiter)],"factor.num"=factor.num[,penalty,maxiter]))
+  return(list("path"=t(factor.num[,penalty,1:(iiter)]),"factor.num"=factor.num[,penalty,maxiter]))
 }
 
 
