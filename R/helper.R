@@ -36,12 +36,20 @@ tl <- function(x, list_mat, k = NULL){
 # standard error extraction
 covtosd <- function(cov, dim, R){
   K <- length(dim)
-  sd <- lapply(1:R, function(n) {lapply(1:K, function(m) {list()})})
-  for (j in c(1:R)){
-    for (i in c(1:K)){
-      left <- sum(dim^2)*R + sum((dim^2)[1:(i-1)])+1
-      right <- sum(dim^2)*R + sum((dim^2)[1:i])
-      sd[[j]][[i]] <- array(diag(cov)[left:right], c(dim[i], dim[i]))
+  P <- length(R)
+  sd = list()
+  for (p in c(1:P)){
+    if (is.na(R[p])) stop("p != length(R)")
+    if (R[p] == 0) next
+    sd[[p]] <- lapply(1:R[p], function(j) {lapply(1:K, function(i) {list()})})
+  }
+  for (i in c(1:P)){
+    for (j in c(1:R[i])){
+      for (k in c(1:K)){
+        left <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:(k-1)])+1
+        right <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:k])
+        sd[[i]][[j]][[k]] <- array(sqrt(diag(cov)[left:right]), c(dim[k], dim[k]))
+      }
     }
   }
   return(sd)
@@ -254,13 +262,11 @@ fro.order <- function(A){
   return(A)
 }
 
-ten.dis.A <- function(A, B){
-  P = length(A)
-  R <- length(A[[1]])
-  K <- length(A[[1]][[1]])
+ten.dis.A <- function(A, B, R, K){
+  P = length(R)
   dis <- 0
   for (p in c(1:P)){
-    for (r in c(1:R)){
+    for (r in c(1:R[p])){
       for (k in c(1:K)){
         dis <- dis + min(sum((A[[p]][[r]][[k]] - B[[p]][[r]][[k]])^2), sum((A[[p]][[r]][[k]] + B[[p]][[r]][[k]])^2))
       }
@@ -283,9 +289,9 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(myslice(xx, K, 1+P-l, t-l), A[[l]][[n]], (c(1:K) + 1))}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
   }
-  res <- myslice(xx, K, 1+P, t) - L1
+  res <- asub(xx, (1+P):(t), 1, drop=FALSE) - L1
   return(res)
 }
 
