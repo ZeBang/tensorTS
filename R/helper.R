@@ -1,14 +1,14 @@
 ### Helper functions
 
-myslice <- function(xx, K, start, end){
-  if (K==2){
-    return(xx[start:end,,,drop=FALSE])
-  } else if (K==3){
-    return(xx[start:end,,,,drop=FALSE])
-  } else {
-    stop("not support tensor mode K > 3")
-  }
-}
+# myslice <- function(xx, K, start, end){
+#   if (K==2){
+#     return(xx[start:end,,,drop=FALSE])
+#   } else if (K==3){
+#     return(xx[start:end,,,,drop=FALSE])
+#   } else {
+#     stop("not support tensor mode K > 3")
+#   }
+# }
 
 # mat projection
 matAR.PROJ <- function(xx, dim, r, t){
@@ -144,7 +144,7 @@ projection <- function(M,r,m1,m2,n1,n2){
   RA.svd <- svd(RA,nu=r,nv=r)
   A <- list()
   for (i in c(1:r)){
-    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2),matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
+    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2), matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
   }
   for (j in c(1:r)){
     A[[j]] <- rev(A[[j]])
@@ -317,6 +317,9 @@ M.eigen <- function(A, R, P, dim){
   return(max(Mod(eigen(M, only.values = TRUE)$values)))
 }
 
+specRadius <- function(M){
+  return(max(Mod(eigen(M, only.values = TRUE)$values)))
+}
 
 likelihood <- function(xx, A, Sigma){
   r <- length(A[[1]])
@@ -336,11 +339,29 @@ likelihood <- function(xx, A, Sigma){
   return((l2 - l1)/2)
 }
 
-likelihood.lse <- function(fres, s, d, t){
+xx = X.Mat[1:(tt-1),,]
 
+initializer <- function(xx, k1=1, k2=1){
+  PROJ = MAR1.PROJ(xx)
+  if (specRadius(PROJ$A1)*specRadius(PROJ$A2) < 1){
+    return(list(A1=PROJ$A1,A2=PROJ$A2))
+  }
+  MAR = MAR1.LS(xx)
+  if (specRadius(MAR$A1)*specRadius(MAR$A2) < 1){
+    return(list(A1=MAR$A1,A2=MAR$A2))
+  }
+  RRMAR = MAR1.RR(xx, k1, k2)
+  if (specRadius(MAR1.RR$A1)*specRadius(MAR1.RR$A2) < 1){
+    return(list(A1=MAR1.RR$A1,A2=MAR1.RR$A2))
+  }
+  stop('causality condition of initializer fails.')
+}
+
+
+
+likelihood.lse <- function(fres, s, d, t){
   l1 <- fres/2/s^2
   l2 <- -(t - 1)*d*log(2*pi*s^2)/2
-
   return(l2 - l1)
 }
 
