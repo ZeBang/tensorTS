@@ -339,7 +339,6 @@ likelihood <- function(xx, A, Sigma){
   return((l2 - l1)/2)
 }
 
-xx = X.Mat[1:(tt-1),,]
 
 initializer <- function(xx, k1=1, k2=1){
   PROJ = MAR1.PROJ(xx)
