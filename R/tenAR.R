@@ -49,12 +49,12 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL, Sig=NULL){
       })
       Sig.true <- fro.rescale(list(Sig.true))[[1]]
       Sig.true.sqrt <- lapply(1:K, function(i){
-        sqrtm(Sig.true[[i]])$B
+        pracma::sqrtm(Sig.true[[i]])$B
       })
     } else {
       Sig.true = Sig
       Sig.true.sqrt <- lapply(1:K, function(i){
-        sqrtm(Sig.true[[i]])$B
+        pracma::sqrtm(Sig.true[[i]])$B
       })
     }
   }
@@ -725,14 +725,41 @@ MAR1.PROJ <- function(xx){
   q <- dd[3]
   xx.mat <- matrix(xx,T,p*q)
   kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
-  ans.projection <- projection(kroneck,r=1,q,p,q,p)
-  a <- svd(ans.projection$C,nu=0,nv=0)$d[1]
-  LL <- ans.projection$C / a
-  RR <- t(ans.projection$B) * a
-  res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
+  ans.projection <- projection(kroneck,r=1,p,q,p,q)
+  a <- svd(ans.projection[[1]][[1]],nu=0,nv=0)$d[1]
+  LL <- ans.projection[[1]][[1]] / a
+  RR <- t(ans.projection[[1]][[2]]) * a
+  res = xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
   Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
   sd <- MAR.SE(xx, t(RR), LL, Sig)
-  return(list(LL=LL,RR=RR,res=res,Sig=Sig, sd=sd))
+  return(list(A1=LL,A2=RR,res=res,Sig=Sig, sd=sd))
+}
+
+
+MAR2.PROJ <- function(xx, R=1, P=1){
+  # xx: T * p * q
+  # X_t = LL X_{t-1} RR + E_t
+  # Sig = cov(vec(E_t))
+  # one-step projection estimation
+  # Return LL, RR, and estimate of Sig
+  dd <- dim(xx)
+  T <- dd[1]
+  d1 <- dd[2]
+  d2 <- dd[3]
+  # xx.mat <- matrix(xx,T,d1*d2)
+  # kroneck <- t(xx.mat[2:T,]) %*% xx.mat[1:(T-1),] %*% solve(t(xx.mat[1:(T-1),]) %*% xx.mat[1:(T-1),])
+  A = list()
+  kroneck <- tenAR.VAR(xx, P)$coef
+  for (i in c(1:P)){
+    ans.projection <- projection(kroneck[[i]],R[i],d2,d1,d2,d1)
+    for (j in c(1:R[i])){
+      a = svd(ans.projection[[j]][[1]],nu=0,nv=0)$d[1]
+      ans.projection[[j]][[1]] <- ans.projection[[j]][[1]] / a
+      ans.projection[[j]][[2]] <- t(ans.projection[[j]][[2]]) * a
+    }
+    A[[i]] <- ans.projection
+  }
+  return(list(A=A))
 }
 
 
@@ -934,6 +961,13 @@ tenAR.A <- function(dim,R,P,rho){
 
 tenAR.PROJ <- function(xx,R,P){
   dim <- dim(xx)[-1]
+  if (length(dim) == 2){
+    A = MAR2.PROJ(xx,R,P)
+    return(list(A=A))
+  }
+  if (length(dim) != 3){
+    stop("temporarily 'tenAR.PROJ' only support K=2,3.")
+  }
   mm <- tenAR.VAR(xx, P)$coef
   A = list()
   for (p in c(1:P)){
@@ -1108,13 +1142,16 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
   T <- dd[1]
   p <- dd[2]
   q <- dd[3]
+  if(is.null(A1.init) | is.null(A2.init)){
+    init = initializer(xx, k1, k2)
+  }
   if(is.null(A1.init)){
-    LL.old <- diag(p)
+    LL.old <- init$A1
   } else{
     LL.old <- A1.init
   }
   if(is.null(A2.init)){
-    RR.old <- diag(q)
+    RR.old <- init$A2
   } else{
     RR.old <- A2.init
   }
@@ -1126,7 +1163,6 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
     ## Save old
     LL.oold=LL.old
     RR.oold=RR.old
-
     # estimate LL0
     temp1 <- tensor(xx[1:(T-1),,,drop=FALSE],RR.old,3,2)  # (T-1) * p * q
     AA <- tensor(temp1,temp1,c(1,3),c(1,3))
@@ -1189,13 +1225,16 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
   T <- dd[1]
   p <- dd[2]
   q <- dd[3]
+  if(is.null(A1.init) | is.null(A2.init)){
+    init = initializer(xx, k1, k2)
+  }
   if(is.null(A1.init)){
-    LL.old <- diag(p)
+    LL.old <- init$A1
   } else{
     LL.old <- A1.init
   }
   if(is.null(A2.init)){
-    RR.old <- diag(q)
+    RR.old <- init$A2
   } else{
     RR.old <- A2.init
   }
@@ -1297,12 +1336,10 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
   RR <- RR * a
   Sig <- kronecker(Sigr,Sigl)
   # cov <- matAR.RR.se(LL,RR,k1,k2,method="RRMLE",Sigma1=Sigl,Sigma2=Sigr,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
-  # ansinside = list(LL=LL,RR=RR,k1=k1,k2=k2,Sigl=Sigl,Sigr=Sigr,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
-  # return(ansinside)
   cov = MAR1.RRCC.SE(LL,RR,k1,k2,Sigl,Sigr,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
   sd <- list(sqrt(array(diag(cov$Sigma)[1:p^2], c(p,p))/T), sqrt(array(diag(cov$Sigma)[(p^2+1):(p^2+q^2)], c(q,q))/T))
   loading = list(U1=svd(LL)$u,V1=svd(LL)$v,U2=svd(RR)$u,V2=svd(RR)$v)
-  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd, ansinside=asinside))
+  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd))
 }
 
 
