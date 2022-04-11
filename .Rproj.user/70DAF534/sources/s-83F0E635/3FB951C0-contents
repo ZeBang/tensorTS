@@ -1,0 +1,19 @@
+c1 = c(1,1,1,1); c1= c1/sqrt(sum(c1^2)); C1 = matrix(c1,ncol=2)
+d1 = c(1,1,1,1); d1= d1/sqrt(sum(d1^2)); D1 = matrix(d1,ncol=2)
+c2 = c(0,-1,1,0); c2= c2/sqrt(sum(c2^2)); C2 = matrix(c2,ncol=2)
+d2 = c(0,-1,1,0); d2= d2/sqrt(sum(d2^2)); D2 = matrix(c2,ncol=2)
+
+B1 = kronecker(C1,D1) + kronecker(C2,D2)
+B2 = kronecker(C1,D2) + kronecker(C2,D1)
+
+A1 = C1; A2 = C2
+
+Sigma = kronecker(B1,A1) + kronecker(B2,A2)
+
+U = svd(rearrange(Sigma,n1*n2))$u
+V = svd(rearrange(Sigma,n1*n2))$v
+D = svd(rearrange(Sigma,n1*n2))$d
+V[,1] = as.vector(B1)
+V[,2] = as.vector(B2)
+U[,1] = as.vector(A1)
+U[,2] = as.vector(A2)

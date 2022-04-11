@@ -1,0 +1,681 @@
+rm(list=ls())
+setwd("C:/Rutgers/TAR/FamaFrench")
+source("func.R")
+source("helper_func.R")
+###################### read data ####
+# market <- read.csv(file = 'F-F_Research_Data_5_Factors_2x3(1).csv')
+# data <- read.csv(file = '32_Portfolios_ME_BEME_OP_2x4x4(1).csv')
+market <- read.csv(file = 'F-F_Research_Data_Five_Factors.csv')
+data <- read.csv(file = 'ME_BEME_OP.csv')
+mdata <- as.matrix(data)[,-1]
+
+T <- nrow(mdata) # time length
+dim <- c(4,4,2) # t*op*bm*size
+
+xx <- array(mdata, c(T,dim))
+mmarket <- as.matrix(market[1:T,])[,-1]
+rf <- mmarket[,6]
+mkrf <- mmarket[,1]
+mk <- mkrf + rf
+xxrf <- xx - array(rep(rf,prod(dim)),c(T,dim[1],dim[2],dim[3]))
+
+xxt <- as.tensor(xx)
+xxrft <- as.tensor(xxrf)
+
+
+###################### removing the mean ####
+mean_temp = apply(xx[1:T,,,],c(2,3,4),mean)
+mean_xx <- aperm(array(mean_temp,c(dim,T)), c(4,1,2,3))
+xx.nm <- xx - mean_xx
+xxt.nm <- as.tensor(xx.nm)
+
+mean_temp = apply(xxrf[1:T,,,],c(2,3,4),mean)
+mean_xxrf <- aperm(array(mean_temp, c(dim,T)), c(4,1,2,3))
+xxrf.nm <- xxrf - mean_xxrf
+xxrft.nm <- as.tensor(xxrf.nm)
+
+# # ### standardize variance for each indicator
+# for(i in 1:4){
+#   ss.ind=sd(xx.nm[,i,,])
+#   print(ss.ind)
+#   xx.nm[,i,,]=xx.nm[,i,,]/ss.ind
+# }
+# # ### standardize variance for each indicator
+# for(i in 1:4){
+#   ss.ind=sd(xx.nm[,i,,])
+#   print(ss.ind)
+#   xx.nm[,i,,]=xx.nm[,i,,]/ss.ind
+# }
+
+###################### over-fitting ####
+# phi = 0
+# res1 = c()
+# range <- seq(30,200,5)
+# for (n in range){
+#   print(n)
+#   TL1 <- MAR2.LS(xxt.nm,r=3,niter = n)
+#   res1 <- c(res1,sum((TL1$res)^2)/(T-1))
+# }
+# plot(x=range,y=res1[-1],type = 'l')
+#
+# phi = 0
+# res2 = c()
+# range <- seq(30,200,5)
+# for (n in range){
+#   TL1 <- MAR2.MLE(xxt.nm,r=3,niter = n)
+#   res2 <- c(res2,sum((TL1$res)^2)/(T-1))
+# }
+# plot(x=range,y=res2,type = 'l')
+###################### ESTIMATE ####
+
+
+TL1 <- TAR2.LS(xxrft.nm, r=1, niter=400, print.true = TRUE)
+TL2 <- TAR2.LS(xxrft.nm, r=2, niter=200, print.true = TRUE)
+TL3 <- TAR2.LS(xxrft.nm, r=3, niter=400, print.true = TRUE)
+
+TM1 <- TAR2.MLE(xxrft.nm, r=1, niter=400, print.true = TRUE)
+TM2 <- TAR2.MLE(xxrft.nm, r=2, niter=400, print.true = TRUE)
+TM3 <- TAR2.MLE(xxrft.nm, r=3, niter=400, print.true = TRUE)
+
+R = 3
+K = 3
+A.init = lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})
+
+TL1 <- TAR2.LS(xxrft.nm, r=1, init=A.init, niter=400, print.true = TRUE)
+TL2 <- TAR2.LS(xxrft.nm, r=2, init=A.init, niter=400, print.true = TRUE)
+TL3 <- TAR2.LS(xxrft.nm, r=3, init=A.init, niter=400, print.true = TRUE)
+
+TM1 <- TAR2.MLE(xxrft.nm, r=1, init=A.init, niter=400, print.true = TRUE)
+TM2 <- TAR2.MLE(xxrft.nm, r=2, init=A.init, niter=400, print.true = TRUE)
+TM3 <- TAR2.MLE(xxrft.nm, r=3, init=A.init, niter=400, print.true = TRUE)
+
+AR1.res <- array(0,c(T-1,dim[1],dim[2],dim[3]))
+for(i in 1:4){
+  for(j in 1:4){
+    for (k in 1:2){
+      oo=arima(xx.nm[1:(T-1),i,j,k],order=c(1,0,0),method="CSS")
+      pred.AR1=oo$coef[1]*xx.nm[1:(T-1),i,j,k]
+      AR1.res[,i,j,k] = xx.nm[2:T,i,j,k] - pred.AR1
+    }
+  }
+}
+AR2.res <- array(0,c(T-2,dim[1],dim[2],dim[3]))
+for(i in 1:4){
+  for(j in 1:4){
+    for (k in 1:2){
+      oo2=arima(xx.nm[1:(T-2),i,j,k],order=c(2,0,0),method="CSS")
+      pred.AR2 = array(0,T-2)
+      for (t in c(1:(T-2))){
+        pred.AR2[t]=oo2$coef[1:2]%*%xx.nm[(t+1):t,i,j,k]
+      }
+      AR2.res[,i,j,k] = xx.nm[3:T,i,j,k] - pred.AR2
+    }
+  }
+}
+
+var.res=TAR1.VAR(xxt.nm)$res
+
+model.res=matrix(0,nrow=1,ncol=9)
+colnames(model.res) = c("LSE1","LSE2","LSE3","MLE1","MLE2","MLE3","AR1","AR2","VAR")
+model.res[,1:9]=c(sum((TL1$res)^2)/(T-1),sum((TL2$res)^2)/(T-1),
+                  sum((TL3$res)^2)/(T-1),sum((TM1$res)^2)/(T-1),
+                  sum((TM2$res)^2)/(T-1),sum((TM3$res)^2)/(T-1),
+                  sum((AR1.res)^2)/(T-1),sum((AR2.res)^2)/(T-2),sum((var.res)^2)/(T-1))
+sum(xx.nm[2:T,,,,drop=FALSE]^2)/(T-1)
+model.res
+
+###################### choose r ####
+IC <- function(xx,q,r){
+  T <- xx@modes[1]
+  k <- xx@num_modes-1
+  N <- prod(xx@modes[-1])
+  d1 <- xxt.nm@modes[2]
+  d2 <- xxt.nm@modes[3]
+  d3 <- xxt.nm@modes[4]
+  est <- TAR2.LS(xx[1:(T-1),,,,drop=FALSE],r,niter = 100, print.true = TRUE)
+  A <- est$A
+  res <- (xx[2:T,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(T-1),,,,drop=FALSE], A[[j]], (c(1:k) + 1)))})))@data
+  if (q==0){
+    ic <- log(sum((res)^2)/(N*T))
+  } else if (q == 1){
+    ic <- log(sum((res)^2)/(N*T)) + r*log(T)/T
+  } else if (q == 2){
+    ic <- log(sum((res)^2)/(N*T)) + r*log(d1^2+d2^2+d3^2)/T
+  } else if (q == 3){
+    ic <- log(sum((res)^2)/(N*T)) + r*log(N*T)/(N+T)
+  } else if (q == 4){
+    ic <- log(sum((res)^2)/(N*T)) + r*log(N)/T
+  }
+  return(ic)
+}
+
+
+phi <- 0
+nic <- 4 # 3 types of IC
+rmax <- 5
+ans <- array(0, c(nic,rmax))
+for (q in c(1:nic)){
+  for (j in c(1:rmax)){
+    ans[q,j] <- IC(xxt.nm, q,j)
+    print(paste("======complete",q,j))
+  }
+}
+apply(ans,1,which.min)
+
+###################### Coefficient ####
+phi <- 0
+r <- 1
+dim <- xxt.nm@modes[-1]
+T <- xxt.nm@modes[1]
+TL1 <- TAR1.MLE(xxt.nm, r=1)
+
+A <- TL1$A
+
+A1.hat <- A[[1]][[1]]
+B1.hat <- A[[1]][[2]]
+C1.hat <- A[[1]][[3]]
+A1.hat.fnorm <- norm(A1.hat, 'f')
+B1.hat.fnorm <- norm(B1.hat, 'f')
+A1.hat <- A1.hat/A1.hat.fnorm
+B1.hat <- B1.hat/B1.hat.fnorm
+C1.hat <- C1.hat * A1.hat.fnorm * B1.hat.fnorm
+
+A.true <- list(list(A1.hat,B1.hat,C1.hat))
+
+M <- kronecker_list(list(C1.hat,B1.hat,A1.hat))
+max(Mod(eigen(M, only.values = TRUE)$values))
+
+
+Sigma <- TL1$Sig
+SIGMA <- TAR2.SE.MLE(xxt.nm, A.true, Sigma)
+SD <- sqrt(diag(SIGMA))
+sd <- SD/sqrt(T)
+
+
+A1.hat
+matrix(1.96*sd[1:16],ncol=4)
+
+B1.hat
+matrix(1.96*sd[17:32],ncol=4)
+
+C1.hat
+matrix(1.96*sd[33:36],ncol=2)
+###################### Coefficient Experiment ####
+phi <- 0
+r <- 2
+d <- 3
+dim <- c(3,3,2)
+k <- length(dim)
+
+A1 <- matrix(c(0,2,3,
+               3,0,1,
+               0,2,2), ncol=3)
+B1 <- matrix(c(1,0,0,
+               3,2,1,
+               3,2,2), ncol=3)
+C1 <- matrix(c(0,2,
+               3,0), ncol=2)
+A1.fnorm <- norm(A1,'f')
+B1.fnorm <- norm(B1,'f')
+C1.fnorm <- norm(C1,'f')
+
+
+A2 <- matrix(rnorm(dim[1]^2), c(dim[1],dim[1]))
+B2 <- matrix(rnorm(dim[2]^2), c(dim[2],dim[2]))
+C2 <- matrix(rnorm(dim[3]^2), c(dim[3],dim[3]))
+
+A2.fnorm <- norm(A2,'f')
+B2.fnorm <- norm(B2,'f')
+C2.fnorm <- norm(C2,'f')
+
+A1 <- A1/A1.fnorm
+B1 <- B1/B1.fnorm
+C1 <- 0.1*C1*A1.fnorm*B1.fnorm
+
+A2 <- A2/A2.fnorm
+B2 <- B2/B2.fnorm
+C2 <- 0.1*C2*A2.fnorm*B2.fnorm
+
+A.true <- list(list(A1,B1,C1))
+M <- kronecker_list(list(C1,B1,A1))
+max(Mod(eigen(M, only.values = TRUE)$values))
+# Reorder
+A.norm <- c()
+for (j in c(1:r)){
+  A.norm[j] <- norm(A.true[[j]][[1]], 'f') * norm(A.true[[j]][[2]], 'f') * norm(A.true[[j]][[3]], 'f')
+}
+order.norm <- order(A.norm, decreasing=TRUE)
+A.temp <- A.true
+for (j in c(1:r)){
+  A.true[[j]] <- A.temp[[order.norm[j]]]
+}
+
+
+T <- 600
+xx <- generate2(dim,t=T, A.true, setting="iid")
+
+Sigma1 <- diag(prod(dim))
+SIGMA <- TAR2.SE.LSE(xx, A.true, Sigma1)
+SD <- sqrt(diag(SIGMA))
+sd <- SD/sqrt(T)
+
+est <- TAR2.LS(xx,r=2)
+AL <- est$A
+
+# Reorder
+AL.norm <- c()
+for (j in c(1:r)){
+  AL.norm[j] <- norm(AL[[j]][[1]], 'f') * norm(AL[[j]][[2]], 'f') * norm(AL[[j]][[3]], 'f')
+}
+order.norm <- order(AL.norm, decreasing=TRUE)
+AL.temp <- AL
+for (j in c(1:r)){
+  AL[[j]] <- AL.temp[[order.norm[j]]]
+}
+
+A1.hat <- AL[[1]][[1]]
+B1.hat <- AL[[1]][[2]]
+C1.hat <- AL[[1]][[3]]
+A1.hat.fnorm <- norm(A1.hat, 'f')
+B1.hat.fnorm <- norm(B1.hat, 'f')
+A1.hat <- A1.hat/A1.hat.fnorm
+B1.hat <- B1.hat/B1.hat.fnorm
+C1.hat <- C1.hat * A1.hat.fnorm * B1.hat.fnorm
+
+A2.hat <- AL[[2]][[1]]
+B2.hat <- AL[[2]][[2]]
+C2.hat <- AL[[2]][[3]]
+A2.hat.fnorm <- norm(A2.hat, 'f')
+B2.hat.fnorm <- norm(B2.hat, 'f')
+A2.hat <- A2.hat/A2.hat.fnorm
+B2.hat <- B2.hat/B2.hat.fnorm
+C2.hat <- C2.hat * A2.hat.fnorm * B2.hat.fnorm
+
+
+###################### rolling forecast ####
+phi=0
+K <- 3
+ttt=500:T
+out.pred.ss=matrix(0,nrow=12,ncol=length(ttt))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  print(paste("==================complete",tti))
+
+  # out1.p=TARC.LS(xxt[1:(tt-1),,,],mk=mk,r=1,niter = 100)
+  # out2.p=TARC.LS(xxrft[1:(tt-1),,,],mk=mkrf,r=1,niter = 100)
+  # out3.p=TARC.LS(xxt[1:(tt-1),,,],mk=mk,r=2,niter = 100)
+  # out4.p=TARC.LS(xxrft[1:(tt-1),,,],mk=mkrf,r=2,niter = 100)
+  # out5.p=TARC.LS(xxt[1:(tt-1),,,],mk=mk,r=3,niter = 100)
+  # out6.p=TARC.LS(xxrft[1:(tt-1),,,],mk=mkrf,r=3,niter = 100)
+  #
+  # pred1 = ttl(xxt[(tt-1),,,], (out1.p$A)[[1]], c(1:K)) + out1.p$U1 * mk[tt-1] + out1.p$U0
+  # pred2 = ttl(xxrft[(tt-1),,,], (out2.p$A)[[1]], c(1:K)) + out2.p$U1 * mkrf[tt-1] + out2.p$U0
+  # pred3 = Reduce("+",lapply(1:2, function(j) {(ttl(xxt[(tt-1),,,], (out3.p$A)[[j]], c(1:K)))})) + out3.p$U1 * mk[tt-1] + out3.p$U0
+  # pred4 = Reduce("+",lapply(1:2, function(j) {(ttl(xxrft[(tt-1),,,], (out4.p$A)[[j]], c(1:K)))})) + out4.p$U1 * mkrf[tt-1] + out4.p$U0
+  # pred5 = Reduce("+",lapply(1:3, function(j) {(ttl(xxt[(tt-1),,,], (out5.p$A)[[j]], c(1:K)))})) + out5.p$U1 * mk[tt-1] + out5.p$U0
+  # pred6 = Reduce("+",lapply(1:3, function(j) {(ttl(xxrft[(tt-1),,,], (out6.p$A)[[j]], c(1:K)))}))+ out6.p$U1 * mkrf[tt-1] + out6.p$U0
+  #
+  # out.pred.ss[1,tti]=sum((xx[tt,,,]-pred1@data)**2)
+  # out.pred.ss[2,tti]=sum((xxrf[tt,,,]-pred2@data)**2)
+  # out.pred.ss[3,tti]=sum((xx[tt,,,]-pred3@data)**2)
+  # out.pred.ss[4,tti]=sum((xxrf[tt,,,]-pred4@data)**2)
+  # out.pred.ss[5,tti]=sum((xx[tt,,,]-pred5@data)**2)
+  # out.pred.ss[6,tti]=sum((xxrf[tt,,,]-pred6@data)**2)
+
+  # ## AR
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo=arima(xx[1:(tt-1),i,j,k],order=c(1,0,0),method="CSS")
+  #       pred.AR1=oo$coef[1]*xx[(tt-1),i,j,k] + oo$coef[2]
+  #       out.pred.ss[7,tti]=out.pred.ss[7,tti]+(xx[tt,i,j,k]-pred.AR1)**2
+  #     }
+  #   }
+  # }
+  #
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo2=arima(xx[1:(tt-1),i,j,k],order=c(2,0,0),method="CSS")
+  #       pred.AR2=oo2$coef[1:2]%*%xx[(tt-1):(tt-2),i,j,k] + oo2$coef[3]
+  #       out.pred.ss[8,tti]=out.pred.ss[8,tti]+(xx[tt,i,j,k]-pred.AR2)**2
+  #     }
+  #   }
+  # }
+  #
+  # # risk free AR
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo3=arima(xxrf[1:(tt-1),i,j,k],order=c(1,0,0),method="CSS")
+  #       pred.AR3=oo3$coef[1]*xxrf[(tt-1),i,j,k] + oo3$coef[2]
+  #       out.pred.ss[9,tti]=out.pred.ss[9,tti] + (xxrf[tt,i,j,k]-pred.AR3)**2
+  #     }
+  #   }
+  # }
+  #
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo4=arima(xxrf[1:(tt-1),i,j,k],order=c(2,0,0),method="CSS")
+  #       pred.AR4=oo4$coef[1:2]%*%xxrf[(tt-1):(tt-2),i,j,k] + oo4$coef[3]
+  #       out.pred.ss[10,tti]=out.pred.ss[10,tti]+(xxrf[tt,i,j,k]-pred.AR4)**2
+  #     }
+  #   }
+  # }
+
+  xx.nm <- remean(xx,tt-1)
+  xxt.nm <- as.tensor(xx.nm)
+
+  out1.p=TAR2.LS(xxt.nm[1:(tt-1),,,],r=1, niter=100)$A
+  pred1 = ttl(xxt.nm[(tt-1),,,], out1.p[[1]], c(1:K))
+  out.pred.ss[1,tti]=sum((xx.nm[tt,,,]-pred1@data)**2)
+
+  out2.p=TAR2.MLE(xxt.nm[1:(tt-1),,,],r=1, niter=100)$A
+  pred2 = ttl(xxt.nm[(tt-1),,,], out2.p[[1]], c(1:K))
+  out.pred.ss[2,tti]=sum((xx.nm[tt,,,]-pred2@data)**2)
+
+  out3.p=TAR2.LS(xxt.nm[1:(tt-1),,,],r=2, niter=100)$A
+  pred3 = Reduce("+",lapply(1:2, function(j) {(ttl(xxt.nm[(tt-1),,,], out3.p[[j]], c(1:K)))}))
+  out.pred.ss[3,tti]=sum((xx.nm[tt,,,]-pred3@data)**2)
+
+  out4.p=TAR2.MLE(xxt.nm[1:(tt-1),,,],r=2, niter=100)$A
+  pred4 = Reduce("+",lapply(1:2, function(j) {(ttl(xxt.nm[(tt-1),,,], out4.p[[j]], c(1:K)))}))
+  out.pred.ss[4,tti]=sum((xx.nm[tt,,,]-pred4@data)**2)
+
+  # out5.p=TAR2.LS(xxt.nm[1:(tt-1),,,],r=3, niter=100)$A
+  # pred5 = Reduce("+",lapply(1:3, function(j) {(ttl(xxt.nm[(tt-1),,,], out5.p[[j]], c(1:K)))}))
+  # out.pred.ss[5,tti]=sum((xx.nm[tt,,,]-pred5@data)**2)
+
+  out6.p=TAR2.MLE(xxt.nm[1:(tt-1),,,],r=3, niter = 100)$A
+  pred6 = Reduce("+",lapply(1:3, function(j) {(ttl(xxt.nm[(tt-1),,,], out6.p[[j]], c(1:K)))}))
+  out.pred.ss[6,tti]=sum((xx.nm[tt,,,]-pred6@data)**2)
+
+  # ## AR
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo=arima(xx.nm[1:(tt-1),i,j,k],order=c(1,0,0),method="CSS")
+  #       pred.AR1=oo$coef[1]*xx.nm[(tt-1),i,j,k]
+  #       out.pred.ss[7,tti]=out.pred.ss[7,tti]+(xx.nm[tt,i,j,k]-pred.AR1)**2
+  #     }
+  #   }
+  # }
+  #
+  # for(i in 1:4){
+  #   for(j in 1:4){
+  #     for (k in 1:2){
+  #       oo2=arima(xx.nm[1:(tt-1),i,j,k],order=c(2,0,0),method="CSS")
+  #       pred.AR2=oo2$coef[1:2]%*%xx.nm[(tt-1):(tt-2),i,j,k]
+  #       out.pred.ss[8,tti]=out.pred.ss[8,tti]+(xx.nm[tt,i,j,k]-pred.AR2)**2
+  #     }
+  #   }
+  # }
+}
+
+# ## VAR
+
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  xx.nm <- remean(xx,tt-1)
+  xxt.nm <- as.tensor(xx.nm)
+  yy.nm=apply(xx.nm,MARGIN=1,as.vector)
+  out.var1.p=TAR1.VAR(xxt.nm[1:(tt-1),,,],intercept=FALSE)
+  pred.var1=t(out.var1.p$coef)%*%yy.nm[,tt-1]
+  out.pred.ss[9,tti]=sum((yy.nm[,tt]-pred.var1)**2)
+}
+
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  xxrf.nm <- remean(xxrf,tt-1)
+  xxrft.nm <- as.tensor(xxrf.nm)
+  yy.nm=apply(xxrf.nm,MARGIN=1,as.vector)
+  out.var1.p=TAR1.VAR(xxrft.nm[1:(tt-1),,,],intercept=FALSE)
+  pred.var1=t(out.var1.p$coef)%*%yy.nm[,tt-1]
+  out.pred.ss[9,tti]=sum((yy.nm[,tt]-pred.var1)**2)
+}
+
+
+## VAR
+yy=apply(xx,MARGIN=1,as.vector)
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  out.var1.p=TAR1.VAR(xxt[1:(tt-1),,,],intercept=TRUE)
+  pred.var1=t(out.var1.p$coef[2:33,])%*%yy[,tt-1] + out.var1.p$coef[1,]
+  out.pred.ss[11,tti]=sum((yy[,tt]-pred.var1)**2)
+}
+
+
+
+
+## risk free VAR
+yyrf=apply(xxrf,MARGIN=1,as.vector)
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  out.var2.p=TAR1.VAR(xxrft[1:(tt-1),,,],intercept=TRUE)
+  pred.var2=t(out.var2.p$coef[2:33,])%*%yyrf[,tt-1] + out.var2.p$coef[1,]
+  out.pred.ss[12,tti]=sum((yyrf[,tt]-pred.var2)**2)
+}
+
+
+print(apply(out.pred.ss,1,sum)/177)
+
+#### Mean Predict ####
+pred <- array(0,c(4,4,2))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:4){
+    for(j in 1:4){
+      for (k in 1:2){
+        pred[i,j,k] <- mean(xx[1:(tt-1),i,j,k])
+      }
+    }
+  }
+  out.pred.ss[1,tti]= sum((xx[tt,,,]- pred)**2)
+}
+
+pred <- array(0,c(4,4,2))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:4){
+    for(j in 1:4){
+      for (k in 1:2){
+        pred[i,j,k] <- mean(xxrf[1:(tt-1),i,j,k])
+      }
+    }
+  }
+  out.pred.ss[2,tti]= sum((xxrf[tt,,,]- pred)**2)
+}
+#### Fama-French-3-Factor-Model ####
+pred <- array(0,c(4,4,2))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:4){
+    for(j in 1:4){
+      for (k in 1:2){
+        fama <- data.frame("RETURN" = xx[1:(tt-1),i,j,k],
+                           "SMB" = market$SMB[1:(tt-1)],
+                           "HML" = market$HML[1:(tt-1)],
+                           "RMW" = market$RMW[1:(tt-1)])
+        out=lm(RETURN ~ SMB + HML + RMW, data=fama)
+        pred[i,j,k]= out$coef[2:4] %*% t(fama[tt-1,2:4]) + out$coef[1]
+      }
+    }
+  }
+  out.pred.ss[11,tti]= sum((xx[tt,,,]- pred)**2)
+}
+
+pred <- array(0,c(4,4,2))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:4){
+    for(j in 1:4){
+      for (k in 1:2){
+        fama <- data.frame("RETURN" = xxrf[1:(tt-1),i,j,k],
+                           "SMB" = market$SMB[1:(tt-1)],
+                           "HML" = market$HML[1:(tt-1)],
+                           "RMW" = market$RMW[1:(tt-1)])
+        out=lm(RETURN ~ SMB + HML + RMW, data=fama)
+        pred[i,j,k]= out$coef[2:4] %*% t(fama[tt-1,2:4]) + out$coef[1]
+      }
+    }
+  }
+  out.pred.ss[12,tti]= sum((xxrf[tt,,,]- pred)**2)
+}
+# rownames(out.pred.ss) <- c("TAR1LS","TAR1MLE","TAR2LS","TAR2MLE","TAR3LS","TAR3MLE","AR1","AR2","VEC")
+rownames(out.pred.ss) <- c("TARC1","TARC1RF","TARC2","TARC2RF","TARC3","TARC3RF","AR1","AR2","AR1RF","AR2RF","VEC","VECRF")
+print(apply(out.pred.ss,1,sum)/177)
+
+#### Simulate sparse A ####
+T <- 500
+dim <- c(4,4,2)
+sigma <- diag(prod(dim))
+A1 <- matrix(c(0,1,0,2,
+               4,3,3,1,
+               0,1,1,1,
+               2,0,0,1), ncol=4)
+A2 <- matrix(c(1,1,2,2,
+               2,0,0,1,
+               0,1,1,1,
+               2,2,2,0), ncol=4)
+A3 <- matrix(c(1,2,
+               0,2), ncol=2)
+A1.fnorm <- norm(A1, 'f')
+A2.fnorm <- norm(A2, 'f')
+A3.fnorm <- norm(A3, 'f')
+A1 <- A1/A1.fnorm
+A2 <- A2/A2.fnorm
+A3 <- A3/A3.fnorm
+A.true <- list(list(A1,A2,A3))
+simxxt <- generate2(dim,T,A.true,"iid")
+
+phi <- 0
+TL1 <- TAR1.LS(simxxt, print.true = TRUE)
+A <- TL1$A
+
+SIGMA <- TAR1.SE.MLE(simxxt , A.true , sigma)
+
+A[[1]][[1]]
+matrix(1.96*sqrt(diag(SIGMA)/T)[1:16],ncol=4)
+
+A[[1]][[2]]
+matrix(1.96*sqrt(diag(SIGMA)/T)[17:32],ncol=4)
+
+A[[1]][[3]]
+matrix(1.96*sqrt(diag(SIGMA)/T)[33:36],ncol=2)
+
+### plot
+year=2013+(1:180)/12
+par(mfrow=c(1,1),mai=0.05*c(17,17,1,1))
+plot(c(1:177),out.pred.ss[8,]-out.pred.ss[11,],xlab='year',ylab='prediction SS diffence')
+abline(h=0)
+# indicator_pred
+
+######## matrix rolloing forcast ####
+phi=0
+K <- 2
+ttt=500:676
+out.pred.ss=matrix(0,nrow=12,ncol=length(ttt))
+rownames(out.pred.ss) <- c("LSE1","LSE2","LSE3","MLE1","MLE2","MLE3","AR1","AR2","VAR","VAR.rf","MEAN","MEAN.rf")
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  print(paste("==================complete",tti))
+
+  xx.nm <- remean.mat(xxrf,tt-1)
+  xxt.nm <- as.tensor(xx.nm)
+
+  # out1.p=MAR2.LS(xxt.nm[1:(tt-1),,],r=1, niter = 150)$A
+  # pred1 = ttl(xxt.nm[(tt-1),,], out1.p[[1]], c(1:K))
+  # out.pred.ss[1,tti]=sum((xx.nm[tt,,]-pred1@data)**2)
+
+
+
+  # out2.p=MAR2.LS(xxt.nm[1:(tt-1),,],r=2, niter = 150)$A
+  # out3.p=MAR2.LS(xxt.nm[1:(tt-1),,],r=3, niter = 150)$A
+
+  out4.p=MAR2.MLE(xxt.nm[1:(tt-1),,],r=1, niter = 50)$A
+  pred4 = ttl(xxt.nm[(tt-1),,], out4.p[[1]], c(1:K))
+  out.pred.ss[4,tti]=sum((xx.nm[tt,,]-pred4@data)**2)
+
+  # out5.p=MAR2.MLE(xxt.nm[1:(tt-1),,],r=2, niter = 200)$A
+  # out6.p=MAR2.MLE(xxt.nm[1:(tt-1),,],r=3, niter = 200)$A
+  #
+  #
+  # pred2 = Reduce("+",lapply(1:2, function(j) {(ttl(xxt.nm[(tt-1),,], out2.p[[j]], c(1:K)))}))
+  # pred3 = Reduce("+",lapply(1:3, function(j) {(ttl(xxt.nm[(tt-1),,], out3.p[[j]], c(1:K)))}))
+  #
+  # pred5 = Reduce("+",lapply(1:2, function(j) {(ttl(xxt.nm[(tt-1),,], out5.p[[j]], c(1:K)))}))
+  # pred6 = Reduce("+",lapply(1:3, function(j) {(ttl(xxt.nm[(tt-1),,], out6.p[[j]], c(1:K)))}))
+
+  # out.pred.ss[2,tti]=sum((xx.nm[tt,,]-pred2@data)**2)
+  # out.pred.ss[3,tti]=sum((xx.nm[tt,,]-pred3@data)**2)
+  #
+  # out.pred.ss[5,tti]=sum((xx.nm[tt,,]-pred5@data)**2)
+  # out.pred.ss[6,tti]=sum((xx.nm[tt,,]-pred6@data)**2)
+
+  ## AR
+  # for(i in 1:10){
+  #   for(j in 1:10){
+  #     oo=arima(xx.nm[1:(tt-1),i,j],order=c(1,0,0),method="CSS")
+  #     pred.AR1=oo$coef[1]*xx.nm[(tt-1),i,j]
+  #     out.pred.ss[7,tti]=out.pred.ss[7,tti]+(xx.nm[tt,i,j]-pred.AR1)**2
+  #   }
+  # }
+  #
+  # for(i in 1:10){
+  #   for(j in 1:10){
+  #       oo2=arima(xx.nm[1:(tt-1),i,j],order=c(2,0,0),method="CSS")
+  #       pred.AR2=oo2$coef[1:2]%*%xx.nm[(tt-1):(tt-2),i,j]
+  #       out.pred.ss[8,tti]=out.pred.ss[8,tti]+(xx.nm[tt,i,j]-pred.AR2)**2
+  #   }
+  # }
+}
+
+
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  xx.nm <- remean.mat(xx,tt-1)
+  xxt.nm <- as.tensor(xx.nm)
+  yy.nm=apply(xx.nm,MARGIN=1,as.vector)
+  out.var1.p=var1(xx.nm[1:(tt-1),,])
+  pred.var1=t(out.var1.p$coef)%*%yy.nm[,tt-1]
+  out.pred.ss[9,tti]=sum((yy.nm[,tt]-pred.var1)**2)
+}
+
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  xx.nm <- remean.mat(xxrf,tt-1)
+  xxt.nm <- as.tensor(xx.nm)
+  yy.nm=apply(xx.nm,MARGIN=1,as.vector)
+  out.var1.p=var1(xx.nm[1:(tt-1),,])
+  pred.var1=t(out.var1.p$coef)%*%yy.nm[,tt-1]
+  out.pred.ss[10,tti]=sum((yy.nm[,tt]-pred.var1)**2)
+}
+
+pred <- array(0,c(10,10))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:10){
+    for(j in 1:10){
+        pred[i,j] <- mean(xx[1:(tt-1),i,j])
+    }
+  }
+  out.pred.ss[11,tti]= sum((xx[tt,,]- pred)**2)
+}
+
+pred <- array(0,c(10,10))
+for(tt in ttt){
+  tti=tt-ttt[1]+1
+  for(i in 1:10){
+    for(j in 1:10){
+      pred[i,j] <- mean(xxrf[1:(tt-1),i,j])
+    }
+  }
+  out.pred.ss[12,tti]= sum((xxrf[tt,,]- pred)**2)
+}
+
+sum((xx[500:676,,])**2)/177
+sum((xxrf[500:676,,])**2)/177
+
+
+print(apply(out.pred.ss,1,sum)/177)

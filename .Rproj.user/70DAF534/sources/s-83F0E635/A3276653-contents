@@ -1,0 +1,1406 @@
+library(rTensor)
+library(tensor)
+library(pracma)
+
+var1 <- function(xx){
+  dd=dim(xx)
+  T <- dd[1]
+  p <- dd[2]
+  q <- dd[3]
+  yy=apply(xx,MARGIN=1,as.vector)
+  yy2=yy[,2:T];yy1=yy[,1:(T-1)]
+  out=lm(t(yy2)~0+t(yy1))
+  # res=array(t(out$res),dim=c(dd[1]-1,dd[2],dd[3])) ## should NOT transpose!
+  res=array((out$res),dim=c(dd[1]-1,dd[2],dd[3]))
+  return(list(coef=out$coef, res=res))
+}
+
+remean <- function(xx,t){
+  m=apply(xx[1:t,,,],c(2,3,4),mean)
+  xx.nm=xx
+  for(i in c(1:(t+1))){
+    xx.nm[i,,,]=xx[i,,,]-m
+  }
+  return(xx.nm)
+}
+remean.mat <- function(xx,t){
+  m=apply(xx[1:t,,],c(2,3),mean)
+  xx.nm=xx
+  for(i in c(1:(t+1))){
+    xx.nm[i,,]=xx[i,,]-m
+  }
+  return(xx.nm)
+}
+
+disf2 <- function(A,B,r,k) {
+  ans <- 0
+  for (j in c(1:r)){
+    for (i in c(1:k)) {
+      ans <- ans + norm(A[[j]][[i]] - B[[j]][[i]],'F')^2
+    }
+  }
+  return(ans)
+}
+
+generateA <- function(dim,R){
+  K <- length(dim)
+  A.true <- lapply(1:R, function(j) {lapply(1:K, function(i) {diag(dim[i])})})
+  fnorm <- array(0, c(R,K))
+  for (j in c(1:R)){
+    for (i in c(1:(K))){
+      if (i < K){
+        A.true[[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
+        fnorm[j,i] <- norm(A.true[[j]][[i]],'f')
+        A.true[[j]][[i]] <- A.true[[j]][[i]]/fnorm[j,i]
+      } else if (i == K){
+        A.true[[j]][[i]] <- matrix(rnorm(dim[i]^2), c(dim[i],dim[i]))
+        fnorm[j,i] <- norm(A.true[[j]][[i]],'f')
+      } else {
+        stop("sOMETHING WRONG in generate.A")
+      }
+    }
+  }
+
+  phi <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.true[[j]]))}))
+  eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
+  if (eigen > 1){
+    for (j in c(1:R)){
+      for (i in c(1:(K))){
+        A.true[[j]][[i]] <-A.true[[j]][[i]]/eigen
+      }
+    }
+    phi <-  Reduce("+", lapply(1:R, function(j) {rTensor::kronecker_list(rev(A.true[[j]]))}))
+    eigen = max(Mod(eigen(phi,only.values = TRUE)$values))
+    if (eigen >= 1){stop("non-stationary process")}
+  }
+
+  A.norm <- c()
+  for (j in c(1:R)){
+    A.norm[j] <- norm(A.true[[j]][[1]], 'f') * norm(A.true[[j]][[2]], 'f') * norm(A.true[[j]][[3]], 'f')
+  }
+  order.norm <- order(A.norm, decreasing=TRUE)
+  A.temp <- A.true
+  for (j in c(1:R)){
+    A.true[[j]] <- A.temp[[order.norm[j]]]
+  }
+
+
+  return(A.true)
+}
+
+generate <- function(dim,t,A){
+  # to generate matrices A1,A2,..Ak with given dimensions
+  # return A1,A2,...Ak
+  k <- length(dim)
+  Y <- new("Tensor", as.integer(4), as.integer(c(t,dim)), 0)
+  X <- list(rand_tensor(dim))  # initialize X1
+  Y@data[1,,,] <- X[[1]]@data
+  for (i in c(2:t)){
+    E <- new("Tensor", as.integer(k), as.integer(dim), array(rnorm(prod(dim)), dim))
+    X[[i]] <-  ttl(X[[i-1]], A, c(1:k)) + E
+    Y@data[i,,,] <- X[[i]]@data
+  }
+  return(Y)
+}
+
+generate2.test <- function(dim,t,phi, setting){
+
+  x <- array(0, c(t,prod(dim)))
+  x[1,] <- rnorm(prod(dim))
+
+  for (i in c(2:t)){
+    if (setting == "iid"){
+      e <- rnorm(prod(dim))
+    } else if (setting == "mle"){
+      e <- as.vector(ttl(as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:length(dim)))) # this one is the best
+      #e <- array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma3), dim)
+      #e <- array(kronecker_list(rev(Sigma.true)) %*% rnorm(prod(dim)), dim)
+    } else if (setting == "svd"){
+      #e <- array(E %*% rnorm(prod(dim)), dim)
+      e <- as.vector(array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma2), dim))
+    } else {
+      return("Please specify setting")
+    }
+
+    x[i,] <- phi %*% x[i-1,] + e
+
+    # x[i,,,] <-  (Reduce("+", lapply(1:r, function (j) ttl(as.tensor(x[i-1,,,]), A[[j]], c(1:k)))) + e)@data  # sum terms 1:r and add error E, use reduce since ttl returns a list
+  }
+  return(as.tensor(array(x, c(t,dim))))
+  #return(as.tensor(tensor.x))
+}
+
+## multi term
+generate2 <- function(dim,t,A, setting){
+  r <- length(A)
+  k <- length(dim)
+  # x <- array(0, c(t,prod(dim)))
+  # tensor.x <- array(0, c(t,dim))
+  # x[1,] <- rnorm(prod(dim))
+  # tensor.x[1,,,] <- array(x[1,], c(1,dim))
+  # phi <-  Reduce("+", lapply(1:R, function(j) {kronecker_list(rev(A.true[[j]]))}))
+
+  x <- array(0, c(t,dim))
+  x[1,,,] <- array(rnorm(prod(dim)), c(1,dim))
+
+
+  for (i in c(2:t)){
+    if (setting == "iid"){
+      e <- array(rnorm(prod(dim)), dim)
+      #e <- rnorm(prod(dim))
+    } else if (setting == "mle"){
+      e <- as.vector(ttl(as.tensor(array(rnorm(prod(dim)), dim)), Sig.true, c(1:k))) # this one is the best
+      #e <- array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma3), dim)
+      #e <- array(kronecker_list(rev(Sigma.true)) %*% rnorm(prod(dim)), dim)
+    } else if (setting == "svd"){
+      #e <- array(E %*% rnorm(prod(dim)), dim)
+      e <- as.vector(array(mvrnorm(prod(dim), rep(0,prod(dim)), Sigma2), dim))
+    } else {
+      return("Please specify setting")
+    }
+
+    #x[i,] <- phi %*% x[i-1,] + e
+    #tensor.x[i,,,] <- array(x[i,], c(1,dim))
+     x[i,,,] <-  (Reduce("+", lapply(1:r, function (j) ttl(as.tensor(x[i-1,,,]), A[[j]], c(1:k)))) + e)@data  # sum terms 1:r and add error E, use reduce since ttl returns a list
+  }
+  return(as.tensor(x))
+  #return(as.tensor(tensor.x))
+}
+
+suml <- function(list){
+  Reduce("+", list)
+}
+
+em <- function(m,n,i,j){
+  mat <- matrix(0,m,n)
+  mat[i,j] <- 1
+  return(mat)
+}
+
+PM <- function(m,n){
+  mat <- matrix(0,m*n,m*n)
+  for (i in c(1:n)){
+    for (j in c(1:m)){
+      mat <- mat + kronecker(em(n,m,i,j),t(em(n,m,i,j)))
+    }
+  }
+  return(mat)
+}
+
+M.inv <- function(i){
+  I1 <- diag(prod(dim[1:(i-1)]))
+  P <- t(PM(prod(dim[1:(i-1)]), dim[i]))
+  I2 <- diag(dim[i])
+  return(kronecker(kronecker(I1, P), I2))
+}
+
+tau <- function(A){
+  # TT <- M(3) %*% kronecker(M(2), diag(dim[3]^2))
+  ans <- array(TT.inv %*% as.vector(A), dim^2)
+  return(ans)
+}
+
+trearrange <- function(A,dim){
+  m1 = dim[1]; m2 = dim[2]; m3 = dim[3]
+  n1 = m1; n2 = m2; n3 = m3
+  m <- nrow(A)
+  n <- ncol(A)
+  if(n!=n1*n2*n3 | m!=m1*m2*m3){
+    stop("wrong dimention with your input Phi for rearrangement")
+  }
+  ans <- divide(A,m1,n1)
+  dim <- c(m1*n1,m2*n2,m3*n3)
+  t <- new("Tensor", as.integer(3), as.integer(dim), array(0, dim))
+  for (i in c(1:m1)){
+    for (j in c(1:n1)){
+      t@data[(j-1)*m1+i,,] <- mrearrange(ans[[i]][[j]],m2,m3,n2,n3)
+    }
+  }
+  return(t)
+}
+
+divide <- function(A,m,n){
+  c <- dim(A)[1]/m
+  l <- dim(A)[2]/n
+  tmp <- lapply(1:m, function(i){
+    lapply(1:n, function(j){
+      A[((i-1)*c+1):(i*c),((j-1)*l+1):(j*l)]
+    })
+  })
+  return(tmp)
+}
+
+mrearrange <- function(A,m1,m2,n1,n2){
+  # the inner function of "projection"
+  # A: m1m2*n1n2
+  # B: m1*n1
+  # C: m2*n2
+  # A \approx B \otimes C
+  # return RA
+  m <- nrow(A)
+  n <- ncol(A)
+  if(n!=n1*n2 | m!=m1*m2){
+    print("error m")
+    return
+  }
+  ans <- matrix(NA, m1*n1, m2*n2)
+  for(i in 1:m1){
+    for(j in 1:n1){
+      ans[(j-1)*m1+i,] <- t(as.vector(A[(i-1)*m2+1:m2,(j-1)*n2+1:n2]))
+    }
+  }
+  ans
+}
+
+projection <- function(M,r,m1,m2,n1,n2){
+  # the inner function of MAR1.projection
+  # M: m1m2*n1n2
+  # B: m1*n1
+  # C: m2*n2
+  # M \approx B \otimes C
+  # return B and C
+  RA <- mrearrange(M,m1,m2,n1,n2)
+  RA.svd <- svd(RA,nu=r,nv=r)
+  A <- list()
+  for (i in c(1:r)){
+    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2),matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
+  }
+  for (j in c(1:r)){
+    A[[j]] <- rev(A[[j]])
+    a <- c()
+    for (i in c(1:2)){
+      m <- A[[j]][[i]]
+      if (i != 2){
+        a[i] <- svd(m,nu=0,nv=0)$d[1]
+        A[[j]][[i]] <- m/a[i]
+      } else {
+        A[[j]][[i]] <- m * prod(a)
+      }
+    }
+  }
+  A
+}
+
+TAR <- function(xx, type){
+  if (identical("projection", type)) {
+    TAR1.projection(xx)
+  }
+  if (identical("LS", type)) {
+    TAR1.LS(xx)
+  }
+  if (identical("MLE", type)) {
+    return("To Be written")
+  }
+  if (identical("ar", type)) {
+    TAR1.VAR(xx)
+  }
+  else {
+    return("Please specify the type you want to use. See manuals for details.")
+  }
+}
+
+TAR1.projection <- function(xx){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  m1 <- dim[1]; m2 <- dim[2]; m3 <- dim[3]
+  n1 <- m1; n2 <- m2; n3 <- m3
+  mm <- TAR1.VAR(xx)$coef
+  tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
+  cpd <- rTensor::cp(tt,num_components = 1)
+  u1 <- as.numeric(cpd$U[[1]])
+  u2 <- as.numeric(cpd$U[[2]])
+  u3 <- as.numeric(cpd$U[[3]])
+  lam <- cpd$lambdas
+  a <- u3/sqrt(sum(u3^2))
+  b <- u2/sqrt(sum(u2^2))
+  c <- u1*sqrt(sum(u3^2))*sqrt(sum(u2^2))*lam
+  A <- list()
+  A[[1]] <- list(matrix(a,m1,m1),matrix(b,m2,m2),matrix(c,m3,m3))
+  return(list(A=A, disf=disf, res=res))
+}
+# TAR1.projection <- function(xx){
+#   dim <- xx@modes[-1]
+#   k <- length(dim)
+#   t <- xx@modes[[1]]
+#   m1 <- dim[1]; m2 <- dim[2]; m3 <- dim[3]
+#   n1 <- m1; n2 <- m2; n3 <- m3
+#   mm <- TAR1.VAR(xx)$coef
+#   tt <- trearrange(mm,m3,m2,m1,n3,n2,n1)
+#   #tt <- as.tensor(tau(mm))
+#   cpd <- cp(tt,num_components = 1)
+#   u1 <- as.numeric(cpd$U[[1]])
+#   u2 <- as.numeric(cpd$U[[2]])
+#   u3 <- as.numeric(cpd$U[[3]])
+#   lam <- cpd$lambdas
+#
+#   a <- u3/sqrt(sum(u3^2))
+#   b <- u2/sqrt(sum(u2^2))
+#   c <- u1*sqrt(sum(u3^2))*sqrt(sum(u2^2))*lam
+#
+#   A <- list()
+#   A[[1]] <- list(matrix(a,m1,m1),matrix(b,m2,m2),matrix(c,m3,m3))
+#
+#   phi.new <- kronecker_list(rev(A[[1]]))
+#   disf <- sum((phi.new -phi)^2)
+#   res <- (xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A[[1]], (c(1:k) + 1)))@data
+#   return(list(A=A, disf=disf, res=res))
+# }
+
+TAR1.projection.old <- function(xx){
+  dim <- xx@modes[-1]
+  m1 <- dim[1]; m2 <- dim[2]; m3 <- dim[3]
+  n1 <- m1; n2 <- m2; n3 <- m3
+  mm <- varlse(xx)
+  tt <- trearrange(mm,m1,m2,m3,n1,n2,n3)
+  cpd <- cp(tt,num_components = 1)
+  a1 <- as.numeric(cpd$U[[1]])
+  a2 <- as.numeric(cpd$U[[2]])
+  a3 <- as.numeric(cpd$U[[3]])
+  lam <- (cpd$lambdas)^(1/3)
+  A.new <- list(lam*matrix(a1,m1,m1),lam*matrix(a2,m2,m2),lam*matrix(a3,m3,m3))
+  return(A.new)
+}
+
+
+
+TAR2.projection <- function(xx,R){
+  dim <- xx@modes[-1]
+  model <- TAR1.VAR(xx)
+  mm <- model$coef
+  tt <- trearrange(mm, rev(dim))
+  tt <- as.tensor(aperm(tt@data))
+
+  return(list(A=ten.proj(tt, dim, R)))
+}
+
+TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  A.old <- TAR1.projection(xx)$A
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol){
+    for (i in c(1:k)){
+      s1 <- rTensor::ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+      temp <- s1@data[1:(t-1),,,,drop=FALSE]
+      RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      LL <- tensor(xx@data[2:t,,,,drop=FALSE],temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      A.new[[1]][[i]] <- LL %*% solve(RR)
+    }
+    for (i in c(1:k)){
+      m <- A.new[[1]][[i]]
+      if (i != k){
+        a[i] <- svd(m,nu=0,nv=0)$d[1]
+        A.new[[1]][[i]] <- m/a[i]
+      } else {
+        A.new[[1]][[i]] <- m * prod(a)
+      }
+    }
+    phi.new <- rTensor::kronecker_list(rev(A.new[[1]]))
+    phi.old <- rTensor::kronecker_list(rev(A.old[[1]]))
+    dis <- sqrt(sum((phi.new - phi.old)^2))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new -phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - rTensor::ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
+# TAR1.LS <- function(xx,r=1,niter=80,tol=1e-6,print.true = FALSE){
+#   dim <- xx@modes[-1]
+#   k <- length(dim)
+#   t <- xx@modes[[1]]
+#   A.old <- TAR1.projection(xx)$A
+#   A.new <- A.old
+#   dis <- 1
+#   iiter <- 1
+#   a <- c()
+#
+#
+#   while(iiter <= niter & dis >= tol){
+#     for (i in c(1:k)){
+#       s1 <- ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+#       temp <- s1@data[1:(t-1),,,,drop=FALSE]
+#       RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#       LL <- tensor(xx@data[2:t,,,,drop=FALSE],temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#       A.new[[1]][[i]] <- LL %*% solve(RR)
+#     }
+#     for (i in c(1:k)){
+#       m <- A.new[[1]][[i]]
+#       if (i != k){
+#         a[i] <- svd(m,nu=0,nv=0)$d[1]
+#         A.new[[1]][[i]] <- m/a[i]
+#       } else {
+#         A.new[[1]][[i]] <- m * prod(a)
+#       }
+#     }
+#
+#     phi.new <- kronecker_list(rev(A.new[[1]]))
+#     phi.old <- kronecker_list(rev(A.old[[1]]))
+#     dis <- sqrt(sum((phi.new - phi.old)^2))
+#     # dis <- sqrt(disAB(A.new, A.old,r=1,k))
+#     A.old <- A.new
+#     iiter <- iiter + 1
+#     if (print.true == TRUE){
+#       print(dis)
+#       print(paste('iiter num=',iiter))
+#     }
+#   }
+#   phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+#   disf <- sum((phi.new -phi)^2)
+#
+#   res <- (xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+#   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+#   # disf2 <- sum(min((A.new[[1]] - A[[1]])^2,(-A.new[[1]] - A[[1]])^2)) +sum(min((A.new[[2]]-A[[2]])^2,(-A.new[[2]] - A[[2]])^2)) + sum(min((A.new[[3]] - A[[3]])^2,(-A.new[[3]] - A[[3]])^2))
+#   return(list(A=A.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+# }
+
+TAR1.LS.old <- function(xx,niter=1000,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  A.old <- TAR1.projection(xx)
+  # A.old <- lapply(1:k, function(i){diag(dim[i])})
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  while(iiter <= niter & dis >= tol){
+    A.new <- lapply(1:k, function(i) {
+      s1 <- ttl(xx, A.old[-i], c(2:(k+1))[-i])
+      temp <- s1@data[1:(t-1),,,,drop=FALSE]
+      r <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      l <- tensor(xx@data[2:t,,,,drop=FALSE],temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      m <- l %*% solve(r)
+      if (i != k){
+        a[i] <- svd(m,nu=0,nv=0)$d[1]
+        m/a[i]
+      } else {
+        m * prod(a)
+      }
+    })
+    dis <- sqrt(sum((kronecker_list(A.new)-kronecker_list(A.old))^2))
+    # dis2 <- sqrt(sum((kronecker_list(A.new)-kronecker_list(A))^2))
+    A.old <- A.new
+    iiter <- iiter + 1
+    print(dis)
+    print(paste('iiter num=',iiter))
+  }
+  # disf <- sum((kronecker_list(A.new)-kronecker_list(A))^2)
+  res <- xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new, (c(1:k) + 1))
+  Sig <- matrix(tensor(res@data,res@data,1,1),prod(dim))/(t-1)
+  # disf2 <- sum(min((A.new[[1]] - A[[1]])^2,(-A.new[[1]] - A[[1]])^2)) +sum(min((A.new[[2]]-A[[2]])^2,(-A.new[[2]] - A[[2]])^2)) + sum(min((A.new[[3]] - A[[3]])^2,(-A.new[[3]] - A[[3]])^2))
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res))
+}
+
+TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+  Sig.new <- Sig.old
+  A.old <- TAR1.projection(xx)$A
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+  b <- c()
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+    for (i in c(1:k)){
+      Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+      sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[1]][[i]])})
+
+      s0 <- rTensor::ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+      temp <- s0@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+      s1 <- rTensor::ttl(xx, sphi[-i], c(2:(k+1))[-i])
+      temp1 <- s1@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+      L2 <- xx[2:t,,,,drop=FALSE]
+      temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+
+      RR <- tensor(temp,temp1,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      LL <- tensor(temp2, temp1, c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+      A.new[[1]][[i]] <- LL %*% solve(RR)
+
+      res.old <- xx[2:t,,,,drop=FALSE] - rTensor::ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1))
+      rs <- rTensor::ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+      Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:4)[-(i+1)],c(1:4)[-(i+1)])/(t-1)/prod(dim[-i])
+    }
+    for (i in c(1:k)){
+      m <- A.new[[1]][[i]]
+      s <- Sig.new[[i]]
+      if (i != k){
+        a[i] <- svd(m,nu=0,nv=0)$d[1]
+        b[i] <- eigen(s)$values[1]
+        A.new[[1]][[i]] <- m/a[i]
+        Sig.new[[i]] <- s/b[i]
+      } else {
+        A.new[[1]][[i]] <- m * prod(a)
+        Sig.new[[i]] <- s * prod(b)
+      }
+    }
+    phi.new <- rTensor::kronecker_list(rev(A.new[[1]]))
+    phi.old <- rTensor::kronecker_list(rev(A.old[[1]]))
+    dis <- sqrt(sum((phi.new -phi.old)^2))
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new-phi)^2)
+  res <- (xx[2:t,,,,drop=FALSE] - rTensor::ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
+
+# TAR1.MLE <- function(xx, r=1,niter=80,tol=1e-6,print.true = FALSE){
+#   dim <- xx@modes[-1]
+#   k <- length(dim)
+#   t <- xx@modes[[1]]
+#
+#   Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+#   Sig.new <- Sig.old
+#   A.old <- TAR1.projection(xx)$A
+#   A.new <- A.old
+#   dis <- 1
+#   iiter <- 1
+#   a <- c()
+#   b <- c()
+#
+#   while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+#     for (i in c(1:k)){
+#       Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+#       sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[1]][[i]])})
+#
+#       s0 <- ttl(xx, A.new[[1]][-i], c(2:(k+1))[-i])
+#       temp <- s0@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+#
+#       s1 <- ttl(xx, sphi[-i], c(2:(k+1))[-i])
+#       temp1 <- s1@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+#
+#       L2 <- xx[2:t,,,,drop=FALSE]
+#       temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+#
+#       RR <- tensor(temp,temp1,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#       LL <- tensor(temp2, temp1, c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#       A.new[[1]][[i]] <- LL %*% solve(RR)
+#
+#
+#       res.old <- xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1))
+#       rs <- ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+#       Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:4)[-(i+1)],c(1:4)[-(i+1)])/(t-1)/prod(dim[-i])
+#     }
+#     for (i in c(1:k)){
+#       m <- A.new[[1]][[i]]
+#       s <- Sig.new[[i]]
+#       if (i != k){
+#         a[i] <- svd(m,nu=0,nv=0)$d[1]
+#         b[i] <- eigen(s)$values[1]
+#         A.new[[1]][[i]] <- m/a[i]
+#         Sig.new[[i]] <- s/b[i]
+#       } else {
+#         A.new[[1]][[i]] <- m * prod(a)
+#         Sig.new[[i]] <- s * prod(b)
+#       }
+#     }
+#
+#     phi.new <- kronecker_list(rev(A.new[[1]]))
+#     phi.old <- kronecker_list(rev(A.old[[1]]))
+#     dis <- sqrt(sum((phi.new -phi.old)^2))
+#     # dis <- sqrt(disAB(A.new, A.old,r=1,k))
+#     Sig.old <- Sig.new
+#     A.old <- A.new
+#     iiter <- iiter + 1
+#     if (print.true == TRUE){
+#       print(dis)
+#       print(paste('iiter num=',iiter))
+#     }
+#   }
+#   phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+#   disf <- sum((phi.new-phi)^2)
+#
+#   res <- (xx[2:t,,,,drop=FALSE] - ttl(xx[1:(t-1),,,], A.new[[1]], (c(1:k) + 1)))@data
+#   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+#   return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+# }
+
+TenAR.LS <- function(xx,R, P, init.A=NULL, niter=500,tol=1e-5,print.true = FALSE){
+  dim <- xx@modes[-1]
+  K <- length(dim)
+  t <- xx@modes[[1]]
+
+  if (is.null(init.A)) {A.old <- TenAR.proj(xx,R,P)$A} else {A.old <- init.A}
+
+  A.new <- A.old
+  Tol <- tol*sqrt(sum(dim^2))*P*R
+  dis <- 1
+  iiter <- 1
+  while(iiter <= niter & dis >= Tol){
+
+    stopifnot(dis <= 1e3)
+    dis3 <- 0
+
+    for (p in c(1:P)){
+      for (r in c(1:R)){
+        for (k in c(K:1)){ # update last matrix first
+          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
+          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE]
+
+          L1 <- 0
+          for (l in c(1:P)){
+            if (l == p){
+              if (R > 1){
+              L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              }
+              } else {
+              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+            }
+          }
+
+          L2 <-  xx[(1+P):t,,,,drop=FALSE] - L1
+          temp2 <- L2@data
+
+          RR <- tensor(temp,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          LL <- tensor(temp2,temp,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+          dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
+
+        }
+      }
+    }
+    for (p in c(1:P)){
+      A.new[[p]] <- svd.rescale(A.new[[p]])
+    }
+    dis <- sqrt(dis3)
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  for (p in c(1:P)){
+    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
+  }
+  res <- ten.res(xx,A.new,P,R,K)
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res))
+}
+
+TenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=500,tol=1e-5, print.true = FALSE){
+  dim <- xx@modes[-1]
+  K <- length(dim)
+  t <- xx@modes[[1]]
+  if (is.null(init.sig)) {Sig.old <- lapply(1:K, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
+  Sig.new <- Sig.old
+  Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
+  if (is.null(init.A)) {A.old <- TenAR.proj(xx, R, P)$A} else {A.old <- init.A}
+
+  A.new <- A.old
+  Tol <- tol*sqrt(sum(dim^2))*P*R
+  dis <- 1
+  iiter <- 1
+  while(iiter <= niter & dis >= Tol){
+    stopifnot(dis <= 1e3)
+    dis3 <- 0
+
+    for (p in c(1:P)){
+      for (r in c(1:R)){
+        for (k in c(K:1)){
+          res.old <- rTensor::as.tensor(ten.res(xx,A.new,P,R,K))
+          rs <- rTensor::ttl(res.old, Sig.new.inv[-k], c(2:(K+1))[-k])
+          Sig.new[[k]] <- tensor(res.old@data, rs@data, c(1:4)[-(k+1)],c(1:4)[-(k+1)])/(t-1)/prod(dim[-k])
+          Sig.new.inv <- lapply(1:K, function (k) {solve(Sig.new[[k]])})
+        }
+
+
+        for (k in c(K:1)){
+          sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
+
+          s0 <- rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
+          temp <- s0@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+          s1 <- rTensor::ttl(xx, sphi[-k],c(2:(K+1))[-k])
+          temp1 <- s1@data[(1+P-p):(t-p),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+          L1 <- 0
+          for (l in c(1:P)){
+            if (l == p){
+              if (R > 1){
+                L1 <- L1 + Reduce("+",lapply(c(1:R)[-r], function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+              }
+            } else {
+              L1 <- L1 + Reduce("+",lapply(c(1:R), function(n) {(rTensor::ttl(xx[(1+P-l):(t-l),,,], A.new[[l]][[n]], (c(1:K) + 1)))}))
+            }
+          }
+
+          temp2 <-  (xx[(1+P):t,,,,drop=FALSE] - L1)@data
+          RR <- tensor(temp,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          LL <- tensor(temp2,temp1,c(1:4)[-(k+1)],c(1:4)[-(k+1)])
+          A.new[[p]][[r]][[k]] <- LL %*% solve(RR)
+
+          dis3 <- dis3 + min(sum((A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2), sum((-A.new[[p]][[r]][[k]] - A.old[[p]][[r]][[k]])^2))
+        }
+      }
+
+      A.new[[p]] <- svd.rescale(A.new[[p]])
+      Sig.new <- eigen.rescale(list(Sig.new))[[1]]
+    }
+
+    dis <- sqrt(dis3)
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+
+  for (p in c(1:P)){
+    A.new[[p]] <- fro.order(fro.rescale(A.new[[p]]))
+  }
+  res <- ten.res(xx,A.new,P,R,K)
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res))
+}
+
+TAR2.LS <- function(xx,r, init.A=NULL, niter=500,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+
+  if (is.null(init.A)) {
+    A.old <- TAR2.projection(xx,r)$A
+    } else {A.old <- init.A}
+
+  A.new <- A.old
+  # phi <-  Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+  dis <- 1
+  iiter <- 1
+  Tol <- tol*sqrt(sum(dim^2))*r
+  while(iiter <= niter & dis >= Tol){ # stop when dis > 1e3
+
+    dis3 <- 0
+
+    for (j in c(1:r)){
+      for (i in c(k:1)){
+        s0 <- rTensor::ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,,drop=FALSE]
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function(n) {(rTensor::ttl(xx[1:(t-1),,,], A.new[[n]], (c(1:k) + 1)))}))
+        if (r == 1){ L1 <- 0}
+        L2 <-  xx[2:t,,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+
+        RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        LL <- tensor(temp2,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+        dis3 <- dis3 + min(sum((A.new[[j]][[i]] - A.old[[j]][[i]])^2), sum((-A.new[[j]][[i]] - A.old[[j]][[i]])^2))
+      }
+    }
+    A.new <- svd.rescale(A.new)
+    # phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    # phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
+    # dis <- sqrt(sum((phi.new - phi.old)^2))
+
+    dis <- sqrt(dis3)
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  A.new <- fro.order(fro.rescale(A.new))
+  res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res))
+}
+# TAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
+#   dim <- xx@modes[-1]
+#   k <- length(dim)
+#   t <- xx@modes[[1]]
+#   A.old <- TAR2.projection(xx,r)$A
+#   fnorm <- array(0,c(r,k)) # Rescale Result of PROJ
+#   for (j in c(1:r)){
+#     for (i in c(1:k)){
+#       if (i < k ){
+#         fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+#         A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+#       } else if (i == k){
+#         fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+#         A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+#       } else {
+#         print("WRONG dimension")
+#       }
+#     }
+#   }
+#   A.new <- A.old
+#   dis <- 1
+#   iiter <- 1
+#   a <- c()
+#
+#   while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+#     for (j in c(1:r)){
+#       for (i in c(1:k)){
+#         s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+#         temp <- s0@data[1:(t-1),,,,drop=FALSE]
+#
+#         L1 <- Reduce("+",lapply(c(1:r)[-j], function(n) {(ttl(xx[1:(t-1),,,], A.new[[n]], (c(1:k) + 1)))}))
+#         if (r == 1){ L1 <- 0}
+#         L2 <-  xx[2:t,,,,drop=FALSE] - L1
+#         temp2 <- L2@data[1:(t-1),,,,drop=FALSE]
+#
+#         RR <- tensor(temp,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#         LL <- tensor(temp2,temp,c(1:4)[-(i+1)],c(1:4)[-(i+1)])
+#         A.new[[j]][[i]] <- LL %*% solve(RR)
+#       }
+#     }
+#
+#     for (j in c(1:r)){
+#       a <- c()
+#       for (i in c(1:k)){
+#         m <- A.new[[j]][[i]]
+#         if (i != k){
+#           a[i] <- svd(m,nu=0,nv=0)$d[1]
+#           A.new[[j]][[i]] <- m/a[i]
+#         } else {
+#           A.new[[j]][[i]] <- m * prod(a)
+#         }
+#       }
+#     }
+#
+#     phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+#     phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+#     dis <- sqrt(sum((phi.new - phi.old)^2))
+#     # dis <- sqrt(disAB(A.new, A.old,r,k))
+#     A.old <- A.new
+#     iiter <- iiter + 1
+#     if (print.true == TRUE){
+#       print(dis)
+#       print(paste('iiter num=',iiter))
+#     }
+#   }
+#   phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+#   disf <- sum((phi.new -phi)^2)
+#   #disff <- disf2(A.new,A.true,r,k)
+#   #disf <- Reduce("+", lapply(1:r, function(j) {sum((kronecker_list(A.new[[j]])-kronecker_list(A.true[[j]]))^2)}))
+#   res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
+#   Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+#   return(list(A=A.new,niter=iiter,Sig=Sig,res=res,disf=disf))
+# }
+
+
+MAR2.proj <- function(xx, r){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  xx.mat <- matrix(xx@data,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  A.old <- projection(kroneck, r, dim[1],dim[2],dim[1],dim[2])
+  fnorm <- array(0,c(r,k)) # Rescale Result of PROJ
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+}
+
+MAR2.LS <- function(xx,r,niter=80,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  xx.mat <- matrix(xx@data,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  A.old <- projection(kroneck, r, dim[1],dim[2],dim[1],dim[2])
+  fnorm <- array(0,c(r,k)) # Rescale Result of PROJ
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  a <- c()
+
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,drop=FALSE]
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function(n) {(ttl(xx[1:(t-1),,], A.new[[n]], (c(1:k) + 1)))}))
+        if (r == 1){ L1 <- 0}
+        L2 <-  xx[2:t,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,drop=FALSE]
+
+        RR <- tensor(temp,temp,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        LL <- tensor(temp2,temp,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+      }
+    }
+
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new - phi.old)^2))
+    # dis <- sqrt(disAB(A.new, A.old,r,k))
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+  disf <- sum((phi.new -phi)^2)
+  #disff <- disf2(A.new,A.true,r,k)
+  #disf <- Reduce("+", lapply(1:r, function(j) {sum((kronecker_list(A.new[[j]])-kronecker_list(A.true[[j]]))^2)}))
+  res <- (xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,disf=disf))
+}
+
+
+
+
+
+
+TAR2.MLE <- function(xx,r, init.A = NULL, init.sig=NULL, niter=500,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  if (is.null(init.sig)) {Sig.old <- lapply(1:k, function(i) {diag(dim[i])})} else {Sig.old <- init.sig}
+  Sig.new <- Sig.old
+  Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+  if (is.null(init.A)) {A.old <- TAR2.projection(xx,r)$A} else {A.old <- init.A}
+  A.old <- fro.order(fro.rescale(A.old))
+  A.new <- A.old
+  dis <- 1
+  iiter <- 1
+  Tol <- tol*sqrt(sum(dim^2))*r
+  while(iiter <= niter & dis >= Tol){
+    stopifnot(dis <= 1e3)
+    dis3 <- 0
+
+    for (i in c(1:k)){
+      res.old <- xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))}))
+      rs <- rTensor::ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+      Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:4)[-(i+1)], c(1:4)[-(i+1)])/ ((t-1)*prod(dim[-i]))
+      Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+    }
+
+    for (j in c(1:r)){
+      for (i in c(k:1)){
+
+        sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[j]][[i]])})
+        s0 <- rTensor::ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+        s1 <- rTensor::ttl(xx, sphi[-i],c(2:(k+1))[-i])
+        temp1 <- s1@data[1:(t-1),,,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function (n) rTensor::ttl(xx[1:(t-1),,,], A.new[[n]], c(2:(k+1))))) # additional term
+        if (r==1){L1 <- 0}
+        temp2 <- ((xx[2:t,,,,drop=FALSE]) - L1)@data
+
+        RR <- tensor(temp, temp1, c(1:4)[-(i+1)], c(1:4)[-(i+1)])
+        LL <- tensor(temp2,temp1, c(1:4)[-(i+1)], c(1:4)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+
+        dis3 <- dis3 + min(sum((A.new[[j]][[i]] - A.old[[j]][[i]])^2), sum((-A.new[[j]][[i]] - A.old[[j]][[i]])^2))
+      }
+    }
+
+
+
+
+    A.new <- svd.rescale(A.new)
+    Sig.new <- eigen.rescale(list(Sig.new))[[1]]
+
+    # phi.new <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.new[[j]]))}))
+    # phi.old <- Reduce("+", lapply(1:r, function(j) {rTensor::kronecker_list(rev(A.old[[j]]))}))
+    # dis <- sqrt(sum((phi.new-phi.old)^2))
+    # dis <- ten.dis.A(list(A.new), list(A.old))
+    dis <- sqrt(dis3)
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  A.new <- fro.order(fro.rescale(A.new))
+  res <- (xx[2:t,,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(rTensor::ttl(xx[1:(t-1),,,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res))
+}
+
+
+
+
+MAR2.MLE <- function(xx,r,niter=200,tol=1e-6,print.true = FALSE){
+  dim <- xx@modes[-1]
+  k <- length(dim)
+  t <- xx@modes[[1]]
+  xx.mat <- matrix(xx@data,t,dim[1]*dim[2])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  A.old <- projection(kroneck, r, dim[1],dim[2],dim[1],dim[2])
+  Sig.old <- lapply(1:k, function(i) {diag(dim[i])})
+  Sig.new <- Sig.old
+  Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+  fnorm <- array(0,c(r,k))
+  for (j in c(1:r)){
+    for (i in c(1:k)){
+      if (i < k ){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]]/fnorm[j,i]
+      } else if (i == k){
+        fnorm[j,i] <- norm(A.old[[j]][[i]],"f")
+        A.old[[j]][[i]] <- A.old[[j]][[i]] * prod(fnorm[j,1:(k-1)])
+      } else {
+        print("WRONG dimension")
+      }
+    }
+  }
+  A.new <- A.old
+
+  dis <- 1
+  iiter <- 1
+
+  while(iiter <= niter & dis >= tol & dis <= 1e3){ # stop when dis > 1e3
+
+    for (j in c(1:r)){
+      for (i in c(1:k)){
+
+        sphi <-  lapply(1:k, function (i) {Sig.new.inv[[i]] %*% (A.new[[j]][[i]])})
+
+        s0 <- ttl(xx, A.new[[j]][-i], c(2:(k+1))[-i])
+        temp <- s0@data[1:(t-1),,,drop=FALSE] # X_{t-1,k} * t(Phi_k^r)
+
+        s1 <- ttl(xx, sphi[-i],c(2:(k+1))[-i])
+        temp1 <- s1@data[1:(t-1),,,drop=FALSE] # X_{t-1,k} * t(S_k^{-1}*Phi_k^r)
+
+        L1 <- Reduce("+",lapply(c(1:r)[-j], function (n) ttl(xx[1:(t-1),,], A.new[[n]], c(2:(k+1))))) # additional term
+        if (r==1){L1 <- 0}
+        L2 <- xx[2:t,,,drop=FALSE] - L1
+        temp2 <- L2@data[1:(t-1),,,drop=FALSE]
+
+        RR <- tensor(temp,temp1,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        LL <- tensor(temp2,temp1,c(1:3)[-(i+1)],c(1:3)[-(i+1)])
+        A.new[[j]][[i]] <- LL %*% solve(RR)
+      }
+    }
+    for (i in c(1:k)){
+      res.old <- xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))}))
+      rs <- ttl(res.old, Sig.new.inv[-i], c(2:(k+1))[-i])
+      Sig.new[[i]] <- tensor(res.old@data, rs@data, c(1:3)[-(i+1)],c(1:3)[-(i+1)])/(t-1)/prod(dim[-i])
+    }
+    for (j in c(1:r)){
+      a <- c()
+      for (i in c(1:k)){
+        m <- A.new[[j]][[i]]
+        if (i != k){
+          a[i] <- svd(m,nu=0,nv=0)$d[1]
+          A.new[[j]][[i]] <- m/a[i]
+        } else {
+          A.new[[j]][[i]] <- m * prod(a)
+        }
+      }
+    }
+
+    b <- c()
+    for (i in c(1:k)){
+      s <- Sig.new[[i]]
+      if (i != k){
+        b[i] <- eigen(s)$values[1]
+        Sig.new[[i]] <- s/b[i]
+      } else {
+        Sig.new[[i]] <- s * prod(b)
+      }
+    }
+    Sig.new.inv <- lapply(1:k, function (i) {solve(Sig.new[[i]])})
+    phi.new <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.new[[j]]))}))
+    phi.old <- Reduce("+", lapply(1:r, function(j) {kronecker_list(rev(A.old[[j]]))}))
+    dis <- sqrt(sum((phi.new-phi.old)^2))
+    # dis <- sqrt(disAB(A.new, A.old,r,k))
+
+    Sig.old <- Sig.new
+    A.old <- A.new
+    iiter <- iiter + 1
+    if (print.true == TRUE){
+      print(dis)
+      print(paste('iiter num=',iiter))
+    }
+  }
+  disf <- sum((phi.new-phi)^2)
+
+  res <- (xx[2:t,,,drop=FALSE] - Reduce("+",lapply(1:r, function(j) {(ttl(xx[1:(t-1),,], A.new[[j]], (c(1:k) + 1)))})))@data
+  Sig <- matrix(tensor(res,res,1,1),prod(dim))/(t-1)
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, disf=disf))
+}
+
+
+
+
+
+
+
+#
+# TAR1.VAR <- function(xx, intercept=TRUE){
+#   dd=xx@modes
+#   if (T < prod(dd[-1])){ # check invertible
+#     stop("sample size too small")
+#   }
+#   T <- dd[1]
+#   d1 <- dd[2]
+#   d2 <- dd[3]
+#   d3 <- dd[4]
+#
+#   yy=apply(xx@data,MARGIN=1,as.vector)
+#   yy2=yy[,2:T];yy1=yy[,1:(T-1)]
+#   if (intercept==FALSE){
+#     out=lm(t(yy2)~0+t(yy1))
+#     coef=out$coef
+#     disf <- sum((coef-phi)^2)
+#   } else if (intercept==TRUE){
+#     out=lm(t(yy2)~t(yy1))
+#     coef=out$coef[2:(d1*d2*d3+1),]
+#     disf <- sum((coef-phi)^2)
+#   } else {
+#     print("please specify intercept")
+#   }
+#   # res=array(t(out$res),dim=c(dd[1]-1,dd[2],dd[3])) ## should NOT transpose!
+#   res=array((out$res),dim=c(dd[1]-1,dd[2],dd[3],dd[4]))
+#   return(list(coef=coef, res=res, disf=disf))
+# }
+
+TAR1.SE.LSE <- function(xx, A.true, Sigma){
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  A <- A.true[[1]][[1]]
+  B <- A.true[[1]][[2]]
+  C <- A.true[[1]][[3]]
+
+  a <- as.matrix(as.vector(A))
+  b <- as.matrix(as.vector(B))
+  c <- as.matrix(as.vector(C))
+  r1 <- rbind(a,matrix(0,m2^2+m3^2,1))
+  r2 <- rbind(matrix(0,m1^2,1),b,matrix(0,m3^2,1))
+  Gamma <-  r1 %*% t(r1) +r2 %*% t(r2)
+
+  Hdim <- m1^2+m2^2+m3^2
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  for (t in c(1:T)){
+    w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+    w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+    w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+    w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),PM(m2,m1)), kronecker(w3,diag(m3)) %*% PM(m3,m2*m1))
+    WT[t,,] <-  w
+  }
+  EWWt <- tensor(WT,WT,c(3,1),c(3,1))/T #(m1^2+m2^2+m^3)*(m1^2+m2^2+m^3)
+  WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWWt + Gamma
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+TAR1.SE.MLE <- function(xx, A.true, Sigma){
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  A <- A.true[[1]][[1]]
+  B <- A.true[[1]][[2]]
+  C <- A.true[[1]][[3]]
+  a <- as.matrix(as.vector(A))
+  b <- as.matrix(as.vector(B))
+  c <- as.matrix(as.vector(C))
+  r1 <- rbind(a,matrix(0,m2^2+m3^2,1))
+  r2 <- rbind(matrix(0,m1^2,1),b,matrix(0,m3^2,1))
+  Gamma <-  r1 %*% t(r1) +r2 %*% t(r2)
+
+  Hdim <- m1^2+m2^2+m3^2
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  for (t in c(1:T)){
+    w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+    w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+    w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+    w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),PM(m2,m1)), kronecker(w3,diag(m3)) %*% PM(m3,m2*m1))
+    WT[t,,] <-  w
+  }
+  #EWWt <- tensor(WT,WT,c(3,1),c(3,1))/T #(m1^2+m2^2+m^3)*(m1^2+m2^2+m^3)
+  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWSigmaWt + Gamma
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+TAR2.SE.LSE <- function(xx, A.true, Sigma){
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+
+    }
+  }
+
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),PM(m2,m1)), kronecker(w3,diag(m3)) %*% PM(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+
+  WSigma <- tensor(WT,Sigma,3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- tensor(WT,WT,c(3,1),c(3,1))/T + Gamma #r(m1^2+m2^2+m^3)*r(m1^2+m2^2+m^3)
+  Hinv <- solve(H)
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+TAR2.SE.MLE <- function(xx, A.true, Sigma){
+  r <- length(A.true)
+  dim <- xx@modes[-1]
+  m1 <- dim[1]
+  m2 <- dim[2]
+  m3 <- dim[3]
+  k <- length(dim)
+  T <- xx@modes[[1]]
+  ndim <- m1^2+m2^2+m3^2
+
+  Gamma <- matrix(0,r*ndim,r*ndim)
+  r1 <- matrix(0, r*ndim, 1)
+  for (x in c(1:r)){
+    for (y in c(1:(k-1))) {
+      if (y == 1) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + 1):((x-1)*ndim + m1^2),] <- a
+      } else if (y == 2) {
+        a <- as.matrix(as.vector(A.true[[x]][[y]]))
+        r1[((x-1)*ndim + m1^2 + 1):((x-1)*ndim + m1^2 + m2^2),] <- a
+      } else  {
+        print("Only Support k=3 but now k>3")
+      }
+      Gamma <- Gamma + r1 %*% t(r1)
+
+    }
+  }
+
+  Hdim <- r*ndim
+  HT <- array(1,c(T,Hdim,Hdim))
+  WT <- array(1,c(T,Hdim,prod(dim))) #T*r(m1^2+m2^2+m^3)*(m1m2m3)
+  for (i in c(1:r)) {
+    C <- A.true[[i]][[3]]
+    B <- A.true[[i]][[2]]
+    A <- A.true[[i]][[1]]
+    for (t in c(1:T)){
+      w1 <- k_unfold(xx[t,,,], m = 1)@data %*% t(kronecker(C,B))
+      w2 <- k_unfold(xx[t,,,], m = 2)@data %*% t(kronecker(C,A))
+      w3 <- k_unfold(xx[t,,,], m = 3)@data %*% t(kronecker(B,A))
+      w <- rbind(kronecker(w1,diag(m1)) ,kronecker(w2,diag(m2)) %*% kronecker(diag(m3),PM(m2,m1)), kronecker(w3,diag(m3)) %*% PM(m3,m2*m1))
+      WT[t, ((i-1)*ndim + 1):(i*ndim),] <-  w
+    }
+  }
+
+
+  WSigma <- tensor(WT,solve(Sigma),3,1) #T*(m1^2+m2^2+m^3)*(m1m2m3)
+  EWSigmaWt <- tensor(WSigma,WT,c(3,1),c(3,1))/T
+  H <- EWSigmaWt + Gamma
+  Hinv <- solve(H)
+
+  Xi <- Hinv %*% EWSigmaWt %*% Hinv
+  return(Xi)
+}
+
+
+

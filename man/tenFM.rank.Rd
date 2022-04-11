@@ -28,21 +28,19 @@ delta1=0,tol=1e-5,maxiter=100)
 
 \item{iter}{boolean, specifying using an iterative approach or a non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
- \describe{
- \item{When \code{rank}= '\code{IC}':}{}
- \item{if \code{penalty}=1,}{\eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
- \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
- \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
- \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
- \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
- \item{}{When \code{rank}= '\code{ER}':}
- \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
- \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
- \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
- \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
- \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
-}}
+\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }. \cr
+When \code{rank}= '\code{IC}':\cr
+if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};\cr
+if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};\cr
+if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};\cr
+if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};\cr
+if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.\cr
+When \code{rank}= '\code{ER}':\cr
+if \code{penalty}=1, \eqn{h_1= c_0 h_0};\cr
+if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};\cr
+if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};\cr
+if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};\cr
+if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.\cr}
 
 \item{delta1}{weakest factor strength, a tuning parameter used for IC method only, default value is 0.}
 
