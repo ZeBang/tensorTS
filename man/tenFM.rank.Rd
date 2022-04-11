@@ -4,7 +4,7 @@
 \alias{tenFM.rank}
 \title{Rank Determination for Tensor Factor Models with Tucker Structure}
 \usage{
-tenFM.rank(x,r,h0=1,rank='BIC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
+tenFM.rank(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
 delta1=0,tol=1e-5,maxiter=100)
 }
 \arguments{
@@ -15,7 +15,7 @@ delta1=0,tol=1e-5,maxiter=100)
 \item{h0}{the number of lags used in auto-covariance tensor.}
 
 \item{rank}{character string, specifying the type of the rank determination method to be used. \describe{
- \item{\code{"BIC",}}{information criterion.}
+ \item{\code{"IC",}}{information criterion.}
  \item{\code{"ER",}}{eigen ratio criterion.}
 }}
 
@@ -26,12 +26,12 @@ delta1=0,tol=1e-5,maxiter=100)
 
 \item{inputr}{boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.}
 
-\item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
+\item{iter}{boolean, specifying using an iterative approach or a non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decide which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
  \describe{
- \item{}{When \code{rank}= '\code{BIC}':}
- \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+ \item{When \code{rank}= '\code{IC}':}{}
+ \item{if \code{penalty}=1,}{\eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
@@ -44,7 +44,7 @@ delta1=0,tol=1e-5,maxiter=100)
  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 }}
 
-\item{delta1}{weakest factor strength, a tuning parameter used for BIC method only, default value is 0.}
+\item{delta1}{weakest factor strength, a tuning parameter used for IC method only, default value is 0.}
 
 \item{tol}{tolerance in terms of the Frobenius norm.}
 
@@ -60,7 +60,7 @@ return a list containing the following:\describe{
 Function for rank determination of tensor factor models with Tucker Structure.
 Two unfolding methods of the auto-covariance tensor, Time series Outer-Product Unfolding Procedure (TOPUP), Time series Inner-Product Unfolding Procedure (TIPUP),
 are included, as determined by the value of \code{method}.
-Different penalty functions for the information criterion (BIC) and the eigen ratio criterion (ER) can be used,
+Different penalty functions for the information criterion (IC) and the eigen ratio criterion (ER) can be used,
 which should be specified by the value of \code{rank} and \code{penalty}. The information criterion resembles BIC in the vector factor model literature.
 And the eigen ratio criterion is similar to the eigenvalue ratio based methods in the vector factor model literature.
 }

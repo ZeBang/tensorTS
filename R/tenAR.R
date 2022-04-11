@@ -163,13 +163,13 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL, Sig=NULL){
 #' length(A) == 1 # TRUE, since the order P = 1
 #' length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
 #' length(A[[1]][[1]]) == 2 # TRUE, since the mode K = 2
-tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=150, tol=1e-6, print.true=FALSE){
+tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=150, tol=1e-6){
   if (identical("PROJ", method)) {
     tenAR.PROJ(xx, R, P)
   } else if (identical("LSE", method)) {
-    tenAR.LS(xx, R, P, init.A, niter, tol, print.true)
+    tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
   } else if (identical("MLE", method)) {
-    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true)
+    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
   } else if (identical("VAR", method)) {
     tenAR.VAR(xx, P)
   } else {
@@ -1009,14 +1009,14 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=150, tol=1e-5, print.true=FALS
       for (r in c(1:R[p])){
         for (k in c(K:1)){ # update last matrix first
           AX[[p]][[r]][[k]] = rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp = asub(AX[[p]][[r]][[k]], (1+P-p):(t-p), 1, drop=FALSE)
+          temp = abind::asub(AX[[p]][[r]][[k]], (1+P-p):(t-p), 1, drop=FALSE)
           L1 <- 0
           for (l in c(1:P)){
             if (R[l] == 0) next
-            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
-            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
+            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
+            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
           }
-          temp2 <- asub(xx, (1+P):t, 1, drop=FALSE) - L1
+          temp2 <- abind::asub(xx, (1+P):t, 1, drop=FALSE) - L1
           RR <- tensor(temp@data,temp@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           LL <- tensor(temp2@data,temp@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
@@ -1047,7 +1047,7 @@ tenAR.LS <- function(xx, R, P, init.A=NULL, niter=150, tol=1e-5, print.true=FALS
   cov = tenAR.SE.LSE(dim, R, P, K, t, AX, A.new, Sig)
   sd <- covtosd(cov, dim, R)
   bic <- IC(xx, res, R, t, dim)
-  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,cov=cov,sd=sd,BIC=bic))
+  return(list(A=A.new,niter=iiter,Sig=Sig,res=res,cov=cov,sd=sd,BIC=bic,data=xx))
 }
 
 
@@ -1089,15 +1089,15 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=150, tol=1e-5,
         for (k in c(K:1)){
           sphi <-  lapply(1:K, function (k) {Sig.new.inv[[k]] %*% (A.new[[p]][[r]][[k]])})
           AX[[p]][[r]][[k]] = rTensor::ttl(xx, A.new[[p]][[r]][-k], c(2:(K+1))[-k])
-          temp = asub(AX[[p]][[r]][[k]], (1+P-p):(t-p), 1, drop=FALSE)
-          temp1 <- asub(rTensor::ttl(xx, sphi[-k], c(2:(K+1))[-k]), (1+P-p):(t-p), 1, drop=FALSE)
+          temp = abind::asub(AX[[p]][[r]][[k]], (1+P-p):(t-p), 1, drop=FALSE)
+          temp1 <- abind::asub(rTensor::ttl(xx, sphi[-k], c(2:(K+1))[-k]), (1+P-p):(t-p), 1, drop=FALSE)
           L1 <- 0
           for (l in c(1:P)){
             if (R[l] == 0) next
-            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
-            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
+            if (l == p){if (R[l] > 1){L1 <- L1 + Reduce("+",lapply(c(1:R[l])[-r], function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
+            } else {L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A.new[[l]][[n]], (c(1:K) + 1))}))}
           }
-          temp2 <- asub(xx, (1+P):t, 1, drop=FALSE) - L1
+          temp2 <- abind::asub(xx, (1+P):t, 1, drop=FALSE) - L1
           RR <- tensor(temp@data,temp1@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           LL <- tensor(temp2@data,temp1@data,c(1:(K+1))[-(k+1)],c(1:(K+1))[-(k+1)])
           A.new[[p]][[r]][[k]] <- LL %*% ginv(RR)
@@ -1127,7 +1127,7 @@ tenAR.MLE <- function(xx, R, P, init.A=NULL, init.sig=NULL, niter=150, tol=1e-5,
   cov = tenAR.SE.MLE(dim, R, P, K, t, AX, A.new, Sig)
   sd <- covtosd(cov, dim, R)
   bic <- IC(xx, res, R, t, dim)
-  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, cov=cov, sd=sd, BIC=bic))
+  return(list(A=A.new, SIGMA=Sig.new, niter=iiter, Sig=Sig, res=res, cov=cov, sd=sd, BIC=bic, data=xx))
 }
 
 
@@ -1210,7 +1210,7 @@ MAR1.RR <- function(xx, k1, k2, niter=200, tol=1e-4, A1.init=NULL, A2.init=NULL,
   cov <- matAR.RR.se(LL,RR,k1,k2,method="RRLSE",Sigma.e=Sig,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
   sd <- list(sqrt(array(diag(cov$Sigma)[1:p^2], c(p,p))/T), sqrt(array(diag(cov$Sigma)[(p^2+1):(p^2+q^2)], c(q,q))/T))
   loading = list(U1=svd(LL)$u,V1=svd(LL)$v,U2=svd(RR)$u,V2=svd(RR)$v)
-  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig=Sig,BIC=bic,niter=iiter-1,cov=cov,sd=sd))
+  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig=Sig,BIC=bic,niter=iiter-1,cov=cov,sd=sd, data=xx))
 }
 
 
@@ -1339,7 +1339,7 @@ MAR1.CC <- function(xx,k1,k2,A1.init=NULL,A2.init=NULL,Sigl.init=NULL,Sigr.init=
   cov = MAR1.RRCC.SE(LL,RR,k1,k2,Sigl,Sigr,RU1=diag(k1),RV1=diag(k1),RU2=diag(k2),RV2=diag(k2),mpower=100)
   sd <- list(sqrt(array(diag(cov$Sigma)[1:p^2], c(p,p))/T), sqrt(array(diag(cov$Sigma)[(p^2+1):(p^2+q^2)], c(q,q))/T))
   loading = list(U1=svd(LL)$u,V1=svd(LL)$v,U2=svd(RR)$u,V2=svd(RR)$v)
-  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd))
+  return(list(A1=LL,A2=RR,loading=loading,res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter-1, cov=cov, sd=sd, data=xx))
 }
 
 
@@ -1357,6 +1357,16 @@ tenAR.SE.LSE <- function(dim, r, p, K, t, AX, A, Sigma){
         a = as.vector(A[[i]][[j]][[k]])
         r1[( n*ndim + sum(fdim[0:(k-1)]) + 1): (n*ndim + sum(fdim[0:k])),] = a
         Gamma = Gamma + r1 %*% t(r1)
+        if (K==2){
+          for (l in c(1:r[i])){
+            if (l != j){
+              r1 <- matrix(0, sum(r)*ndim, 1)
+              a = as.vector(A[[i]][[l]][[k]])
+              r1[( n*ndim + sum(fdim[0:(k-1)]) + 1): (n*ndim + sum(fdim[0:k])),] = a
+              Gamma = Gamma + r1 %*% t(r1)
+            }
+          }
+        }
       }
       n = n + 1
     }
@@ -1372,7 +1382,7 @@ tenAR.SE.LSE <- function(dim, r, p, K, t, AX, A, Sigma){
           Q[[k]] = kronecker(diag(s), pm(dim[k], prod(dim[0:(k-1)])))
         }
         # AXX = AX[[i]][[j]][[k]] # AXX = rTensor::ttl(xx, A.new[[i]][[j]][-k], c(2:(K+1))[-k])
-        AXX = asub(AX[[i]][[j]][[k]], (1+p-i):(t-i), 1, drop=FALSE)
+        AXX = abind::asub(AX[[i]][[j]][[k]], (1+p-i):(t-i), 1, drop=FALSE)
         AXfold = array(aperm(AXX@data, perm[[k]]), size[[k]])
         AXI = apply(AXfold,3,function(x){kronecker(x, diag(dim[k])) %*% Q[[k]]})
         AXI.array <- array(AXI,c(dim[k]^2,pdim,t))
@@ -1401,9 +1411,20 @@ tenAR.SE.MLE <- function(dim, r, p, K, t, AX, A, Sigma){
   for (i in c(1:p)){
     for (j in c(1:r[i])){
       for (k in c(1:(K-1))){
+        r1 <- matrix(0, sum(r)*ndim, 1)
         a = as.vector(A[[i]][[j]][[k]])
         r1[( n*ndim + sum(fdim[0:(k-1)]) + 1): (n*ndim + sum(fdim[0:k])),] = a
         Gamma = Gamma + r1 %*% t(r1)
+        if (K==2){
+          for (l in c(1:r[i])){
+            if (l != j){
+              r1 <- matrix(0, sum(r)*ndim, 1)
+              a = as.vector(A[[i]][[l]][[k]])
+              r1[( n*ndim + sum(fdim[0:(k-1)]) + 1): (n*ndim + sum(fdim[0:k])),] = a
+              Gamma = Gamma + r1 %*% t(r1)
+            }
+          }
+        }
       }
       n = n + 1
     }
@@ -1434,8 +1455,6 @@ tenAR.SE.MLE <- function(dim, r, p, K, t, AX, A, Sigma){
   Xi <- Hinv %*% EWSigmaWt %*% Hinv
   return(Xi/t)
 }
-
-
 
 
 tenAR.bic <- function(xx, rmax=5){
@@ -1564,10 +1583,10 @@ mplot.acf <- function(xx){
 #' t = 20
 #' xx <- tenAR.sim(t, dim, R=1, P=1, rho=0.5, cov='iid')
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-#' pred <- tenAR.predict(est, n.head = 1, xx = xx)
+#' pred <- tenAR.predict(est, n.head = 1)
 #' # rolling forcast
 #' n0 = t - min(50,t/2)
-#' pred.rolling <- tenAR.predict(est, n.head = 5, xx = NULL, rolling=TRUE, n0)
+#' pred.rolling <- tenAR.predict(est, n.head = 5, rolling=TRUE, n0=n0)
 tenAR.predict <- function(object, n.head=1, xx=NULL, rolling=FALSE, n0=NULL){
   if (is.null(object$SIGMA)){method = "LSE"} else {method = "MLE"}
   if (!is.null(object$A1)){
@@ -1583,6 +1602,7 @@ tenAR.predict <- function(object, n.head=1, xx=NULL, rolling=FALSE, n0=NULL){
   } else {
     A <- object$A
   }
+  if (is.null(xx)){xx = object$data}
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   if (rolling == TRUE){
     return(predict.rolling(A, xx, n.head, method, n0))
@@ -1596,11 +1616,11 @@ tenAR.predict <- function(object, n.head=1, xx=NULL, rolling=FALSE, n0=NULL){
     L1 = 0
     for (l in c(1:P)){
       if (R[l] == 0) next
-      L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, tt-l, 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
+      L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, tt-l, 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
     }
     xx <- as.tensor(abind(xx@data, L1@data, along=1))
   }
-  return(asub(xx@data, ttt, 1, drop=FALSE))
+  return(abind::asub(xx@data, ttt, 1, drop=FALSE))
 }
 
 
@@ -1616,24 +1636,23 @@ predict.rolling <- function(A, xx, n.head, method, n0){
   t <- dim[1]
   if(is.null(n0)){n0 = t - min(50,t/2)}
   ttt <- (n0):(t - n.head)
-  print(paste(K,R,P))
   for(tt in ttt){
     tti <- tt - ttt[1] + 1
     print(paste("rolling forcast t =", tti))
     if (method == "RRLSE"){
-      model <- MAR1.RR(asub(xx@data, 1:tt, 1, drop=FALSE), k1, k2)
+      model <- MAR1.RR(abind::asub(xx@data, 1:tt, 1, drop=FALSE), k1, k2)
       A <- list(list(list(model$A1, model$A2)))
     } else if (method == "RRMLE"){
-      model <- MAR1.CC(asub(xx@data, 1:tt, 1, drop=FALSE), k1, k2)
+      model <- MAR1.CC(abind::asub(xx@data, 1:tt, 1, drop=FALSE), k1, k2)
       A <- list(list(list(model$A1, model$A2)))
     } else {
-      model = tenAR.est(asub(xx@data, 1:tt, 1, drop=FALSE), R, c(P,0), method)
+      model = tenAR.est(abind::asub(xx@data, 1:tt, 1, drop=FALSE), R, c(P,0), method)
       A <- model$A
     }
     L1 = 0
     for (l in c(1:P)){
       if (R[l] == 0) next
-      L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, tt-l+1, 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
+      L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, tt-l+1, 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
     }
     if (tti == 1){xx.pred = L1@data} else {xx.pred = abind(xx.pred, L1@data, along=1)}
   }

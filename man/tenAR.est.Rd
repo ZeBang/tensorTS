@@ -85,4 +85,6 @@ length(A[[1]][[1]]) == 2 # TRUE, since the mode K = 2
 }
 \references{
 Rong Chen, Han Xiao, and Dan Yang. "Autoregressive models for matrix-valued time series". Journal of Econometrics, 2020.
+
+Zebang Li, Han Xiao. "Multi-linear tensor autoregressive models". arxiv preprint arxiv:2110.00928 (2021).
 }

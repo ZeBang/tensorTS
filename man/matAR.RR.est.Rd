@@ -33,13 +33,15 @@ k1=NULL, k2=NULL, niter=100,tol=1e-6)
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{A1}}{estimator of \eqn{A_1}, a \eqn{d_1} by \eqn{d_1} matrix}
-\item{\code{A2}}{estimator of \eqn{A_2}, a \eqn{d_2} by \eqn{d_2} matrix}
+\item{\code{A1}}{estimator of \eqn{A_1}, a \eqn{d_1} by \eqn{d_1} matrix.}
+\item{\code{A2}}{estimator of \eqn{A_2}, a \eqn{d_2} by \eqn{d_2} matrix.}
+\item{\code{loading}}{a list of estimated \eqn{U_i}, \eqn{V_i}, 
+where we write \eqn{A_i=U_iD_iV_i} as the singular value decomposition (SVD) of \eqn{A_i}, \eqn{i = 1,2}.}
 \item{\code{Sig1}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 \item{\code{Sig2}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 \item{\code{res}}{residuals.}
 \item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
-\item{\code{cov}}{covariance matrix \eqn{\hat A_1} and \eqn{\hat A_2}. If \code{method=RRLSE} or \code{method=RRMLE}, then it is a list containing \describe{
+\item{\code{cov}}{a list containing \describe{
  \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
  \item{\code{Theta1.u}, \code{Theta1.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}), vec(\eqn{\hat V_1}).}
  \item{\code{Theta2.u}, \code{Theta2.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}), vec(\eqn{\hat V_2}).}

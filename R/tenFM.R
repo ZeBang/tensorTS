@@ -61,11 +61,11 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
   d <- length(dd) # d >= 2
   d.seq <- 1:(d-1)
   n <- dd[d]
-
+  
   x.tnsr <- as.tensor(x)
   tnsr.norm <- fnorm(x.tnsr)
   eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter))
-
+  
   if(method=="TIPUP"){
     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
   }else if(method=="TOPUP"){
@@ -81,16 +81,16 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
   dis <- 1
   fnorm.resid <- rep(0,maxiter)
   #x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
-
+  
   x.hat <- ttl(x.tnsr,lapply(ans.init$Q,t),d.seq)
   x.hat <- ttl(x.hat,ans.init$Q,d.seq)
-
+  
   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
   ans.Q <- ans.init$Q
   Ft <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
   Ft.all <- apply(Ft@data,c(1:(d-1)),sum)
   fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-
+  
   if(iter==TRUE){
     while((dis > tol) & (iiter < maxiter)){
       for(i in 1:(d-1)){
@@ -106,7 +106,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
         }
         ddd=dd[-d]
         eigen.gap[i,1:dd[i],1+iiter]=ans.iter$lambda[[1]]
-
+        
         if(vmax==TRUE){
           for(j in 1:(d-1)){
             if(r[j] > 1){
@@ -120,14 +120,14 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
             }
           }
         }
-
+        
         #x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
         x.hat <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
         x.hat <- ttl(x.hat,ans.Q,d.seq)
-
+        
         Ft <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
         Ft.all <- apply(Ft@data,c(1:(d-1)),sum)
-
+        
         fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
         dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
         if(iiter==1){
@@ -206,7 +206,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
 #'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 #'}
-  #'@param delta1 weakest factor strength, a tuning parameter used for IC method only, default value is 0.
+#'@param delta1 weakest factor strength, a tuning parameter used for IC method only, default value is 0.
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
 #'@return return a list containing the following:\describe{
@@ -234,7 +234,7 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
   tnsr.norm <- fnorm(x.tnsr)
   factor.num <- array(NA, c(d-1,5,maxiter))
   eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter+1))
-
+  
   if(method=="TIPUP"){
     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
   }else if(method=="TOPUP"){
@@ -261,10 +261,10 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
   #x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
   x.hat <- ttl(x.tnsr,lapply(ans.init$Q,t),d.seq)
   x.hat <- ttl(x.hat,ans.init$Q,d.seq)
-
+  
   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
   ans.Q <- ans.init$Q
-
+  
   if(iter==TRUE){
     while((dis > tol) & (iiter < maxiter)){
       for(i in 1:(d-1)){
@@ -279,7 +279,7 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
           stop('Wrong estimation method input !')
         }
         ddd=dd[-d]
-
+        
         if(rank=='BIC'|rank=='IC'){
           factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
         }else if(rank=='ER'){
@@ -290,13 +290,13 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
         if(inputr==FALSE){
           r[i]=factor.num[i,penalty,1+iiter]
         }
-
+        
         eigen.gap[i,1:dd[i],1+iiter]=ans.iter$lambda[[1]]
       }
       #x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
       x.hat <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
       x.hat <- ttl(x.hat,ans.Q,d.seq)
-
+      
       fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
       dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
       if(iiter==1){
@@ -308,7 +308,7 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
   }else{
     iiter <- iiter + 1
   }
-
+  
   factor.num[,,maxiter]=factor.num[,,iiter]
   eigen.gap[,,maxiter]=eigen.gap[,,iiter]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
@@ -405,11 +405,11 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   factor.p1=numeric(5)
   p=p1*p2
   m1=ceiling(p1/3)
-
+  
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-
+  
   #threshold
   ic=cumlambda.p1[1:m1]/p^2*p^delta+(1:m1)*h0*(1/n)*log(p*n/(p+n))
   factor.p1[1]<-which.min(ic)
@@ -421,7 +421,7 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   factor.p1[4]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2*p^delta+(1:m1)*h0*(1/n+1/p)*log(min(p1,n))
   factor.p1[5]<-which.min(ic)
-
+  
   factor.p1
 }
 
@@ -432,11 +432,11 @@ tensor.ratio<-function(reigen,p1,p2,n){
   factor.p1=numeric(5)
   p=p1*p2
   m1=ceiling(p1/3)
-
+  
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-
+  
   #ratio
   ratio<-lambda.p1[(p1-1):(p1-m1)]/lambda.p1[p1:(p1-m1+1)]
   factor.p1[1]<-which.min(ratio)
@@ -448,7 +448,7 @@ tensor.ratio<-function(reigen,p1,p2,n){
   factor.p1[4]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2*(1/n^2/p1+1/n^2/p2))/(lambda.p1[p1:(p1-m1+1)] +p^2*(1/n^2/p1+1/n^2/p2))  #p^2*(1/n)*log(p*n/(p+n))
   factor.p1[5]<-which.min(ratio)
-
+  
   factor.p1
 }
 
@@ -502,7 +502,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   # x: d1 * d2 * d3 * ... * d_d * n
   # if oneside.true==TRUE, then only compute the one sided column space,
   # not the other sides, this option is useful for the iterative method
-
+  
   dd <- dim(x)
   d <- length(dd) # d >= 2
   n <- dd[d]
@@ -539,7 +539,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
     #x.hat <- get.hat(x.tnsr,ans.Q,1:(d-1))
     x.hat <- ttl(x.tnsr,lapply(ans.Q,t),1:(d-1))
     x.hat <- ttl(x.hat,ans.Q,1:(d-1))
-
+    
     norm.percent <- fnorm(x.tnsr-x.hat)/fnorm(x.tnsr)
     x.hat <- x.hat@data
   }

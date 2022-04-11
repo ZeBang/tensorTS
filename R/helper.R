@@ -289,9 +289,9 @@ ten.res <- function(xx,A,P,R,K,t){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
   }
-  res <- asub(xx, (1+P):(t), 1, drop=FALSE) - L1
+  res <- abind::asub(xx, (1+P):(t), 1, drop=FALSE) - L1
   return(res)
 }
 
