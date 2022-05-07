@@ -144,7 +144,7 @@ projection <- function(M,r,m1,m2,n1,n2){
   RA.svd <- svd(RA,nu=r,nv=r)
   A <- list()
   for (i in c(1:r)){
-    A[[i]] <- list(matrix(RA.svd$v[,i], m2, n2), matrix(RA.svd$u[,i] * RA.svd$d[i], m1, n1))
+    A[[i]] <- list(matrix(RA.svd$v[,i] * RA.svd$d[i], m2, n2), matrix(RA.svd$u[,i], m1, n1))
   }
   for (j in c(1:r)){
     A[[j]] <- rev(A[[j]])
@@ -164,7 +164,7 @@ projection <- function(M,r,m1,m2,n1,n2){
 
 ten.proj <- function(tt, dim, R){
   ## inner func of "TenAR.proj"
-  cpd <- rTensor::cp(rTensor::as.tensor(tt), num_components = R)
+  cpd <- rTensor::cp(rTensor::as.tensor(tt), num_components = R, max_iter = 100, tol = 1e-06)
   lam <- cpd$lambdas
   A.proj <- list()
   for (j in c(1:R)){
@@ -174,7 +174,6 @@ ten.proj <- function(tt, dim, R){
     f1 <- sqrt(sum(cpd$U[[1]][,j]^2))
     f2 <- sqrt(sum(cpd$U[[2]][,j]^2))
     f3 <- sqrt(sum(cpd$U[[3]][,j]^2))
-
     a1 <- u1/f1
     a2 <- u2/f2
     a3 <- u3*f1*f2*lam[j]
@@ -322,13 +321,14 @@ specRadius <- function(M){
 }
 
 likelihood <- function(xx, A, Sigma){
+  if (!(mode(xx) == "S4")) {xx <- as.tensor(xx)}
   r <- length(A[[1]])
   dd <- dim(xx)
   t <- dd[1]
   dim <- dd[-1]
   k <- length(dd[-1])
   i = 1
-  res <- ten.res(xx,A,P=1,R=r,K=k,t=t)
+  res <- ten.res(xx,A,P=1,R=r,K=k,t=t)@data
   Sigma.inv <- lapply(1:k, function (i) {solve(Sigma[[i]])})
   ll <- tl(res, Sigma.inv)
   l1 <- sum(diag(tensor(ll, res, c(1:4)[-(i+1)],c(1:4)[-(i+1)])))
@@ -356,6 +356,47 @@ initializer <- function(xx, k1=1, k2=1){
   stop('causality condition of initializer fails.')
 }
 
+
+
+# initializer <- function(xx, k1=1, k2=1){
+#   dim = dim(xx)[-1]
+#   p = dim(xx)[2]
+#   q = dim(xx)[3]
+# 
+#   PROJ = MAR1.PROJ(xx)
+#   if (specRadius(PROJ$A1)*specRadius(PROJ$A2) < 1){
+#     A1 = PROJ$A1; A2 = PROJ$A2
+#     eps1 = matrix(rnorm(p^2, sd=sqrt(sum(A1^2))/(p^2)), ncol=p)
+#     eps2 = matrix(rnorm(q^2, sd=sqrt(sum(A2^2))/(q^2)), ncol=q)
+#     return(list(A1=PROJ$A1+eps1,A2=PROJ$A2+eps2))
+#   }
+#   MAR = MAR1.LS(xx)
+#   if (specRadius(MAR$A1)*specRadius(MAR$A2) < 1){
+#     A1 = MAR$A1; A2 = MAR$A2
+#     eps1 = matrix(rnorm(p^2, sd=sqrt(sum(A1^2))/(p^2)), ncol=p)
+#     eps2 = matrix(rnorm(q^2, sd=sqrt(sum(A2^2))/(q^2)), ncol=q)
+#     return(list(A1=MAR$A1+eps1,A2=MAR$A2+eps2))
+#   }
+#   RRMAR = MAR1.RR(xx, k1, k2)
+#   if (specRadius(MAR1.RR$A1)*specRadius(MAR1.RR$A2) < 1){
+#     A1 = RRMAR$A1; A2 = RRMAR$A2
+#     eps1 = matrix(rnorm(p^2, sd=sqrt(sum(A1^2))/(p^2)), ncol=p)
+#     eps2 = matrix(rnorm(q^2, sd=sqrt(sum(A2^2))/(q^2)), ncol=q)
+#     return(list(A1=MAR1.RR$A1+eps1,A2=MAR1.RR$A2+eps2))
+#   }
+#   stop('causality condition of initializer fails.')
+# }
+
+initializer.sig <- function(xx){
+  dim = dim(xx)[-1]
+  t = dim(xx)[1]
+  res = tenAR.VAR(xx, P=1)$res
+  SIGMA = res %*% t(res) / (t-1)
+  sig = projection(SIGMA, 1, dim[1],dim[2],dim[1],dim[2])[[1]]
+  if (sig[[1]][1,1] < 0){sig[[1]] = - sig[[1]]}
+  if (sig[[2]][1,1] < 0){sig[[2]] = - sig[[2]]}
+  return(list(Sigl.init=sig[[1]], Sigr.init=sig[[2]]))
+}
 
 
 likelihood.lse <- function(fres, s, d, t){
