@@ -22,17 +22,16 @@
 #'@export
 #'@importFrom stats varimax
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
-#'@param r input rank of the factor tensor.
+#'@param r input rank of factor tensor.
 #'@param h0 the number of lags used in auto-covariance tensor.
 #'@param method character string, specifying the type of the estimation method to be used. \describe{
 #'  \item{\code{"TIPUP",}}{TIPUP method.}
 #'  \item{\code{"TOPUP",}}{TOPUP method.}
 #'}
 #'@param iter boolean, specifying using an iterative approach or an non-iterative approach.
-#'@param vmax boolean, specifying using varimax rotation on the factor matrix or not.
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
-#'@return return a list containing the following:\describe{
+#'@return returns a list containing the following:\describe{
 #'\item{\code{Ft}}{estimated factor processes of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}.}
 #'\item{\code{Ft.all}}{Summation of factor processes over time, of dimension \eqn{r_1,r_2,\cdots,r_k}.}
 #'\item{\code{Q}}{a list of estimated factor loading matrices \eqn{Q_1,Q_2,\cdots,Q_K}. }
@@ -52,20 +51,17 @@
 #'Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 #'lambda <- sqrt(prod(dims))
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-#'result <- tenFM.est(x,r,method='TIPUP')  # Estimation
+#'result <- tenFM.est(x,r,h0=1,iter=TRUE,method='TIPUP')  # Estimation
 #'Ft <- result$Ft
-tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100){
-  #x <- aperm(x@data,c(2:length(dim(x)),1))
+tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
   x <- aperm(x,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
   d.seq <- 1:(d-1)
   n <- dd[d]
-  
+
   x.tnsr <- as.tensor(x)
   tnsr.norm <- fnorm(x.tnsr)
-  eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter))
-  
   if(method=="TIPUP"){
     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
   }else if(method=="TOPUP"){
@@ -74,23 +70,19 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
     stop('Wrong method !')
   }
   ddd=dd[-d]
-  for(i in 1:(d-1)){
-    eigen.gap[i,1:dd[i],1]=ans.init$lambda[[i]]
-  }
   iiter <- 1
   dis <- 1
-  fnorm.resid <- rep(0,maxiter)
-  #x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
-  
+  fnorm.resid <- rep(0,maxiter+2)
+
   x.hat <- ttl(x.tnsr,lapply(ans.init$Q,t),d.seq)
   x.hat <- ttl(x.hat,ans.init$Q,d.seq)
-  
+
   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
   ans.Q <- ans.init$Q
   Ft <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
   Ft.all <- apply(Ft@data,c(1:(d-1)),sum)
   fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
-  
+
   if(iter==TRUE){
     while((dis > tol) & (iiter < maxiter)){
       for(i in 1:(d-1)){
@@ -105,29 +97,12 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
           stop('Wrong method !')
         }
         ddd=dd[-d]
-        eigen.gap[i,1:dd[i],1+iiter]=ans.iter$lambda[[1]]
-        
-        if(vmax==TRUE){
-          for(j in 1:(d-1)){
-            if(r[j] > 1){
-              Qj <- ans.Q[[j]]
-              Qj.ans <- varimax(Qj)
-              Qjrot <- Qj %*% Qj.ans$rotmat
-              for(k in 1:r[j]){
-                Qjrot[,k]=Qjrot[,k]*sign(sum(Qjrot[,k]))
-              }
-              ans.Q[[j]] = Qjrot
-            }
-          }
-        }
-        
-        #x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
+
         x.hat <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
         x.hat <- ttl(x.hat,ans.Q,d.seq)
-        
         Ft <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
         Ft.all <- apply(Ft@data,c(1:(d-1)),sum)
-        
+
         fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
         dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
         if(iiter==1){
@@ -140,16 +115,13 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
   }else{
     iiter <- iiter + 1
   }
-  eigen.gap[,,maxiter]=eigen.gap[,,iiter-1]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
-  norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
+  fnorm.resid <- fnorm.resid^2
   x0 <- matrix(x,prod(dd[-d]))
   x0 <- t(scale(t(x0),scale=FALSE) )
   x0 <- array(x0,dd)
-  rsquare <- 1- fnorm(x.tnsr-x.hat)^2/fnorm(as.tensor(x0))^2
   return(list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter]))
 }
-
 
 #' Rank Determination for Tensor Factor Models with Tucker Structure
 #'
@@ -179,7 +151,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'delta1=0,tol=1e-5,maxiter=100)
 #'@export
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
-#'@param r input rank of the factor tensor.
+#'@param r initial guess of the rank of factor tensor.
 #'@param h0 the number of lags used in auto-covariance tensor.
 #'@param rank character string, specifying the type of the rank determination method to be used. \describe{
 #'  \item{\code{"IC",}}{information criterion.}
@@ -189,26 +161,28 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'  \item{\code{"TIPUP",}}{TIPUP method.}
 #'  \item{\code{"TOPUP",}}{TOPUP method.}
 #'}
-#'@param inputr boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.
+#'@param inputr boolean, if TRUE, always use initial guess rank r in each iteration; if FLASE, the rank will be updated in each iteration.
 #'@param iter boolean, specifying using an iterative approach or a non-iterative approach.
-#'@param penalty takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }. \cr
-#' When \code{rank}= '\code{IC}':\cr
-#' if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};\cr
-#' if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};\cr
-#' if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};\cr
-#' if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};\cr
-#' if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.\cr
-#' When \code{rank}= '\code{ER}':\cr
-#' if \code{penalty}=1, \eqn{h_1= c_0 h_0};\cr
-#' if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};\cr
-#' if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};\cr
-#' if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};\cr
-#' if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.\cr
-#'@param delta1 weakest factor strength, a tuning parameter used for IC method only, default value is 0.
+#'@param penalty takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+#'  \describe{
+#'  \item{}{When \code{rank}= '\code{IC}':}
+#'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
+#'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
+#'  \item{}{When \code{rank}= '\code{ER}':}
+#'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
+#'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
+#'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+#'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+#'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
+#'}
+#'@param delta1 weakest factor strength, a tuning parameter used for IC method only
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
 #'@return return a list containing the following:\describe{
-#'\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}-th iteration.}
+#'\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The first row is the estimated rank under non-iterative approach, the \eqn{i+1}-th row is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i)}-th iteration.}
 #'\item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
 #'}
 #'@references
@@ -220,9 +194,8 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter
 #'Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 #'lambda <- sqrt(prod(dims))
 #'x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-#'rank <- tenFM.rank(x,c(4,4,4),h0=1,rank='ER',method='TIPUP')  # Estimate the rank
-tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-5,maxiter=100){
-  #x <- aperm(x@data,c(2:length(dim(x)),1))
+#'rank <- tenFM.rank(x,r=c(4,4,4),h0=1,rank='IC',iter=TRUE,method='TIPUP')  # Estimate the rank
+tenFM.rank = function(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,delta1=0,tol=1e-4,maxiter=100){
   x <- aperm(x,c(2:length(dim(x)),1))
   dd <- dim(x)
   d <- length(dd) # d >= 2
@@ -230,8 +203,11 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
   n <- dd[d]
   x.tnsr <- as.tensor(x)
   tnsr.norm <- fnorm(x.tnsr)
-  factor.num <- array(NA, c(d-1,5,maxiter))
-  eigen.gap <- array(NA, c(d-1,max(dd[-d]),maxiter+1))
+  factor.num <- array(NA, c(d-1,5,maxiter+1))
+
+  if(is.null(r)){
+    r = rep(1,d-1)
+  }
   
   if(method=="TIPUP"){
     ans.init <- tipup.init.tensor(x,r,h0,norm.true=TRUE)
@@ -251,19 +227,19 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
     }else{
       stop('Wrong rank method !')
     }
-    eigen.gap[i,1:dd[i],1]=ans.init$lambda[[i]]
   }
+  r <- factor.num[,penalty,1]
   iiter <- 1
   dis <- 1
-  fnorm.resid <- rep(0,maxiter)
-  #x.hat <- get.hat(x.tnsr,ans.init$Q,d.seq)
+  fnorm.resid <- rep(0,maxiter+1)
   x.hat <- ttl(x.tnsr,lapply(ans.init$Q,t),d.seq)
   x.hat <- ttl(x.hat,ans.init$Q,d.seq)
-  
+
   fnorm.resid[1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
   ans.Q <- ans.init$Q
-  
+
   if(iter==TRUE){
+    for(i in 1:d){r[i] = min(dd[i],r[i]+1)}
     while((dis > tol) & (iiter < maxiter)){
       for(i in 1:(d-1)){
         x.new <- aperm(ttl(x.tnsr,lapply(ans.Q[-i],t),ms=d.seq[-i])@data,c(i,d.seq[-i],d))
@@ -277,7 +253,7 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
           stop('Wrong estimation method input !')
         }
         ddd=dd[-d]
-        
+
         if(rank=='BIC'|rank=='IC'){
           factor.num[i,,1+iiter]=tensor.bic(ans.iter$lambda[[1]]/sigmas.hat,h0,ddd[i],ddd[-i],n,delta1)
         }else if(rank=='ER'){
@@ -288,13 +264,11 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
         if(inputr==FALSE){
           r[i]=factor.num[i,penalty,1+iiter]
         }
-        
-        eigen.gap[i,1:dd[i],1+iiter]=ans.iter$lambda[[1]]
+
       }
-      #x.hat <- get.hat(x.tnsr,ans.Q,d.seq)
       x.hat <- ttl(x.tnsr,lapply(ans.Q,t),d.seq)
       x.hat <- ttl(x.hat,ans.Q,d.seq)
-      
+
       fnorm.resid[iiter+1] <- fnorm(x.tnsr-x.hat)/tnsr.norm
       dis <- abs(fnorm.resid[iiter+1] - fnorm.resid[iiter])
       if(iiter==1){
@@ -306,14 +280,23 @@ tenFM.rank = function(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,p
   }else{
     iiter <- iiter + 1
   }
-  
-  factor.num[,,maxiter]=factor.num[,,iiter]
-  eigen.gap[,,maxiter]=eigen.gap[,,iiter]
-  fnorm.resid <- fnorm.resid[fnorm.resid != 0]
-  norm.percent <- c(ans.init$norm.percent,fnorm.resid[1],tail(fnorm.resid,1))
-  return(list("path"=t(factor.num[,penalty,1:(iiter)]),"factor.num"=factor.num[,penalty,maxiter]))
-}
 
+  # factor.num[,,maxiter]=factor.num[,,iiter]
+  factor.num[,,maxiter]=factor.num[,,iiter-1]
+  fnorm.resid <- fnorm.resid[fnorm.resid != 0]
+
+  # label the factor number path
+  path = t(factor.num[,penalty,1:(iiter)])
+  path.rowname = c()
+  for(ii in 1:iiter){path.rowname <- c(path.rowname,paste('iteration ',ii-1,sep=''))}
+  path.colname = c()
+  for(ii in 1:(d-1)){path.colname <- c(path.colname,paste('mode ',ii,sep=''))}
+  rownames(path)=path.rowname
+  colnames(path)=path.colname
+  
+  # return(list("path"=t(factor.num[,penalty,1:(iiter)]),"factor.num"=factor.num[,penalty,maxiter]))
+  return(list("path"=path,"factor.num"=factor.num[,penalty,maxiter]))
+}
 
 #' Generate Tensor Time series using given Factor Process and Factor Loading Matrices
 #'
@@ -403,11 +386,11 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   factor.p1=numeric(5)
   p=p1*p2
   m1=ceiling(p1/3)
-  
+
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-  
+
   #threshold
   ic=cumlambda.p1[1:m1]/p^2*p^delta+(1:m1)*h0*(1/n)*log(p*n/(p+n))
   factor.p1[1]<-which.min(ic)
@@ -419,7 +402,7 @@ tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   factor.p1[4]<-which.min(ic)
   ic=cumlambda.p1[1:m1]/p^2*p^delta+(1:m1)*h0*(1/n+1/p)*log(min(p1,n))
   factor.p1[5]<-which.min(ic)
-  
+
   factor.p1
 }
 
@@ -430,11 +413,11 @@ tensor.ratio<-function(reigen,p1,p2,n){
   factor.p1=numeric(5)
   p=p1*p2
   m1=ceiling(p1/3)
-  
+
   lambda.p1<-reigen[p1:1]
   cumlambda.p1<-cumsum(lambda.p1)
   cumlambda.p1<-cumlambda.p1[(p1-1):1]
-  
+
   #ratio
   ratio<-lambda.p1[(p1-1):(p1-m1)]/lambda.p1[p1:(p1-m1+1)]
   factor.p1[1]<-which.min(ratio)
@@ -446,7 +429,7 @@ tensor.ratio<-function(reigen,p1,p2,n){
   factor.p1[4]<-which.min(ratio)
   ratio<-(lambda.p1[(p1-1):(p1-m1)] +p^2*(1/n^2/p1+1/n^2/p2))/(lambda.p1[p1:(p1-m1+1)] +p^2*(1/n^2/p1+1/n^2/p2))  #p^2*(1/n)*log(p*n/(p+n))
   factor.p1[5]<-which.min(ratio)
-  
+
   factor.p1
 }
 
@@ -500,7 +483,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   # x: d1 * d2 * d3 * ... * d_d * n
   # if oneside.true==TRUE, then only compute the one sided column space,
   # not the other sides, this option is useful for the iterative method
-  
+
   dd <- dim(x)
   d <- length(dd) # d >= 2
   n <- dd[d]
@@ -537,7 +520,7 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
     #x.hat <- get.hat(x.tnsr,ans.Q,1:(d-1))
     x.hat <- ttl(x.tnsr,lapply(ans.Q,t),1:(d-1))
     x.hat <- ttl(x.hat,ans.Q,1:(d-1))
-    
+
     norm.percent <- fnorm(x.tnsr-x.hat)/fnorm(x.tnsr)
     x.hat <- x.hat@data
   }
