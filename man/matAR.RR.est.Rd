@@ -5,7 +5,7 @@
 \title{Estimation for Reduced Rank MAR(1) Model}
 \usage{
 matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sig1.init=NULL,Sig2.init=NULL,
-k1=NULL, k2=NULL, niter=100,tol=1e-6)
+k1=NULL, k2=NULL, niter=100,tol=1e-4)
 }
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times d_2} matrix-valued time series, \eqn{T} is the length of the series.}
