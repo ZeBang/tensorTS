@@ -10,7 +10,7 @@ delta1=0,tol=1e-5,maxiter=100)
 \arguments{
 \item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}
 
-\item{r}{input rank of the factor tensor.}
+\item{r}{initial guess of the rank of factor tensor.}
 
 \item{h0}{the number of lags used in auto-covariance tensor.}
 
@@ -24,25 +24,27 @@ delta1=0,tol=1e-5,maxiter=100)
  \item{\code{"TOPUP",}}{TOPUP method.}
 }}
 
-\item{inputr}{boolean, if TRUE, use input rank for each iteration; if FLASE, update the rank r in each iteration.}
+\item{inputr}{boolean, if TRUE, always use initial guess rank r in each iteration; if FLASE, the rank will be updated in each iteration.}
 
 \item{iter}{boolean, specifying using an iterative approach or a non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }. \cr
-When \code{rank}= '\code{IC}':\cr
-if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};\cr
-if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};\cr
-if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};\cr
-if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};\cr
-if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.\cr
-When \code{rank}= '\code{ER}':\cr
-if \code{penalty}=1, \eqn{h_1= c_0 h_0};\cr
-if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};\cr
-if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};\cr
-if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};\cr
-if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.\cr}
+\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+ \describe{
+ \item{}{When \code{rank}= '\code{IC}':}
+ \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+ \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
+ \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+ \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+ \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
+ \item{}{When \code{rank}= '\code{ER}':}
+ \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
+ \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
+ \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+ \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+ \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
+}}
 
-\item{delta1}{weakest factor strength, a tuning parameter used for IC method only, default value is 0.}
+\item{delta1}{weakest factor strength, a tuning parameter used for IC method only}
 
 \item{tol}{tolerance in terms of the Frobenius norm.}
 
@@ -50,7 +52,7 @@ if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2
 }
 \value{
 return a list containing the following:\describe{
-\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The \eqn{i}-th column is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i-1)}-th iteration.}
+\item{\code{path}}{a \eqn{K \times (\rm{niter}+1)} matrix of the estimated Tucker rank of the factor process as a path of the maximum number of iteration (\eqn{\rm{niter}}) used. The first row is the estimated rank under non-iterative approach, the \eqn{i+1}-th row is the estimated rank \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K} at \eqn{(i)}-th iteration.}
 \item{\code{factor.num}}{final solution of the estimated Tucker rank of the factor process \eqn{\hat r_1, \hat r_2, \cdots, \hat r_K}.}
 }
 }
@@ -83,7 +85,7 @@ r <- c(3,3,3)  # dimensions of factor series
 Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 lambda <- sqrt(prod(dims))
 x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-rank <- tenFM.rank(x,c(4,4,4),h0=1,rank='ER',method='TIPUP')  # Estimate the rank
+rank <- tenFM.rank(x,r=c(4,4,4),h0=1,rank='IC',iter=TRUE,method='TIPUP')  # Estimate the rank
 }
 \references{
 Han, Yuefeng, Cun-Hui Zhang, and Rong Chen. "Rank Determination in Tensor Factor Model." Available at SSRN 3730305 (2020).

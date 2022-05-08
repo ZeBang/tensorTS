@@ -127,7 +127,7 @@ tenAR.sim <- function(t, dim, R, P, rho, cov, A=NULL, Sig=NULL){
 #' the first layer for the lag \eqn{1 \le i \le P}, the second the term \eqn{1 \le r \le R}, and the third the mode \eqn{1 \le k \le K}. See "Details".}
 #'\item{\code{SIGMA}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
 #'\item{\code{res}}{residuals}
-#'\item{\code{Sig}}{sample covariance matrix of the residuals vec(\hat \eqn{E_t}).}
+#'\item{\code{Sig}}{sample covariance matrix of the residuals vec(\eqn{\hat E_t}).}
 #'\item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_k^{(ir)}}}
 #'\item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_k^{(ir)}}, returned as a list aligned with \code{A}.}
 #'\item{\code{niter}}{number of iterations.}
@@ -184,7 +184,7 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #' Estimation of the reduced rank MAR(1) model, using least squares (RRLSE) or MLE (RRMLE), as determined by the value of \code{method}.
 #'@details
 #' The reduced rank MAR(1) model takes the form:
-#' \deqn{X_t =  A_1 X_{t-1} A_2^{\prime} + E_t,}
+#' \deqn{X_t =  A_1 X_{t-1} A_2^{^\top} + E_t,}
 #' where \eqn{A_i} are \eqn{d_i \times d_i} coefficient matrices of ranks \eqn{\mathrm{rank}(A_i) = k_i \le d_i}, \eqn{i=1,2}. For the MLE method we also assume
 #'  \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}
 #'
@@ -219,9 +219,9 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #'\item{\code{Sig1}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 #'\item{\code{Sig2}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 #'\item{\code{res}}{residuals.}
-#'\item{\code{Sig}}{sample covariance matrix of the residuals vec(\hat \eqn{E_t}).}
+#'\item{\code{Sig}}{sample covariance matrix of the residuals vec(\eqn{\hat E_t}).}
 #'\item{\code{cov}}{a list containing \describe{
-#'  \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
+#'  \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^{\top}})).}
 #'  \item{\code{Theta1.u}, \code{Theta1.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}), vec(\eqn{\hat V_1}).}
 #'  \item{\code{Theta2.u}, \code{Theta2.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}), vec(\eqn{\hat V_2}).}
 #'}}
@@ -278,7 +278,7 @@ matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL,
 #'}
 #'@param Sigma.e only if \code{method} = "RRLSE". Cov(vec(\eqn{E_t})) = Sigma.e: covariance matrix of dimension \eqn{(d_1 d_2) \times (d_1 d_2)}
 #'@param Sigma1,Sigma2 only if \code{method} = "RRMLE". Cov(vec(\eqn{E_t})) = \eqn{\Sigma_2 \otimes \Sigma_1}. \eqn{\Sigma_i} is \eqn{d_i \times d_i}, \eqn{i=1,2}.
-#'@param RU1,RV1,RU2,RV2 orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 RU1
+#'@param RU1,RV1,RU2,RV2 orthogonal rotations of \eqn{U_1,V_1,U_2,V_2}, e.g., new_U1=U1 \code{RU1}.
 #'@param mpower truncate the VMA(\eqn{\infty}) representation of vec(\eqn{X_t}) at \code{mpower} for the purpose of calculating the autocovariances. The default is 100.
 #'@return a list containing the following:\describe{
 #'\item{\code{Sigma}}{asymptotic covariance matrix of (vec(\eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}

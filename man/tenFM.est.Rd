@@ -9,7 +9,7 @@ tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
 \arguments{
 \item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}
 
-\item{r}{input rank of the factor tensor.}
+\item{r}{input rank of factor tensor.}
 
 \item{h0}{the number of lags used in auto-covariance tensor.}
 
@@ -20,14 +20,12 @@ tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
 
 \item{iter}{boolean, specifying using an iterative approach or an non-iterative approach.}
 
-\item{vmax}{boolean, specifying using varimax rotation on the factor matrix or not.}
-
 \item{tol}{tolerance in terms of the Frobenius norm.}
 
 \item{maxiter}{maximum number of iterations if error stays above \code{tol}.}
 }
 \value{
-return a list containing the following:\describe{
+returns a list containing the following:\describe{
 \item{\code{Ft}}{estimated factor processes of dimension \eqn{T \times r_1 \times r_2 \times \cdots \times r_k}.}
 \item{\code{Ft.all}}{Summation of factor processes over time, of dimension \eqn{r_1,r_2,\cdots,r_k}.}
 \item{\code{Q}}{a list of estimated factor loading matrices \eqn{Q_1,Q_2,\cdots,Q_K}. }
@@ -61,7 +59,7 @@ r <- c(3,3,3)  # dimensions of factor series
 Ft <- tenAR.sim(t=100, dim=r, R=1, P=1, rho=0.9, cov='iid')
 lambda <- sqrt(prod(dims))
 x <- tenFM.sim(Ft,dims=dims,lambda=lambda,A=NULL,cov='iid') # generate t*dims tensor time series
-result <- tenFM.est(x,r,method='TIPUP')  # Estimation
+result <- tenFM.est(x,r,h0=1,iter=TRUE,method='TIPUP')  # Estimation
 Ft <- result$Ft
 }
 \references{

@@ -9,9 +9,9 @@ tenAR.est(xx,R=1,P=1,method="LSE",init.A=NULL,init.sig=NULL,niter=150,tol=1e-6)
 \arguments{
 \item{xx}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series, \eqn{T} is the length of the series.}
 
-\item{R}{Kronecker rank for each lag.}
+\item{R}{Kronecker rank for each lag, a vector for \eqn{P>1}, a positive integer, it assumes same number of terms in each lag.}
 
-\item{P}{Autoregressive order.}
+\item{P}{Autoregressive order, a positive integer.}
 
 \item{method}{character string, specifying the type of the estimation method to be used. \describe{
  \item{\code{"PROJ",}}{Projection method.}
@@ -36,7 +36,7 @@ return a list containing the following:\describe{
 the first layer for the lag \eqn{1 \le i \le P}, the second the term \eqn{1 \le r \le R}, and the third the mode \eqn{1 \le k \le K}. See "Details".}
 \item{\code{SIGMA}}{only if \code{method=MLE}, a list of estimated \eqn{\Sigma_1,\ldots,\Sigma_K}.}
 \item{\code{res}}{residuals}
-\item{\code{Sig}}{covariance matrix \eqn{\mathrm{cov}(\mathrm{vec}({E_t}))}.}
+\item{\code{Sig}}{sample covariance matrix of the residuals vec(\eqn{\hat E_t}).}
 \item{\code{cov}}{grand covariance matrix of all estimated entries of \eqn{A_k^{(ir)}}}
 \item{\code{sd}}{standard errors of the coefficient matrices \eqn{A_k^{(ir)}}, returned as a list aligned with \code{A}.}
 \item{\code{niter}}{number of iterations.}
@@ -64,19 +64,20 @@ set.seed(333)
 
 dim <- c(2,2,2)
 xx <- tenAR.sim(t=100, dim, R=2, P=1, rho=0.5, cov='iid')
-est <- tenAR.est(xx, R=2, P=1, method="LSE")
+est <- tenAR.est(xx, R=2, P=1, method="LSE") # two-term tenAR(1) model
 A <- est$A # A is a multi-layer list
 
 length(A) == 1 # TRUE, since the order P = 1
 length(A[[1]]) == 2 # TRUE, since the number of terms R = 2
 length(A[[1]][[1]]) == 3 # TRUE, since the mode K = 3
 
+# est <- tenAR.est(xx, R=c(1,2), P=2, method="LSE") # tenAR(2) model with R1=1, R2=2
 
 # case 2: matrix-valued time series
 
 dim <- c(2,2)
 xx <- tenAR.sim(t=100, dim, R=2, P=1, rho=0.5, cov='iid')
-est <- tenAR.est(xx, R=2, P=1, method="LSE")
+est <- tenAR.est(xx, R=2, P=1, method="LSE") # two-term MAR(1) model 
 A <- est$A # A is a multi-layer list
 
 length(A) == 1 # TRUE, since the order P = 1

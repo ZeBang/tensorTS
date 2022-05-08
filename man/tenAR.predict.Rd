@@ -4,12 +4,12 @@
 \alias{tenAR.predict}
 \title{Predictions for Tensor Autoregressive Models}
 \usage{
-tenAR.predict(object, n.head = 1, xx = NULL, rolling = FALSE, n0 = NULL)
+tenAR.predict(object, n.ahead = 1, xx = NULL, rolling = FALSE, n0 = NULL)
 }
 \arguments{
 \item{object}{a model object returned by \code{tenAR.est()}.}
 
-\item{n.head}{prediction horizon.}
+\item{n.ahead}{prediction horizon.}
 
 \item{xx}{\eqn{T^{\prime} \times d_1 \times \cdots \times d_K} new tensor time series to be used for prediction. Must have at least \code{n.ahead} length.}
 
@@ -18,9 +18,9 @@ tenAR.predict(object, n.head = 1, xx = NULL, rolling = FALSE, n0 = NULL)
 \item{n0}{only if \code{rolling = TRUE}, the starting point of rolling forecast.}
 }
 \value{
-a tensor time series of length \code{n.head} if \code{rolling = FALSE};
+a tensor time series of length \code{n.ahead} if \code{rolling = FALSE};
 
-a tensor time series of length \eqn{T^{\prime} - n_0 - n.head + 1} if \code{rolling = TRUE}.
+a tensor time series of length \eqn{T^{\prime} - n_0 - n.ahead + 1} if \code{rolling = TRUE}.
 }
 \description{
 Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
@@ -31,20 +31,20 @@ dim <- c(2,2,2)
 t = 20
 xx <- tenAR.sim(t, dim, R=2, P=1, rho=0.5, cov='iid')
 est <- tenAR.est(xx, R=1, P=1, method="LSE")
-pred <- tenAR.predict(est, n.head = 1, xx = xx)
+pred <- tenAR.predict(est, n.ahead = 1, xx = xx)
 # rolling forcast
 n0 = t - min(50,t/2)
-pred.rolling <- tenAR.predict(est, n.head = 5, xx = xx, rolling=TRUE, n0)
+pred.rolling <- tenAR.predict(est, n.ahead = 5, xx = xx, rolling=TRUE, n0)
 
 # prediction for reduced rank MAR(1) model
 dim <- c(2,2)
 t = 20
 xx <- tenAR.sim(t, dim, R=1, P=1, rho=0.5, cov='iid')
 est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-pred <- tenAR.predict(est, n.head = 1)
+pred <- tenAR.predict(est, n.ahead = 1)
 # rolling forcast
 n0 = t - min(50,t/2)
-pred.rolling <- tenAR.predict(est, n.head = 5, rolling=TRUE, n0=n0)
+pred.rolling <- tenAR.predict(est, n.ahead = 5, rolling=TRUE, n0=n0)
 }
 \seealso{
 'predict.ar' or 'predict.arima'

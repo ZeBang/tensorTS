@@ -40,13 +40,14 @@ where we write \eqn{A_i=U_iD_iV_i} as the singular value decomposition (SVD) of 
 \item{\code{Sig1}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 \item{\code{Sig2}}{only if \code{method=MLE}, when \eqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}.}
 \item{\code{res}}{residuals.}
-\item{\code{Sig}}{covariance matrix cov(vec(\eqn{E_t}))}
+\item{\code{Sig}}{sample covariance matrix of the residuals vec(\eqn{\hat E_t}).}
 \item{\code{cov}}{a list containing \describe{
- \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^T})).}
+ \item{\code{Sigma}}{asymptotic covariance matrix of (vec( \eqn{\hat A_1}),vec(\eqn{\hat A_2^{\top}})).}
  \item{\code{Theta1.u}, \code{Theta1.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_1}), vec(\eqn{\hat V_1}).}
  \item{\code{Theta2.u}, \code{Theta2.v}}{asymptotic covariance matrix of vec(\eqn{\hat U_2}), vec(\eqn{\hat V_2}).}
 }}
-\item{\code{sd}}{standard errors of \eqn{\hat A_1} and \eqn{\hat A_2}, returned in a list aligned with \eqn{\hat A_1} and \eqn{\hat A_2}.}
+\item{\code{sd.A1}}{element-wise standard errors of \eqn{\hat A_1}, aligned with \code{A1}.}
+\item{\code{sd.A2}}{element-wise standard errors of \eqn{\hat A_2}, aligned with \code{A2}.}
 \item{\code{niter}}{number of iterations.}
 \item{\code{BIC}}{value of the extended Bayesian information criterion.}
 }
@@ -56,7 +57,7 @@ Estimation of the reduced rank MAR(1) model, using least squares (RRLSE) or MLE 
 }
 \details{
 The reduced rank MAR(1) model takes the form:
-\deqn{X_t =  A_1 X_{t-1} A_2^{\prime} + E_t,}
+\deqn{X_t =  A_1 X_{t-1} A_2^{^\top} + E_t,}
 where \eqn{A_i} are \eqn{d_i \times d_i} coefficient matrices of ranks \eqn{\mathrm{rank}(A_i) = k_i \le d_i}, \eqn{i=1,2}. For the MLE method we also assume
  \deqn{\mathrm{Cov}(\mathrm{vec}(E_t))=\Sigma_2 \otimes \Sigma_1}
 }

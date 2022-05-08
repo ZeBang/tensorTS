@@ -16,5 +16,7 @@ Version 0.1.3:
 4. Update tenAR.PROJ.
 5. Update some issues in tenFM.R.
 
+Version 1.0.0:
 
+1. This is the version we used to run simulations for our R software paper.
 
