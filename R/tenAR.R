@@ -192,7 +192,7 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #'@rdname matAR.RR.est
 #'@aliases matAR.RR.est
 #'@usage matAR.RR.est(xx, method, A1.init=NULL, A2.init=NULL,Sig1.init=NULL,Sig2.init=NULL,
-#'k1=NULL, k2=NULL, niter=100,tol=1e-6)
+#'k1=NULL, k2=NULL, niter=100,tol=1e-4)
 #'@export
 #'@import tensor rTensor expm
 #'@importFrom MASS ginv

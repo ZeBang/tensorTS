@@ -4,7 +4,7 @@
 \alias{tenFM.est}
 \title{Estimation for Tucker structure Factor Models of Tensor-Valued Time Series}
 \usage{
-tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
+tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-5,maxiter=100)
 }
 \arguments{
 \item{x}{\eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.}
