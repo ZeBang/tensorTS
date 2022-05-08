@@ -18,7 +18,7 @@
 #'@name tenFM.est
 #'@rdname tenFM.est
 #'@aliases tenFM.est
-#'@usage tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
+#'@usage tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-5,maxiter=100)
 #'@export
 #'@importFrom stats varimax
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
