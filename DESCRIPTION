@@ -1,7 +1,7 @@
 Package: tensorTS
 Type: Package
 Title: Factor and Autoregressive Models for Tensor Time Series
-Version: 1.0.0
+Version: 1.1.0
 Authors@R: c(
     person("Zebang", "Li", email = "zl326@stat.rutgers.edu", role=c("aut","cre")),
     person("Ruofan", "Yu", role = "aut"),
@@ -14,13 +14,12 @@ Description: Factor and autoregressive models for matrix and tensor valued time 
     Chen et al (2020) <DOI:10.1016/j.jeconom.2020.07.015>, and Xiao et al (2020) <arXiv:2006.02611>.
 License: GPL (>= 2)
 Encoding: UTF-8
-Depends: tensor, rTensor, expm
-Imports: methods, stats, MASS, abind, Matrix, pracma, graphics
+Imports: tensor, rTensor, expm, methods, stats, MASS, abind, Matrix, pracma, graphics
 URL: https://github.com/zebang/tensorTS
 BugReports: https://github.com/ZeBang/tensorTS/issues
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.3
 NeedsCompilation: no
-Packaged: 2021-08-10 06:15:50 UTC; jyb2010
+Packaged: 2022-05-08 14:36:04 UTC; zeban
 Author: Zebang Li [aut, cre],
   Ruofan Yu [aut],
   Rong Chen [aut],
@@ -29,4 +28,4 @@ Author: Zebang Li [aut, cre],
   Dan Yang [aut]
 Maintainer: Zebang Li <zl326@stat.rutgers.edu>
 Repository: CRAN
-Date/Publication: 2021-08-10 06:40:02 UTC
+Date/Publication: 2022-05-08 15:10:02 UTC

@@ -1,12 +1,12 @@
 What's New?
 
-Version 0.1.1:
-1. Fixed some typos in DESCRIPTION.
+Version 1.1.0:
 
-Version 0.1.2:
-1. Fixed some bugs in matAR.RR.est. (Now this func can be used for MatAR and full rank reduced-rank MatAR.)
-2. Update tenAR.est to support MatAR.
-3. Update tenAR.est such that now input should be numeric array instead of "as.tensor()".
+1. This is the version we used to run simulations for our R software paper.
+
+Version 1.0.0:
+
+1. Fixed some bugs.
 
 Version 0.1.3:
 
@@ -16,7 +16,16 @@ Version 0.1.3:
 4. Update tenAR.PROJ.
 5. Update some issues in tenFM.R.
 
-Version 1.0.0:
+Version 0.1.2:
+1. Fixed some bugs in matAR.RR.est. (Now this func can be used for MatAR and full rank reduced-rank MatAR.)
+2. Update tenAR.est to support MatAR.
+3. Update tenAR.est such that now input should be numeric array instead of "as.tensor()".
 
-1. This is the version we used to run simulations for our R software paper.
+
+Version 0.1.1:
+
+1. Fixed some typos in DESCRIPTION.
+
+
+
 

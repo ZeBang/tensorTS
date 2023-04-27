@@ -13,7 +13,8 @@
 # mat projection
 matAR.PROJ <- function(xx, dim, r, t){
   xx.mat <- matrix(xx,t,dim[1]*dim[2])
-  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  # kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% solve(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),])
+  kroneck <- t(xx.mat[2:t,]) %*% xx.mat[1:(t-1),] %*% chol2inv(chol(t(xx.mat[1:(t-1),]) %*% xx.mat[1:(t-1),]))
   return(projection(kroneck, r, dim[1],dim[2],dim[1],dim[2]))
 }
 
@@ -46,8 +47,8 @@ covtosd <- function(cov, dim, R){
   for (i in c(1:P)){
     for (j in c(1:R[i])){
       for (k in c(1:K)){
-        left <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:(k-1)])+1
-        right <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[1:k])
+        left <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[0:(k-1)]) + 1
+        right <- sum(dim^2)*sum(R[0:(i-1)]) + sum(dim^2)*(j-1) + sum((dim^2)[0:k])
         sd[[i]][[j]][[k]] <- array(sqrt(diag(cov)[left:right]), c(dim[k], dim[k]))
       }
     }
@@ -85,7 +86,7 @@ trearrange <- function(A,dim){
   m <- nrow(A)
   n <- ncol(A)
   if(n!=n1*n2*n3 | m!=m1*m2*m3){
-    stop("wrong dimention with your input Phi for rearrangement")
+    stop("wrong dimension with your input Phi for rearrangement")
   }
   ans <- divide(A,m1,n1)
   dim <- c(m1*n1,m2*n2,m3*n3)
@@ -124,7 +125,7 @@ mrearrange <- function(A,m1,m2,n1,n2){
   if(n!=n1*n2 | m!=m1*m2){
     stop("error m")
   }
-  ans <- matrix(NA, m1*n1, m2*n2)
+  ans <- matrix(NA_real_, m1*n1, m2*n2)
   for(i in 1:m1){
     for(j in 1:n1){
       ans[(j-1)*m1+i,] <- t(as.vector(A[(i-1)*m2+1:m2,(j-1)*n2+1:n2]))
@@ -198,7 +199,7 @@ fro.rescale <- function(A){
       } else if (i == k){
         A[[j]][[i]] <- m * prod(a)
       } else {
-        print("WRONG dimension")
+        stop("WRONG dimension")
       }
     }
   }
@@ -218,7 +219,7 @@ svd.rescale <- function(A){
       } else if (i == k){
         A[[j]][[i]] <- m * prod(a)
       } else {
-        print("WRONG dimension")
+        stop("WRONG dimension")
       }
     }
   }
@@ -238,7 +239,7 @@ eigen.rescale <- function(A){
       } else if (i == k){
         A[[j]][[i]] <- m * prod(a)
       } else {
-        print("WRONG dimension")
+        stop("WRONG dimension")
       }
     }
   }
@@ -265,6 +266,7 @@ ten.dis.A <- function(A, B, R, K){
   P = length(R)
   dis <- 0
   for (p in c(1:P)){
+    if (R[p] == 0) next
     for (r in c(1:R[p])){
       for (k in c(1:K)){
         dis <- dis + min(sum((A[[p]][[r]][[k]] - B[[p]][[r]][[k]])^2), sum((A[[p]][[r]][[k]] + B[[p]][[r]][[k]])^2))
@@ -284,13 +286,13 @@ ten.dis.phi <- function(phi.A, phi.B){
 }
 
 
-ten.res <- function(xx,A,P,R,K,t){
+ten.res <- function(subxx,A,P,R,K,ttlMode){
   L1 = 0
   for (l in c(1:P)){
     if (R[l] == 0) next
-    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(abind::asub(xx, (1+P-l):(t-l), 1, drop=FALSE), A[[l]][[n]], (c(1:K) + 1))}))
+    L1 <- L1 + Reduce("+",lapply(c(1:R[l]), function(n) {rTensor::ttl(subxx[[l+1]], A[[l]][[n]], ttlMode)}))
   }
-  res <- abind::asub(xx, (1+P):(t), 1, drop=FALSE) - L1
+  res <- subxx[[1]] - L1
   return(res)
 }
 
@@ -318,25 +320,6 @@ M.eigen <- function(A, R, P, dim){
 
 specRadius <- function(M){
   return(max(Mod(eigen(M, only.values = TRUE)$values)))
-}
-
-likelihood <- function(xx, A, Sigma){
-  if (!(mode(xx) == "S4")) {xx <- as.tensor(xx)}
-  r <- length(A[[1]])
-  dd <- dim(xx)
-  t <- dd[1]
-  dim <- dd[-1]
-  k <- length(dd[-1])
-  i = 1
-  res <- ten.res(xx,A,P=1,R=r,K=k,t=t)@data
-  Sigma.inv <- lapply(1:k, function (i) {solve(Sigma[[i]])})
-  ll <- tl(res, Sigma.inv)
-  l1 <- sum(diag(tensor(ll, res, c(1:4)[-(i+1)],c(1:4)[-(i+1)])))
-  l2 <- 0
-  for (i in c(1:k)){
-    l2 = l2 - prod(dim[-i]) * (t-1) * (log(det(Sigma[[i]])))
-  }
-  return((l2 - l1)/2)
 }
 
 
@@ -411,3 +394,4 @@ IC <- function(xx,res,r,t,dim){
   ic <- log(sum((res)^2)/(N*t))/2 + sum(r)*log(t)/t
   return(ic)
 }
+
