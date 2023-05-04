@@ -1859,14 +1859,14 @@ predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL) {
       method = "RRMLE"
     }
   } else if (!is.null(object$coef)){
-    A <- list(list(object$coef))
+    A <- object$coef
     method = "VAR"
   } else {
     A <- object$A
   }
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   if (rolling == TRUE){
-    return(predict.rolling(A, xx@data, n.ahead, method, n0))
+    return(predRolling(A, xx@data, n.ahead, method, n0))
   }
   P <- length(A)
   R <- sapply(c(1:P), function(l){length(A[[l]])})
@@ -1885,7 +1885,7 @@ predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL) {
 }
 
 
-predict.rolling <- function(A, xx, n.ahead, method, n0){
+predRolling <- function(A, xx, n.ahead, method, n0){
   if (method == "RRLSE" | method == "RRMLE"){
     k1 <- rankMatrix(A[[1]][[1]][[1]])
     k2 <- rankMatrix(A[[1]][[1]][[2]])
