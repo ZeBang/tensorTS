@@ -371,16 +371,18 @@ taxi.sim.FM <- function(t,print.tar.coef=FALSE,print.loading=FALSE,seed=216){
 #' length(A[[1]][[1]]) == 2 # TRUE, since the mode K = 2
 tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, niter=150, tol=1e-6){
   if (identical("PROJ", method)) {
-    tenAR.PROJ(xx, R, P)
+    model <- tenAR.PROJ(xx, R, P)
   } else if (identical("LSE", method)) {
-    tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
+    model <- tenAR.LS(xx, R, P, init.A, niter, tol, print.true=FALSE)
   } else if (identical("MLE", method)) {
-    tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
+    model <- tenAR.MLE(xx, R, P, init.A, init.sig, niter, tol, print.true=FALSE)
   } else if (identical("VAR", method)) {
-    tenAR.VAR(xx, P)
+    model <- tenAR.VAR(xx, P)
   } else {
     stop("Please specify the type you want to use. See manuals or run ?tenAR for details.")
   }
+  # Create an S3 object of the tenAR class
+  tenAR(model)
 }
 
 
@@ -444,20 +446,22 @@ tenAR.est <- function(xx, R=1, P=1, method="LSE", init.A=NULL, init.sig=NULL, ni
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
 matAR.RR.est <- function(xx, method, A1.init=NULL, A2.init=NULL, Sig1.init=NULL, Sig2.init=NULL,k1=NULL, k2=NULL, niter=200,tol=1e-4){
   if (identical("PROJ", method)) {
-    MAR1.PROJ(xx) # just keep it there
+    model <- MAR1.PROJ(xx) # just keep it there
   } else if (identical("LSE", method)) {
-    MAR1.LS(xx, niter=niter, tol=tol) # just keep it there
+    model <- MAR1.LS(xx, niter=niter, tol=tol) # just keep it there
   } else if (identical("MLE", method)) {
-    MAR1.MLE(xx, Sigl.init=Sig1.init,Sigr.init=Sig2.init, niter=niter, tol=tol) # just keep it there
+    model <- MAR1.MLE(xx, Sigl.init=Sig1.init,Sigr.init=Sig2.init, niter=niter, tol=tol) # just keep it there
   } else if (identical("VAR", method)) {
-    tenAR.VAR(xx, P=1)
+    model <- tenAR.VAR(xx, P=1)
   } else if (identical("RRLSE", method)) {
-    MAR1.RR(xx=xx, k1=k1, k2=k2, A1.init=A1.init, A2.init=A2.init, niter=niter, tol=tol)
+    model <- MAR1.RR(xx=xx, k1=k1, k2=k2, A1.init=A1.init, A2.init=A2.init, niter=niter, tol=tol)
   } else if (identical("RRMLE", method)) {
-    MAR1.CC(xx=xx, k1=k1, k2=k2, A1.init=A1.init, A2.init=A2.init, Sigl.init=Sig1.init, Sigr.init=Sig2.init, niter=niter, tol=tol)
+    model <- MAR1.CC(xx=xx, k1=k1, k2=k2, A1.init=A1.init, A2.init=A2.init, Sigl.init=Sig1.init, Sigr.init=Sig2.init, niter=niter, tol=tol)
   } else {
     stop("Please specify the method in MAR.")
   }
+  # Create an S3 object of the tenAR class
+  tenAR(model)
 }
 
 
@@ -1800,13 +1804,19 @@ mplot.acf <- function(xx){
   }
 }
 
+
+# Define S3 class for the base model
+tenAR <- function(model) {
+  structure(model, class = "tenAR")
+}
+
+
 #' Predictions for Tensor Autoregressive Models
 #'
-#' Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
-#'@name tenAR.predict
-#'@rdname tenAR.predict
-#'@aliases tenAR.predict
-#'@export
+#' S3 method for the 'tenAR' class using the generic predict function. Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
+#'@name predict.tenAR
+#'@rdname predict.tenAR
+#'@aliases predict.tenAR
 #'@importFrom abind abind
 #'@param object a model object returned by \code{tenAR.est()}.
 #'@param n.ahead prediction horizon.
@@ -1824,21 +1834,22 @@ mplot.acf <- function(xx){
 #' t = 20
 #' xx <- tenAR.sim(t, dim, R=2, P=1, rho=0.5, cov='iid')
 #' est <- tenAR.est(xx, R=1, P=1, method="LSE")
-#' pred <- tenAR.predict(est, n.ahead = 1, xx = xx)
+#' pred <- predict(est, n.ahead = 1)
 #' # rolling forcast
 #' n0 = t - min(50,t/2)
-#' pred.rolling <- tenAR.predict(est, n.ahead = 5, xx = xx, rolling=TRUE, n0)
+#' pred.rolling <- predict(est, n.ahead = 5, xx = xx, rolling=TRUE, n0)
 #'
 #' # prediction for reduced rank MAR(1) model
 #' dim <- c(2,2)
 #' t = 20
 #' xx <- tenAR.sim(t, dim, R=1, P=1, rho=0.5, cov='iid')
 #' est <- matAR.RR.est(xx, method="RRLSE", k1=1, k2=1)
-#' pred <- tenAR.predict(est, n.ahead = 1)
+#' pred <- predict(est, n.ahead = 1)
 #' # rolling forcast
 #' n0 = t - min(50,t/2)
-#' pred.rolling <- tenAR.predict(est, n.ahead = 5, rolling=TRUE, n0=n0)
-tenAR.predict <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL){
+#' pred.rolling <- predict(est, n.ahead = 5, rolling=TRUE, n0=n0)
+predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL) {
+  if (is.null(xx)) {xx <- object$data}
   if (is.null(object$SIGMA)){method = "LSE"} else {method = "MLE"}
   if (!is.null(object$A1)){
     A <- list(list(list(object$A1, object$A2)))
@@ -1848,12 +1859,11 @@ tenAR.predict <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL){
       method = "RRMLE"
     }
   } else if (!is.null(object$coef)){
-    A <- object$coef
+    A <- list(list(object$coef))
     method = "VAR"
   } else {
     A <- object$A
   }
-  if (is.null(xx)){xx = object$data}
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   if (rolling == TRUE){
     return(predict.rolling(A, xx@data, n.ahead, method, n0))
@@ -1880,7 +1890,6 @@ predict.rolling <- function(A, xx, n.ahead, method, n0){
     k1 <- rankMatrix(A[[1]][[1]][[1]])
     k2 <- rankMatrix(A[[1]][[1]][[2]])
   }
-
   P <- length(A)
   dim <- dim(xx)[-1]
   t <- dim(xx)[1]
@@ -1922,30 +1931,4 @@ predict.rolling <- function(A, xx, n.ahead, method, n0){
     if (tti == 1){xx.pred = L1} else {xx.pred = abind(xx.pred, L1, along=1)}
   }
   return(xx.pred)
-}
-
-
-
-.getpos <- function(mode, rank){
-  pos = 0
-  for (k in c(1:length(mode))){
-    if (k > 1){mode[k] = mode[k] - 1}
-    pos = pos + rank[k]*mode[k]
-  }
-  return(pos)
-}
-
-.getrank <- function(dim){
-  rank = array(1, length(dim))
-  for (k in c(1:length(dim))){
-    if (k > 1){ for (q in c(1:(k-1))){rank[k] = rank[k]*(rev(dim)[q])}}
-  }
-  return(rank)
-}
-
-.remove.mean <- function(xx){
-  dim <- xx@modes
-  m <- apply(xx@data, c(2:xx@num_modes), mean)
-  mm <- aperm(array(m, c(dim[-1],dim[1])), c(xx@num_modes,c(1:(xx@num_modes-1))))
-  return(xx - mm)
 }

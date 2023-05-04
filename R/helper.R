@@ -1,14 +1,5 @@
 ### Helper functions
 
-# myslice <- function(xx, K, start, end){
-#   if (K==2){
-#     return(xx[start:end,,,drop=FALSE])
-#   } else if (K==3){
-#     return(xx[start:end,,,,drop=FALSE])
-#   } else {
-#     stop("not support tensor mode K > 3")
-#   }
-# }
 
 # mat projection
 matAR.PROJ <- function(xx, dim, r, t){
@@ -395,3 +386,29 @@ IC <- function(xx,res,r,t,dim){
   return(ic)
 }
 
+
+.getpos <- function(mode, rank){
+  pos = 0
+  for (k in c(1:length(mode))){
+    if (k > 1){mode[k] = mode[k] - 1}
+    pos = pos + rank[k]*mode[k]
+  }
+  return(pos)
+}
+
+
+.getrank <- function(dim){
+  rank = array(1, length(dim))
+  for (k in c(1:length(dim))){
+    if (k > 1){ for (q in c(1:(k-1))){rank[k] = rank[k]*(rev(dim)[q])}}
+  }
+  return(rank)
+}
+
+
+.remove.mean <- function(xx){
+  dim <- xx@modes
+  m <- apply(xx@data, c(2:xx@num_modes), mean)
+  mm <- aperm(array(m, c(dim[-1],dim[1])), c(xx@num_modes,c(1:(xx@num_modes-1))))
+  return(xx - mm)
+}
