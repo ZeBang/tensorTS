@@ -1018,7 +1018,7 @@ MAR1.LS <- function(xx,niter=50,tol=1e-6,print.true = FALSE){
   res=xx[2:T,,,drop=FALSE] - aperm(tensor(tensor(xx[1:(T-1),,,drop=FALSE],RR,3,1),LL,2,2),c(1,3,2))
   Sig <- matrix(tensor(res,res,1,1),p*q)/(T-1)
   sd <- MAR.SE(xx, t(RR), LL, Sig)
-  return(list(A1=LL,A2=t(RR),res=res,Sig=Sig,niter=iiter,sd=sd,data=xx))
+  return(list(A1=LL,A2=t(RR),res=res,Sig=Sig,niter=iiter,sd=sd))
 }
 
 
@@ -1095,7 +1095,7 @@ MAR1.MLE <- function(xx,LL.init=NULL,Sigl.init=NULL,Sigr.init=NULL,niter=50,tol=
   }
   Sig <- kronecker(Sigr,Sigl)
   sd <- MAR.SE(xx, t(RR), LL, Sig)
-  return(list(A1=LL,A2=t(RR),res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter,sd=sd,data=xx))
+  return(list(A1=LL,A2=t(RR),res=res,Sig1=Sigl,Sig2=Sigr,Sig=Sig,niter=iiter,sd=sd))
 }
 
 

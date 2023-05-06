@@ -283,7 +283,6 @@ tenFM.rank = function(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=T
     iiter <- iiter + 1
   }
 
-  # factor.num[,,maxiter]=factor.num[,,iiter]
   factor.num[,,maxiter]=factor.num[,,iiter-1]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
 
@@ -296,7 +295,6 @@ tenFM.rank = function(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=T
   rownames(path)=path.rowname
   colnames(path)=path.colname
   
-  # return(list("path"=t(factor.num[,penalty,1:(iiter)]),"factor.num"=factor.num[,penalty,maxiter]))
   return(list("path"=path,"factor.num"=factor.num[,penalty,maxiter]))
 }
 
@@ -380,6 +378,90 @@ tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
   #return(as.tensor(X))
   return(X)
 }
+
+
+#' Simulate taxi data using tenFM models
+#'
+#' Simulate tensor time series by tensor factor models, using estimated autoregressive coefficients and loading matrices from taxi data.
+#'@name taxi.sim.FM
+#'@rdname taxi.sim.FM
+#'@aliases taxi.sim.FM
+#'@usage taxi.sim.FM(t=252, print.tar.coef=FALSE, print.loading=FALSE, seed=216)
+#'@export
+#'@param t length of output series.
+#'@param print.tar.coef print autoregressive coefficients, default FALSE.
+#'@param print.loading print loading matrices, default FALSE.
+#'@param seed random seed.
+#'@return A tensor-valued time series of dimension (12,12,24,t).
+#'@seealso \code{\link{taxi.sim.FM}}
+#'@examples
+#' xx = taxi.sim.FM(t=252)
+taxi.sim.FM <- function(t=252,print.tar.coef=FALSE,print.loading=FALSE,seed=216){
+  Tar.coef <- list(list(list()))
+  Tar.coef[[1]][[1]][[1]] = array(c(-0.4163,0.0603,-0.0199,0.0598,
+                                    -0.1268,-0.6219,-0.0551,-0.0251,
+                                    -0.0127,-0.0001,-0.4572,-0.0376,
+                                    0.0609,0.0252,0.0629,-0.4402),c(4,4))
+  Tar.coef[[1]][[1]][[2]] = array(c(-0.5453,-0.0369,0.0001,-0.1130,
+                                    -0.0373,-0.3590,-0.0214,0.0495,
+                                    0.0143,0.0460,-0.5629,0.1233,
+                                    -0.0004,-0.0562,-0.0165,-0.4665),c(4,4))
+  Tar.coef[[1]][[1]][[3]] = array(c(2.4676,-0.1332,-0.8460,
+                                    0.0790,2.7971,1.0344,
+                                    0.0161,0.1530,2.2103),c(3,3))
+  
+  Ft.sim = tenAR.sim(t,c(4,4,3),1,1,0.75,cov='iid',A=Tar.coef)
+  
+  TenFM.loading <- list()
+  TenFM.loading[[1]] <- array(c(-0.0174,0.5156,0.7721,-0.0091,
+                                0.0144,0.0642,-0.0669,0.2077,
+                                0.1589,-0.1657,0.1534,0.0974,
+                                -0.0244,-0.2971,0.1886,0.4857,
+                                0.5956,0.4564,0.0048,0.0893,
+                                0.0954,0.1663,-0.1619,-0.0754,
+                                0.0425,0.1996,-0.1284,0.0394,
+                                0.1303,-0.075,0.9188,0.0558,
+                                0.2527,-0.0502,0.0412,-0.0475
+                                ,0.0488,0.1473,-0.0298,0.0373,
+                                -0.0908,-0.0362,0.0222,0.217,
+                                -0.0499,0.8853,0.2375,0.2719),c(12,4))
+  
+  TenFM.loading[[2]] <- array(c(0.0702,0.1259,0.0871,0.0326,
+                                -0.1502,-0.0305,-0.0944,0.1303,
+                                -0.0689,0.8668,0.326,0.2426,
+                                0.0149,-0.1486,-0.003,0.3198,
+                                0.6435,0.5675,0.2212,0.0831,
+                                0.0294,0.2313,-0.1049,-0.135,
+                                0.1907,0.3001,-0.4953,0.0643,
+                                0.1615,-0.4072,0.6467,-0.0243,
+                                0.0842,0.0563,0.04,0.0406,
+                                -0.0172,0.4402,0.679,0.0091,
+                                0.0411,0.0321,0.2927,0.2469,
+                                0.3524,-0.1841,0.0998,0.1658),c(12,4))
+  
+  TenFM.loading[[3]] <- array(c(0.0154,-0.0069,-0.0202,-0.0274,0.012,0.1211,0.5732,0.6597,0.2467,0.0892,0.0782,-0.0387,
+                                -0.1062,-0.1301,-0.1278,-0.0974,-0.0549,-0.0906,-0.1478,1e-04,0.0444,0.146,0.1595,0.0884,
+                                -0.0185,-9e-04,0.0081,0.0133,0.0073,0.0038,-0.0264,0.0503,0.4405,0.5292,0.3513,0.3057,
+                                0.3002,0.2485,0.1912,0.1482,0.0859,0.1151,0.1946,0.0649,-0.0482,-0.1162,-0.1059,-0.0711,
+                                0.1099,0.0588,0.0311,0.0172,0.012,0.0164,0.033,0.0503,-0.1235,-0.1558,-0.0354,0.0292,
+                                0.0678,0.1212,0.1926,0.2267,0.2584,0.3059,0.2854,0.3422,0.3934,0.391,0.3234,0.2422),c(24,3))
+  
+  
+  if(print.tar.coef==TRUE){
+    print('Tensor Autoregressive Coefficient matrices used to simulate the tensor factor data : ')
+    print(Tar.coef)
+  }
+  if(print.loading==TRUE){
+    print('Tensor Factor loading matrices used to simulate the tensor data : ')
+    print(TenFM.loading)
+  }
+  
+  Xt.sim = tensor(tensor(tensor(Ft.sim,TenFM.loading[[1]],2,2),TenFM.loading[[2]],2,2),TenFM.loading[[3]],2,2)
+  set.seed(seed)
+  y.midtown = Xt.sim*10 + array(rnorm(prod(dim(Xt.sim))),dim(Xt.sim))
+  return(y.midtown)
+}
+
 
 
 # Define S3 class for the base model
