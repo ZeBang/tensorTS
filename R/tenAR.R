@@ -1811,7 +1811,7 @@ tenAR <- function(model) {
 }
 
 
-#' Predictions for Tensor Autoregressive Models
+#' Predict funcions for Tensor Autoregressive Models
 #'
 #' S3 method for the 'tenAR' class using the generic predict function. Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
 #'@name predict.tenAR
@@ -1824,6 +1824,7 @@ tenAR <- function(model) {
 #'@param xx \eqn{T^{\prime} \times d_1 \times \cdots \times d_K} new tensor time series to be used for prediction. Must have at least \code{n.ahead} length.
 #'@param rolling TRUE or FALSE, rolling forecast, is FALSE by default.
 #'@param n0 only if \code{rolling = TRUE}, the starting point of rolling forecast.
+#'@param ... Additional arguments passed to the method.
 #'@return
 #'a tensor time series of length \code{n.ahead} if \code{rolling = FALSE};
 #'
@@ -1849,7 +1850,7 @@ tenAR <- function(model) {
 #' # rolling forcast
 #' n0 = t - min(50,t/2)
 #' pred.rolling <- predict(est, n.ahead = 5, rolling=TRUE, n0=n0)
-predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL) {
+predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL, ...) {
   if (is.null(xx)) {xx <- object$data}
   if (is.null(object$SIGMA)){method = "LSE"} else {method = "MLE"}
   if (!is.null(object$A1)){
