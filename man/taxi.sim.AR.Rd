@@ -7,19 +7,19 @@
 taxi.sim.AR(t, print.tar.coef=FALSE, print.sig=FALSE, seed=123)
 }
 \arguments{
-\item{t}{length of output series, a strictly positive integer.}
+\item{t}{length of output series.}
 
 \item{print.tar.coef}{print coefficients, default FALSE.}
 
 \item{print.sig}{print covariance matrices, default FALSE.}
 
-\item{seed}{random seed, equals 123 by default.}
+\item{seed}{random seed.}
 }
 \value{
 A tensor-valued time series of dimension (5,5,7).
 }
 \description{
-Simulate from the TenAR(2) model, using estimated coefficients.
+Simulate tensor time series by autoregressive models, using estimated coefficients by taxi data.
 }
 \examples{
 xx = taxi.sim.AR(t=753)

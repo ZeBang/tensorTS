@@ -1817,6 +1817,7 @@ tenAR <- function(model) {
 #'@name predict.tenAR
 #'@rdname predict.tenAR
 #'@aliases predict.tenAR
+#'@export
 #'@importFrom abind abind
 #'@param object a model object returned by \code{tenAR.est()}.
 #'@param n.ahead prediction horizon.
