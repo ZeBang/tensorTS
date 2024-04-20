@@ -18,7 +18,7 @@
 #'@name tenFM.est
 #'@rdname tenFM.est
 #'@aliases tenFM.est
-#'@usage tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100)
+#'@usage tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,vmax=FALSE,tol=1e-5,maxiter=100)
 #'@export
 #'@importFrom stats varimax
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
@@ -120,12 +120,8 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
   x0 <- matrix(x,prod(dd[-d]))
   x0 <- t(scale(t(x0),scale=FALSE) )
   x0 <- array(x0,dd)
-  
-  model = list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter])
-  tenFM = tenFM(model)
-  return(tenFM)
+  return(list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter]))
 }
-
 
 #' Rank Determination for Tensor Factor Models with Tucker Structure
 #'
@@ -152,7 +148,7 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
 #'@rdname tenFM.rank
 #'@aliases tenFM.rank
 #'@usage tenFM.rank(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
-#'delta1=0,tol=1e-4,maxiter=100)
+#'delta1=0,tol=1e-5,maxiter=100)
 #'@export
 #'@param x \eqn{T \times d_1 \times \cdots \times d_K} tensor-valued time series.
 #'@param r initial guess of the rank of factor tensor.
@@ -168,18 +164,20 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
 #'@param inputr boolean, if TRUE, always use initial guess rank r in each iteration; if FLASE, the rank will be updated in each iteration.
 #'@param iter boolean, specifying using an iterative approach or a non-iterative approach.
 #'@param penalty takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
-#' When \code{rank}= '\code{IC}':\cr
-#' if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};\cr
-#' if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};\cr
-#' if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};\cr
-#' if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};\cr
-#' if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.\cr
-#' When \code{rank}= '\code{ER}':\cr
-#' if \code{penalty}=1, \eqn{h_1= c_0 h_0};\cr
-#' if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};\cr
-#' if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};\cr
-#' if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};\cr
-#' if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.\cr
+#'  \describe{
+#'  \item{}{When \code{rank}= '\code{IC}':}
+#'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
+#'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+#'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
+#'  \item{}{When \code{rank}= '\code{ER}':}
+#'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
+#'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
+#'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+#'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+#'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
+#'}
 #'@param delta1 weakest factor strength, a tuning parameter used for IC method only
 #'@param tol tolerance in terms of the Frobenius norm.
 #'@param maxiter maximum number of iterations if error stays above \code{tol}.
@@ -283,6 +281,7 @@ tenFM.rank = function(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=T
     iiter <- iiter + 1
   }
 
+  # factor.num[,,maxiter]=factor.num[,,iiter]
   factor.num[,,maxiter]=factor.num[,,iiter-1]
   fnorm.resid <- fnorm.resid[fnorm.resid != 0]
 
@@ -295,9 +294,9 @@ tenFM.rank = function(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=T
   rownames(path)=path.rowname
   colnames(path)=path.colname
   
+  # return(list("path"=t(factor.num[,penalty,1:(iiter)]),"factor.num"=factor.num[,penalty,maxiter]))
   return(list("path"=path,"factor.num"=factor.num[,penalty,maxiter]))
 }
-
 
 #' Generate Tensor Time series using given Factor Process and Factor Loading Matrices
 #'
@@ -379,97 +378,6 @@ tenFM.sim <- function(Ft,dims=NULL,lambda=1,A=NULL,cov='iid',rho=0.2){
   return(X)
 }
 
-
-#' Simulate taxi data using tenFM models
-#'
-#' Simulate tensor time series by tensor factor models, using estimated autoregressive coefficients and loading matrices from taxi data.
-#'@name taxi.sim.FM
-#'@rdname taxi.sim.FM
-#'@aliases taxi.sim.FM
-#'@usage taxi.sim.FM(t=252, print.tar.coef=FALSE, print.loading=FALSE, seed=216)
-#'@export
-#'@param t length of output series.
-#'@param print.tar.coef print autoregressive coefficients, default FALSE.
-#'@param print.loading print loading matrices, default FALSE.
-#'@param seed random seed.
-#'@return A tensor-valued time series of dimension (12,12,24,t).
-#'@seealso \code{\link{taxi.sim.FM}}
-#'@examples
-#' xx = taxi.sim.FM(t=252)
-taxi.sim.FM <- function(t=252,print.tar.coef=FALSE,print.loading=FALSE,seed=216){
-  Tar.coef <- list(list(list()))
-  Tar.coef[[1]][[1]][[1]] = array(c(-0.4163,0.0603,-0.0199,0.0598,
-                                    -0.1268,-0.6219,-0.0551,-0.0251,
-                                    -0.0127,-0.0001,-0.4572,-0.0376,
-                                    0.0609,0.0252,0.0629,-0.4402),c(4,4))
-  Tar.coef[[1]][[1]][[2]] = array(c(-0.5453,-0.0369,0.0001,-0.1130,
-                                    -0.0373,-0.3590,-0.0214,0.0495,
-                                    0.0143,0.0460,-0.5629,0.1233,
-                                    -0.0004,-0.0562,-0.0165,-0.4665),c(4,4))
-  Tar.coef[[1]][[1]][[3]] = array(c(2.4676,-0.1332,-0.8460,
-                                    0.0790,2.7971,1.0344,
-                                    0.0161,0.1530,2.2103),c(3,3))
-  
-  Ft.sim = tenAR.sim(t,c(4,4,3),1,1,0.75,cov='iid',A=Tar.coef)
-  
-  TenFM.loading <- list()
-  TenFM.loading[[1]] <- array(c(-0.0174,0.5156,0.7721,-0.0091,
-                                0.0144,0.0642,-0.0669,0.2077,
-                                0.1589,-0.1657,0.1534,0.0974,
-                                -0.0244,-0.2971,0.1886,0.4857,
-                                0.5956,0.4564,0.0048,0.0893,
-                                0.0954,0.1663,-0.1619,-0.0754,
-                                0.0425,0.1996,-0.1284,0.0394,
-                                0.1303,-0.075,0.9188,0.0558,
-                                0.2527,-0.0502,0.0412,-0.0475
-                                ,0.0488,0.1473,-0.0298,0.0373,
-                                -0.0908,-0.0362,0.0222,0.217,
-                                -0.0499,0.8853,0.2375,0.2719),c(12,4))
-  
-  TenFM.loading[[2]] <- array(c(0.0702,0.1259,0.0871,0.0326,
-                                -0.1502,-0.0305,-0.0944,0.1303,
-                                -0.0689,0.8668,0.326,0.2426,
-                                0.0149,-0.1486,-0.003,0.3198,
-                                0.6435,0.5675,0.2212,0.0831,
-                                0.0294,0.2313,-0.1049,-0.135,
-                                0.1907,0.3001,-0.4953,0.0643,
-                                0.1615,-0.4072,0.6467,-0.0243,
-                                0.0842,0.0563,0.04,0.0406,
-                                -0.0172,0.4402,0.679,0.0091,
-                                0.0411,0.0321,0.2927,0.2469,
-                                0.3524,-0.1841,0.0998,0.1658),c(12,4))
-  
-  TenFM.loading[[3]] <- array(c(0.0154,-0.0069,-0.0202,-0.0274,0.012,0.1211,0.5732,0.6597,0.2467,0.0892,0.0782,-0.0387,
-                                -0.1062,-0.1301,-0.1278,-0.0974,-0.0549,-0.0906,-0.1478,1e-04,0.0444,0.146,0.1595,0.0884,
-                                -0.0185,-9e-04,0.0081,0.0133,0.0073,0.0038,-0.0264,0.0503,0.4405,0.5292,0.3513,0.3057,
-                                0.3002,0.2485,0.1912,0.1482,0.0859,0.1151,0.1946,0.0649,-0.0482,-0.1162,-0.1059,-0.0711,
-                                0.1099,0.0588,0.0311,0.0172,0.012,0.0164,0.033,0.0503,-0.1235,-0.1558,-0.0354,0.0292,
-                                0.0678,0.1212,0.1926,0.2267,0.2584,0.3059,0.2854,0.3422,0.3934,0.391,0.3234,0.2422),c(24,3))
-  
-  
-  if(print.tar.coef==TRUE){
-    print('Tensor Autoregressive Coefficient matrices used to simulate the tensor factor data : ')
-    print(Tar.coef)
-  }
-  if(print.loading==TRUE){
-    print('Tensor Factor loading matrices used to simulate the tensor data : ')
-    print(TenFM.loading)
-  }
-  
-  Xt.sim = tensor(tensor(tensor(Ft.sim,TenFM.loading[[1]],2,2),TenFM.loading[[2]],2,2),TenFM.loading[[3]],2,2)
-  set.seed(seed)
-  y.midtown = Xt.sim*10 + array(rnorm(prod(dim(Xt.sim))),dim(Xt.sim))
-  return(y.midtown)
-}
-
-
-
-# Define S3 class for the base model
-tenFM <- function(model) {
-  structure(model, class = "tenFM")
-}
-
-
 tensor.bic<-function(reigen,h0=1,p1,p2,n,delta1=0){
   delta=2*delta1
   if(length(p2)>1){
@@ -544,11 +452,16 @@ tipup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
   ans.M <- ans.Q <- ans.lambda <- NULL
   for(i in 1:k){
     M.temp <- matrix(0,dd[i],dd[i])
-    for(h in 1:h0){
-      x.left <- array(x.matrix[,1:(n-h)],c(dd[-d],n-h))
-      x.right <- array(x.matrix[,(h+1):n],c(dd[-d],n-h))
-      Omega <- tensor(x.left,x.right,c(1:d)[-i],c(1:d)[-i])/(n-h)
+    if(h0==0){
+      Omega <- tensor(x,x,c(1:d)[-i],c(1:d)[-i])/n
       M.temp <- M.temp + Omega %*% t(Omega)
+    }else{
+      for(h in 1:h0){
+        x.left <- array(x.matrix[,1:(n-h)],c(dd[-d],n-h))
+        x.right <- array(x.matrix[,(h+1):n],c(dd[-d],n-h))
+        Omega <- tensor(x.left,x.right,c(1:d)[-i],c(1:d)[-i])/(n-h)
+        M.temp <- M.temp + Omega %*% t(Omega)
+      }
     }
     #M.temp <- M.temp / dd.prod * dd[i]
     ans.eig <- eigen(M.temp)
@@ -592,14 +505,23 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
     M.temp <- matrix(0,dd[i],dd[i])
     ans.M <- c(ans.M,list(M.temp))
   }
-  for(h in 1:h0){
-    x.left <- array(x.matrix[,1:(n-h)],c(dd[-d],n-h))
-    x.right <- array(x.matrix[,(h+1):n],c(dd[-d],n-h))
-    Omega <- tensor(x.left,x.right,d,d)/(n-h)
+  
+  if(h0==0){
+    Omega <- tensor(x,x,d,d)/n
     for(i in 1:k){
       ans.M[[i]] <- ans.M[[i]] + tensor(Omega,Omega,c(1:(2*(d-1)))[-i],c(1:(2*(d-1)))[-i])
     }
+  }else{
+    for(h in 1:h0){
+      x.left <- array(x.matrix[,1:(n-h)],c(dd[-d],n-h))
+      x.right <- array(x.matrix[,(h+1):n],c(dd[-d],n-h))
+      Omega <- tensor(x.left,x.right,d,d)/(n-h)
+      for(i in 1:k){
+        ans.M[[i]] <- ans.M[[i]] + tensor(Omega,Omega,c(1:(2*(d-1)))[-i],c(1:(2*(d-1)))[-i])
+      }
+    }
   }
+  
   for(i in 1:k){
     ans.eig <- eigen(ans.M[[i]])
     ans.Q <- c(ans.Q,list(ans.eig$vectors[,1:r[i],drop=FALSE]))
