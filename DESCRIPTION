@@ -1,9 +1,9 @@
 Package: tensorTS
 Type: Package
 Title: Factor and Autoregressive Models for Tensor Time Series
-Version: 1.0.1
+Version: 1.0.2
 Authors@R: c(
-    person("Zebang", "Li", email = "zl326@stat.rutgers.edu", role=c("aut","cre")),
+    person("Zebang", "Li", email = "zebang1228@gmail.com", role=c("aut","cre")),
     person("Ruofan", "Yu", role = "aut"),
     person("Rong", "Chen", role = "aut"),
     person("Yuefeng", "Han", role = "aut"),
@@ -26,6 +26,6 @@ Author: Zebang Li [aut, cre],
   Yuefeng Han [aut],
   Han Xiao [aut],
   Dan Yang [aut]
-Maintainer: Zebang Li <zl326@stat.rutgers.edu>
+Maintainer: Zebang Li <zebang1228@gmail.com>
 Repository: CRAN
 Date/Publication: 2022-05-08 15:10:02 UTC
