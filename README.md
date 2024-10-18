@@ -10,7 +10,7 @@ For more details please see the manual file for the full documentation:
 
 <https://cran.r-project.org/web/packages/tensorTS/tensorTS.pdf>
 
-Also see the pacakge paper
+Also see the package paper
 
 <https://statweb.rutgers.edu/hxiao/jss22.pdf>
 
