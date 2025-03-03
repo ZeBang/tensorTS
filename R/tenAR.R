@@ -1805,12 +1805,6 @@ mplot.acf <- function(xx){
 }
 
 
-# Define S3 class for the base model
-tenAR <- function(model) {
-  structure(model, class = "tenAR")
-}
-
-
 #' Predict funcions for Tensor Autoregressive Models
 #'
 #' S3 method for the 'tenAR' class using the generic predict function. Prediction based on the tensor autoregressive model or reduced rank MAR(1) model. If \code{rolling = TRUE}, returns the rolling forecasts.
@@ -1824,6 +1818,7 @@ tenAR <- function(model) {
 #'@param xx \eqn{T^{\prime} \times d_1 \times \cdots \times d_K} new tensor time series to be used for prediction. Must have at least \code{n.ahead} length.
 #'@param rolling TRUE or FALSE, rolling forecast, is FALSE by default.
 #'@param n0 only if \code{rolling = TRUE}, the starting point of rolling forecast.
+#'@param print.true only if \code{rolling = TRUE}, print the rolling forcast steps.
 #'@param ... Additional arguments passed to the method.
 #'@return
 #'a tensor time series of length \code{n.ahead} if \code{rolling = FALSE};
@@ -1850,7 +1845,7 @@ tenAR <- function(model) {
 #' # rolling forcast
 #' n0 = t - min(50,t/2)
 #' pred.rolling <- predict(est, n.ahead = 5, rolling=TRUE, n0=n0)
-predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL, ...) {
+predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL, print.true=TRUE,...) {
   if (is.null(xx)) {xx <- object$data}
   if (is.null(object$SIGMA)){method = "LSE"} else {method = "MLE"}
   if (!is.null(object$A1)){
@@ -1868,7 +1863,7 @@ predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL, ..
   }
   if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
   if (rolling == TRUE){
-    return(predRolling(A, xx@data, n.ahead, method, n0))
+    return(predRolling(A, xx@data, n.ahead, method, n0, print.true))
   }
   P <- length(A)
   R <- sapply(c(1:P), function(l){length(A[[l]])})
@@ -1887,7 +1882,7 @@ predict.tenAR <- function(object, n.ahead=1, xx=NULL, rolling=FALSE, n0=NULL, ..
 }
 
 
-predRolling <- function(A, xx, n.ahead, method, n0){
+predRolling <- function(A, xx, n.ahead, method, n0, print.true=TRUE){
   if (method == "RRLSE" | method == "RRMLE"){
     k1 <- rankMatrix(A[[1]][[1]][[1]])
     k2 <- rankMatrix(A[[1]][[1]][[2]])
@@ -1905,7 +1900,7 @@ predRolling <- function(A, xx, n.ahead, method, n0){
   ttt <- (n0):(t - n.ahead)
   for(tt in ttt){
     tti <- tt - ttt[1] + 1
-    print(paste("rolling forcast t =", tti))
+    if (print.true == TRUE){cat(paste("rolling forcast t =", tti))}
     if (method == "RRLSE"){
       model <- MAR1.RR(abind::asub(xx, 1:tt, 1, drop=FALSE), k1, k2)
       A <- list(list(list(model$A1, model$A2)))
@@ -1933,4 +1928,68 @@ predRolling <- function(A, xx, n.ahead, method, n0){
     if (tti == 1){xx.pred = L1} else {xx.pred = abind(xx.pred, L1, along=1)}
   }
   return(xx.pred)
+}
+
+
+# Define S3 class for the base model
+tenAR <- function(model) {
+  structure(model, class = "tenAR")
+}
+
+# Print method for tenAR class
+print.tenAR <- function(x, ...) {
+  cat("Tensor Autoregressive Model\n")
+  cat("Number of iterations:", x$niter, "\n")
+  cat("BIC:", x$BIC, "\n")
+}
+
+# Summary method for tenAR class
+summary.tenAR <- function(object, ...) {
+  cat("Summary of Tensor Autoregressive Model\n")
+  cat("Number of iterations:", object$niter, "\n")
+  cat("BIC:", object$BIC, "\n")
+  cat("Coefficient matrices:\n")
+  print(object$A)
+  # cat("Residuals:\n")
+  # print(object$res)
+  cat("Covariance matrix:\n")
+  print(object$Sig)
+}
+
+# Fitted values method for tenAR class
+fitted.tenAR <- function(object, ...) {
+  return(object$data - object$res)
+}
+
+# Residuals method for tenAR class
+residuals.tenAR <- function(object, ...) {
+  return(object$res)
+}
+
+# Log-likelihood method for tenAR class
+logLik.tenAR <- function(object,...) {
+  xx = object$xx
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dim <- xx@modes[-1]
+  t <- xx@modes[[1]]
+  n <- prod(dim)
+  res <- object$res
+  loglik <- -log(sum((res)^2)/(n*t))/2
+  return(loglik)
+}
+
+bic.tenAR <- function(object, rmax=5, ...){
+  xx = object$xx
+  if (mode(xx) != "S4") {xx <- rTensor::as.tensor(xx)}
+  dim <- xx@modes[-1]
+  t <- xx@modes[[1]]
+  n <- prod(dim)
+  ans <- c()
+  for (r in c(1:rmax)){
+    # est <- tenAR.LS(xx, R=r, P=1)
+    # ans[r] <- IC(xx,est$res,r,t, dim)
+    logLik <- logLik.tenAR(object)
+    ans[r] <- -logLik + sum(r)*log(t)/t
+  }
+  which.min(ans)
 }

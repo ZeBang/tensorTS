@@ -4,7 +4,7 @@
 \alias{tenFM.rank}
 \title{Rank Determination for Tensor Factor Models with Tucker Structure}
 \usage{
-tenFM.rank(x,r,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
+tenFM.rank(x,r=NULL,h0=1,rank='IC',method='TIPUP',inputr=FALSE,iter=TRUE,penalty=1,
 delta1=0,tol=1e-4,maxiter=100)
 }
 \arguments{
@@ -12,7 +12,7 @@ delta1=0,tol=1e-4,maxiter=100)
 
 \item{r}{initial guess of the rank of factor tensor.}
 
-\item{h0}{the number of lags used in auto-covariance tensor.}
+\item{h0}{the number of lags used in auto-covariance tensor. If h0=0, covariance tensor is used.}
 
 \item{rank}{character string, specifying the type of the rank determination method to be used. \describe{
  \item{\code{"IC",}}{information criterion.}
@@ -28,19 +28,21 @@ delta1=0,tol=1e-4,maxiter=100)
 
 \item{iter}{boolean, specifying using an iterative approach or a non-iterative approach.}
 
-\item{penalty}{takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
-When \code{rank}= '\code{IC}':\cr
-if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};\cr
-if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};\cr
-if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};\cr
-if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};\cr
-if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.\cr
-When \code{rank}= '\code{ER}':\cr
-if \code{penalty}=1, \eqn{h_1= c_0 h_0};\cr
-if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};\cr
-if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};\cr
-if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};\cr
-if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.\cr}
+\item{penalty}{takes value in \eqn{1,2,3,4,5}, decides which penalty function to use for each tensor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+ \describe{
+ \item{When}{\code{rank}= '\code{IC}':}
+ \item{if \code{penalty}=1,}{\eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+ \item{if \code{penalty}=2,}{\eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
+ \item{if \code{penalty}=3,}{\eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+ \item{if \code{penalty}=4,}{\eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+ \item{if \code{penalty}=5,}{\eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
+ \item{When}{\code{rank}= '\code{ER}':}
+ \item{if \code{penalty}=1,}{\eqn{h_1= c_0 h_0};}
+ \item{if \code{penalty}=2,}{\eqn{h_2= \frac{h_0 d^2}{T^2}};}
+ \item{if \code{penalty}=3,}{\eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+ \item{if \code{penalty}=4,}{\eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+ \item{if \code{penalty}=5,}{\eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
+}}
 
 \item{delta1}{weakest factor strength, a tuning parameter used for IC method only}
 

@@ -11,7 +11,7 @@ tenFM.est(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100)
 
 \item{r}{input rank of factor tensor.}
 
-\item{h0}{the number of lags used in auto-covariance tensor.}
+\item{h0}{the number of lags used in auto-covariance tensor. If h0=0, covariance tensor is used.}
 
 \item{method}{character string, specifying the type of the estimation method to be used. \describe{
  \item{\code{"TIPUP",}}{TIPUP method.}

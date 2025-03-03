@@ -4,7 +4,15 @@
 \alias{predict.tenAR}
 \title{Predict funcions for Tensor Autoregressive Models}
 \usage{
-\method{predict}{tenAR}(object, n.ahead = 1, xx = NULL, rolling = FALSE, n0 = NULL, ...)
+\method{predict}{tenAR}(
+  object,
+  n.ahead = 1,
+  xx = NULL,
+  rolling = FALSE,
+  n0 = NULL,
+  print.true = TRUE,
+  ...
+)
 }
 \arguments{
 \item{object}{a model object returned by \code{tenAR.est()}.}
@@ -16,6 +24,8 @@
 \item{rolling}{TRUE or FALSE, rolling forecast, is FALSE by default.}
 
 \item{n0}{only if \code{rolling = TRUE}, the starting point of rolling forecast.}
+
+\item{print.true}{only if \code{rolling = TRUE}, print the rolling forcast steps.}
 
 \item{...}{Additional arguments passed to the method.}
 }

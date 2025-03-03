@@ -120,7 +120,8 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
   x0 <- matrix(x,prod(dd[-d]))
   x0 <- t(scale(t(x0),scale=FALSE) )
   x0 <- array(x0,dd)
-  return(list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter]))
+  model = list("Ft"=aperm(Ft@data,c(d,1:(d-1))),"Ft.all"=Ft.all,"Q"=ans.Q,"x.hat"=aperm(x.hat@data,c(d,1:(d-1))),"niter"=iiter,"fnorm.resid"=fnorm.resid[iiter])
+  return(tenFM(model))
 }
 
 #' Rank Determination for Tensor Factor Models with Tucker Structure
@@ -163,20 +164,20 @@ tenFM.est=function(x,r,h0=1,method='TIPUP',iter=TRUE,tol=1e-4,maxiter=100){
 #'}
 #'@param inputr boolean, if TRUE, always use initial guess rank r in each iteration; if FLASE, the rank will be updated in each iteration.
 #'@param iter boolean, specifying using an iterative approach or a non-iterative approach.
-#'@param penalty takes value in {1,2,3,4,5}, decides which penalty function to use for each tesnor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
+#'@param penalty takes value in \eqn{1,2,3,4,5}, decides which penalty function to use for each tensor mode \eqn{k}. Here \eqn{\nu} is a tuning parameter defined in the argument "\code{delta1}", and \eqn{d=\prod_{i=1}^{K} d_k }.
 #'  \describe{
-#'  \item{}{When \code{rank}= '\code{IC}':}
-#'  \item{}{if \code{penalty}=1, \eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
-#'  \item{}{if \code{penalty}=2, \eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
-#'  \item{}{if \code{penalty}=3, \eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
-#'  \item{}{if \code{penalty}=4, \eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
-#'  \item{}{if \code{penalty}=5, \eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
-#'  \item{}{When \code{rank}= '\code{ER}':}
-#'  \item{}{if \code{penalty}=1, \eqn{h_1= c_0 h_0};}
-#'  \item{}{if \code{penalty}=2, \eqn{h_2= \frac{h_0 d^2}{T^2}};}
-#'  \item{}{if \code{penalty}=3, \eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
-#'  \item{}{if \code{penalty}=4, \eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
-#'  \item{}{if \code{penalty}=5, \eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
+#'  \item{When}{\code{rank}= '\code{IC}':}
+#'  \item{if \code{penalty}=1,}{\eqn{g_1= \frac{h_0 d^{2-2\nu}}{T}\log(\frac{dT}{d+T})};}
+#'  \item{if \code{penalty}=2,}{\eqn{g_2= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\frac{dT}{d+T})};}
+#'  \item{if \code{penalty}=3,}{\eqn{g_3= \frac{h_0 d^{2-2\nu}}{T} \log(\min{(d,T)})};}
+#'  \item{if \code{penalty}=4,}{\eqn{g_4= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d,T)})};}
+#'  \item{if \code{penalty}=5,}{\eqn{g_5= h_0 d^{2-2\nu}(\frac{1}{T}+\frac{1}{d})\log(\min{(d_k,T)})}.}
+#'  \item{When}{\code{rank}= '\code{ER}':}
+#'  \item{if \code{penalty}=1,}{\eqn{h_1= c_0 h_0};}
+#'  \item{if \code{penalty}=2,}{\eqn{h_2= \frac{h_0 d^2}{T^2}};}
+#'  \item{if \code{penalty}=3,}{\eqn{h_3= \frac{h_0 d^2}{T^2 d_k^2}};}
+#'  \item{if \code{penalty}=4,}{\eqn{h_4= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 d_k^2}{T^2}};}
+#'  \item{if \code{penalty}=5,}{\eqn{h_5= \frac{h_0 d^2}{T^2 d_k^2} + \frac{h_0 dd_k^2}{T^2}}.}
 #'}
 #'@param delta1 weakest factor strength, a tuning parameter used for IC method only
 #'@param tol tolerance in terms of the Frobenius norm.
@@ -539,4 +540,36 @@ topup.init.tensor <- function(x,r,h0=1,oneside.true=FALSE,norm.true=FALSE){
     x.hat <- x.hat@data
   }
   list("M"=ans.M,"Q"=ans.Q,"lambda"=ans.lambda,"norm.percent"=norm.percent,"x.hat"=x.hat)
+}
+
+# Define S3 class for the base model
+tenFM <- function(model) {
+  structure(model, class = "tenFM")
+}
+
+# Print method for tenFM class
+print.tenFM <- function(object, ...) {
+  cat("Factor Models of Tensor-Valued Time Series\n")
+  cat("Number of iterations:", object$"niter", "\n")
+  cat("fnorm.resid:",object$"fnorm.resid","\n")
+}
+
+# Summary method for tenAR class
+summary.tenFM <- function(object, ...) {
+  cat("Summary of Factor Models of Tensor-Valued Time Series\n")
+  cat("Number of iterations:", object$"niter", "\n")
+  cat("fnorm.resid:",object$"fnorm.resid","\n")
+  # print(object$res)
+  # cat("Covariance matrix:\n")
+  # print(object$Sig)
+}
+
+# Fitted values method for tenAR class
+fitted.tenFM <- function(object, ...) {
+  return(object$"x.hat")
+}
+
+# Residuals method for tenAR class
+residuals.tenFM <- function(object, ...) {
+  return(object$"fnorm.resid")
 }
